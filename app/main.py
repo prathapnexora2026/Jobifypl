@@ -49,6 +49,7 @@ app.include_router(wallet.plans_router)
 app.include_router(misc.notif_router)
 app.include_router(misc.chat_router)
 app.include_router(misc.contact_router)
+app.include_router(misc.testotp_router)   # test-only OTP viewer (auto-disabled when SMS goes live)
 app.include_router(admin.router)
 
 # Serve uploaded files (dev). Production will use object storage instead.

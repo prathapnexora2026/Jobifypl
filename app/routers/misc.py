@@ -176,3 +176,39 @@ def send_contact(body: ContactIn, db: Session = Depends(get_db)):
     db.add(ContactMessage(name=body.name, email=body.email, phone=body.phone, message=body.message))
     db.commit()
     return {"status": "success", "msg": "Message sent. We'll get back to you."}
+
+
+# ---------------- TEST-ONLY OTP viewer ----------------
+# Lets a small group of testers read their own OTP on-screen while SMS is not yet
+# live (SMS_DEV_MODE=True). It does NOT touch the real auth flow — it only READS the
+# latest unconsumed code for a phone. Auto-disables the moment real SMS goes live
+# (SMS_DEV_MODE=False), so it can never leak OTPs in production.
+import datetime as dt
+from app.config import settings
+from app.models import OtpCode
+
+testotp_router = APIRouter(prefix="/testotp", tags=["test-otp"])
+
+
+class PeekOtpIn(BaseModel):
+    phone: str
+
+
+@testotp_router.post("/peek")
+def peek_otp(body: PeekOtpIn, db: Session = Depends(get_db)):
+    if not settings.SMS_DEV_MODE:
+        raise HTTPException(403, "This test helper is disabled (real SMS is live).")
+    phone = (body.phone or "").strip()
+    if not phone.startswith("+") or len(phone) < 8:
+        raise HTTPException(400, "Enter a valid phone number with country code, e.g. +48...")
+    otp = (
+        db.query(OtpCode)
+        .filter(OtpCode.phone == phone, OtpCode.consumed == False)
+        .order_by(OtpCode.id.desc())
+        .first()
+    )
+    if not otp:
+        raise HTTPException(404, "No pending OTP for this number. Request one in the app first.")
+    if otp.expires_at < dt.datetime.utcnow():
+        raise HTTPException(400, "That OTP expired — request a new one in the app.")
+    return {"status": "success", "phone": phone, "code": otp.code}

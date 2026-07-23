@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>JobifyPL — Tester OTP</title>
+<style>
+  :root{ --navy:#18274b; --navy2:#101b38; --yellow:#F5A800; --yellow-d:#e09a00; --ink:#141414; --muted:#6B7280; --line:#E7E9EE; --bg:#F2F4F7; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .card{background:#fff;width:100%;max-width:440px;border-radius:22px;box-shadow:0 20px 50px rgba(20,40,80,.12);overflow:hidden;}
+  .head{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:26px 24px;}
+  .head .brand{font-size:22px;font-weight:800;letter-spacing:-.5px;} .head .brand span{background:var(--yellow);color:#111;padding:1px 7px;border-radius:6px;}
+  .head p{color:#C7D2E8;font-size:13px;margin-top:8px;}
+  .body{padding:24px;}
+  label{display:block;font-size:13px;font-weight:700;color:var(--navy);margin:16px 0 7px;}
+  input,select{width:100%;padding:14px 15px;border:1.5px solid var(--line);border-radius:12px;font-size:15px;outline:none;}
+  input:focus,select:focus{border-color:var(--yellow);}
+  .btn{width:100%;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;margin-top:20px;}
+  .btn-y{background:var(--yellow);color:#111;} .btn-y:hover{background:var(--yellow-d);}
+  .btn-y:disabled{opacity:.6;cursor:default;}
+  .msg{margin-top:16px;padding:12px 14px;border-radius:12px;font-size:14px;font-weight:600;display:none;}
+  .msg.show{display:block;}
+  .msg.err{background:#FEECEC;color:#B42318;}
+  .otp-box{margin-top:18px;text-align:center;background:#F6F8FC;border:1.5px dashed var(--navy);border-radius:16px;padding:22px;display:none;}
+  .otp-box.show{display:block;}
+  .otp-box .lbl{font-size:13px;color:var(--muted);font-weight:600;}
+  .otp-box .code{font-size:40px;font-weight:800;letter-spacing:10px;color:var(--navy);margin:8px 0;font-variant-numeric:tabular-nums;}
+  .otp-box .hint{font-size:12px;color:var(--muted);}
+  .steps{margin-top:22px;font-size:13px;color:var(--muted);line-height:1.7;border-top:1px solid var(--line);padding-top:16px;}
+  .steps b{color:var(--navy);}
+  .copybtn{margin-top:10px;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-weight:700;font-size:13px;cursor:pointer;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="head">
+      <div class="brand">Jobify<span>PL</span></div>
+      <p>Testing helper — enter your number to get your login OTP on screen. (Test phase only.)</p>
+    </div>
+    <div class="body">
+      <label>Your phone number (with country code)</label>
+      <input id="phone" type="tel" placeholder="+48512345678" autocomplete="off">
+      <label>Logging in as</label>
+      <select id="role">
+        <option value="candidate">Candidate (I want a job)</option>
+        <option value="recruiter">Recruiter (I want to hire)</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button class="btn btn-y" id="go" onclick="getOtp()">Get my OTP</button>
+      <div class="msg err" id="msg"></div>
+
+      <div class="otp-box" id="otpbox">
+        <div class="lbl">Your OTP code</div>
+        <div class="code" id="code">------</div>
+        <button class="copybtn" id="copy" onclick="copyCode()">Copy code</button>
+        <div class="hint" style="margin-top:10px;">Valid for 10 minutes. Enter this in the app to log in.</div>
+      </div>
+
+      <div class="steps">
+        <b>How to test:</b><br>
+        1. Open the app, tap "I want a job / hire", enter this same number.<br>
+        2. Come here, enter the number + role, tap <b>Get my OTP</b>.<br>
+        3. Copy the code shown and enter it in the app.
+      </div>
+    </div>
+  </div>
+<script>
+const API = "";  // same-origin
+function show(el){ el.classList.add("show"); }
+function hide(el){ el.classList.remove("show"); }
+function err(t){ const m=document.getElementById("msg"); m.textContent=t; show(m); }
+async function getOtp(){
+  const phone=document.getElementById("phone").value.trim();
+  const role=document.getElementById("role").value;
+  const btn=document.getElementById("go");
+  hide(document.getElementById("msg")); hide(document.getElementById("otpbox"));
+  if(!phone.startsWith("+")||phone.length<8){ err("Enter a valid number with country code, e.g. +48512345678"); return; }
+  btn.disabled=true; btn.textContent="Getting OTP…";
+  try{
+    // 1) trigger an OTP (same endpoint the app uses) — safe to call; creates a fresh code
+    await fetch(API+"/auth/send-otp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone,role})});
+    // 2) read it back from the test-only viewer
+    const r=await fetch(API+"/testotp/peek",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.detail||"Could not get OTP");
+    document.getElementById("code").textContent=d.code;
+    show(document.getElementById("otpbox"));
+  }catch(e){ err(e.message||"Something went wrong. Try again."); }
+  finally{ btn.disabled=false; btn.textContent="Get my OTP"; }
+}
+function copyCode(){
+  const c=document.getElementById("code").textContent;
+  navigator.clipboard.writeText(c).then(()=>{ const b=document.getElementById("copy"); b.textContent="Copied ✓"; setTimeout(()=>b.textContent="Copy code",1500); });
+}
+document.getElementById("phone").addEventListener("keydown",e=>{ if(e.key==="Enter") getOtp(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JobifyPL — Admin</title>
+<style>
+  :root{
+    --yellow:#FFC107; --navy1:#0f172a; --navy2:#020617; --ink:#1E293B;
+    --muted:#64748B; --line:#E2E8F0; --bg:#F4F6FB; --card:#fff;
+    --blue:#3B82F6; --indigo:#6366F1; --green:#10B981; --red:#EF4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);}
+
+  /* ===== Login ===== */
+  #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+    background:linear-gradient(135deg,var(--navy1),var(--navy2));}
+  .login-card{background:#fff;width:100%;max-width:390px;border-radius:22px;padding:34px 28px;box-shadow:0 30px 70px rgba(0,0,0,.4);}
+  .login-logo{text-align:center;margin-bottom:6px;}
+  .login-logo img{height:44px;}
+  .login-sub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:8px;}
+  .admin-badge{display:block;text-align:center;background:#EEF2FF;color:var(--indigo);font-weight:800;
+    font-size:12px;padding:6px;border-radius:10px;margin:12px 0 20px;letter-spacing:.05em;}
+  label{display:block;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.04em;margin:14px 0 6px;}
+  input{width:100%;padding:14px 16px;border:1.5px solid var(--line);border-radius:12px;font-size:16px;outline:none;}
+  input:focus{border-color:var(--yellow);}
+  .btn{width:100%;margin-top:20px;background:var(--navy1);color:#fff;border:none;padding:15px;border-radius:13px;
+    font-weight:800;font-size:15px;cursor:pointer;}
+  .btn.amber{background:var(--yellow);color:#111;}
+  .btn:disabled{opacity:.5;}
+  .otp-row{display:flex;gap:8px;}
+  .otp-row input{text-align:center;font-size:22px;font-weight:800;padding:12px 0;}
+  .msg{margin-top:14px;padding:12px;border-radius:10px;font-size:13.5px;display:none;}
+  .msg.show{display:block;} .msg.err{background:#FEF2F2;color:#B91C1C;} .msg.ok{background:#ECFDF5;color:#047857;}
+  .link{background:none;border:none;color:var(--muted);font-size:13px;margin-top:14px;cursor:pointer;width:100%;}
+
+  /* ===== Shell ===== */
+  #shell{display:none;}
+  .topbar{height:64px;background:#fff;display:flex;align-items:center;gap:16px;padding:0 20px;
+    position:fixed;top:0;left:0;right:0;z-index:50;border-bottom:1px solid var(--line);}
+  .topbar .logo img{height:34px;}
+  .hamb{background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink);}
+  .search{flex:1;max-width:900px;margin:0 auto;}
+  .search input{width:100%;background:#F1F5F9;border:none;border-radius:14px;padding:12px 18px;}
+  .top-actions{display:flex;align-items:center;gap:16px;}
+  .top-actions .ic{font-size:20px;cursor:pointer;}
+  .top-avatar{width:38px;height:38px;border-radius:50%;background:#cbd5e1;cursor:pointer;object-fit:cover;
+    display:grid;place-items:center;font-size:18px;}
+  .avatar-menu{position:absolute;top:58px;right:16px;background:#fff;border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,.15);padding:8px;display:none;min-width:170px;z-index:60;}
+  .avatar-menu.show{display:block;}
+  .avatar-menu a{display:block;padding:11px 14px;color:var(--ink);text-decoration:none;border-radius:8px;font-size:14px;cursor:pointer;}
+  .avatar-menu a:hover{background:#F1F5F9;} .avatar-menu .sep{height:1px;background:var(--line);margin:6px 0;}
+  .avatar-menu a.danger{color:var(--red);}
+
+  .sidebar{position:fixed;top:64px;left:0;width:260px;bottom:0;background:linear-gradient(180deg,var(--navy1),var(--navy2));
+    color:#fff;padding-top:14px;overflow-y:auto;z-index:40;transition:.3s;}
+  .navitem{display:flex;align-items:center;gap:14px;padding:14px 22px;margin:6px 10px;border-radius:12px;
+    cursor:pointer;color:#cbd5e1;border-left:4px solid transparent;font-weight:600;font-size:15px;}
+  .navitem .ic{width:20px;text-align:center;}
+  .navitem:hover{background:rgba(255,255,255,.08);}
+  .navitem.on{background:linear-gradient(90deg,rgba(59,130,246,.25),transparent);border-left-color:var(--yellow);color:#fff;}
+
+  .main{margin-left:260px;margin-top:64px;padding:26px;min-height:calc(100vh - 64px);}
+  @media(max-width:900px){ .sidebar{transform:translateX(-100%);} .sidebar.open{transform:translateX(0);} .main{margin-left:0;} }
+
+  .page{display:none;} .page.on{display:block;}
+  .page-title{font-size:26px;font-weight:800;margin-bottom:18px;}
+  .page-title.blue{color:var(--blue);}
+
+  .card{background:var(--card);border-radius:18px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.06);margin-bottom:22px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:800px){.grid2{grid-template-columns:1fr;}}
+
+  /* dashboard hero */
+  .hero{background:linear-gradient(135deg,#FFC107,#FFD54F);color:#111;border-radius:18px;padding:26px;margin-bottom:22px;
+    display:flex;justify-content:space-between;align-items:center;gap:20px;}
+  .hero h3{font-size:22px;font-weight:800;} .hero p{margin:8px 0 14px;}
+  .hero button{background:#fff;border:none;padding:9px 18px;border-radius:12px;font-weight:800;cursor:pointer;}
+  .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .stat{background:#F9FAFF;border-radius:14px;padding:16px;}
+  .stat .n{font-size:24px;font-weight:800;} .stat .l{font-size:13px;color:var(--muted);}
+  .listrow{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #EEE;font-size:14px;gap:8px;}
+  .listrow:last-child{border:none;}
+  .badge{background:rgba(255,210,61,.5);color:#111;padding:4px 10px;border-radius:20px;font-size:12px;white-space:nowrap;}
+  .userrow{display:flex;align-items:center;gap:12px;padding:10px 0;}
+  .rimg{width:46px;height:46px;border-radius:50%;background:#e2e8f0;object-fit:cover;display:grid;place-items:center;}
+
+  /* ===== dashboard calendar ===== */
+  .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .cal-head strong{font-size:16px;}
+  .cal-nav{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;
+    font-size:18px;color:#5B5FFF;display:grid;place-items:center;}
+  .cal-nav:hover{background:#F1F5F9;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .cal-dow{text-align:center;font-size:11px;color:#94A3B8;font-weight:700;padding-bottom:4px;}
+  .cal-cell{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;}
+  .cal-day{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:50%;
+    cursor:pointer;font-size:13px;position:relative;transition:.15s;}
+  .cal-day:hover{background:#F1F5F9;}
+  .cal-day.today{background:rgba(255,210,61,.5);font-weight:700;}
+  .cal-day.sel{background:var(--yellow);font-weight:800;box-shadow:0 6px 14px rgba(252,255,91,.5);}
+  .cal-day .dot{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:5px;height:5px;
+    border-radius:50%;background:#5B5FFF;}
+  .cal-day.sel .dot,.cal-day.today .dot{background:#111;}
+  .day-panel .dp-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #F1F5F9;font-size:14px;}
+  .day-panel .dp-row:last-child{border:none;}
+  .day-stat{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .day-stat .ds{flex:1;min-width:90px;background:#F9FAFF;border-radius:12px;padding:12px;text-align:center;}
+  .day-stat .ds .n{font-size:20px;font-weight:800;} .day-stat .ds .l{font-size:11px;color:var(--muted);}
+  .mini-tabs{display:flex;gap:6px;margin:6px 0 12px;flex-wrap:wrap;}
+  .mini-tab{padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--muted);}
+  .mini-tab.on{background:var(--navy1);color:#fff;border-color:var(--navy1);}
+
+  /* tabs */
+  .tabs{display:inline-flex;background:#EEF2F6;padding:5px;border-radius:16px;margin-bottom:22px;}
+  .tab{padding:10px 22px;border:none;background:transparent;color:var(--muted);font-weight:700;border-radius:12px;cursor:pointer;}
+  .tab.on{background:#fff;color:var(--indigo);box-shadow:0 4px 12px rgba(99,102,241,.15);}
+  .center{text-align:center;}
+
+  /* table */
+  .search-sm{max-width:400px;margin-bottom:18px;}
+  .search-sm input{background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+  .tbl-wrap{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;min-width:640px;}
+  th{background:#F8FAFC;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.05em;
+    text-align:left;padding:13px 16px;font-weight:800;}
+  td{padding:13px 16px;border-top:1px solid #F1F5F9;font-size:14px;vertical-align:middle;}
+  .avatar-sq{width:40px;height:40px;border-radius:10px;object-fit:cover;background:#e2e8f0;display:inline-grid;place-items:center;vertical-align:middle;margin-right:10px;}
+  .type-badge{font-size:11px;padding:4px 8px;border-radius:6px;font-weight:800;text-transform:uppercase;}
+  .type-recruiter{background:#E0F2FE;color:#0369A1;} .type-candidate{background:#E0E7FF;color:#4338CA;}
+  .btn-sm{padding:7px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;border:none;}
+  .btn-dark{background:var(--navy1);color:#fff;} .btn-out-red{background:#fff;border:1px solid #FCA5A5;color:var(--red);}
+  .btn-blue{background:var(--blue);color:#fff;} .btn-green{background:var(--green);color:#fff;}
+  .actions-cell{display:flex;gap:8px;justify-content:flex-end;}
+  .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
+  .st-active{color:var(--green);font-weight:700;} .st-hold{color:#B45309;font-weight:700;}
+
+  /* status badge in job table */
+  .jstatus{display:inline-flex;align-items:center;gap:6px;background:#ECFDF5;color:var(--green);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;}
+  .jstatus.hold{background:#FFF7ED;color:#B45309;}
+
+  /* plan cards */
+  .plans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;}
+  .plan{background:#fff;border-radius:18px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.06);position:relative;}
+  .plan .tier{position:absolute;top:22px;right:22px;background:var(--blue);color:#fff;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:800;}
+  .plan .price{font-size:34px;font-weight:800;margin:14px 0 4px;} .plan .price small{font-size:14px;color:var(--muted);font-weight:600;}
+  .plan .feat{display:flex;align-items:center;gap:8px;color:#475569;font-size:13.5px;margin:8px 0;}
+  .plan .feat .ck{color:var(--blue);}
+  .plan .plan-actions{display:flex;gap:10px;margin-top:18px;}
+  .plan .plan-actions button{flex:1;}
+  .plan-edit{background:#F8FAFC;color:var(--blue);border:none;padding:11px;border-radius:10px;font-weight:700;cursor:pointer;}
+
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal-bg.show{display:flex;}
+  .modal{background:#fff;border-radius:18px;padding:26px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;}
+  .modal h3{margin-bottom:18px;}
+  .modal .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .modal .foot{display:flex;justify-content:flex-end;gap:12px;margin-top:20px;}
+  .modal textarea{width:100%;padding:14px;border:1.5px solid var(--line);border-radius:12px;font-family:inherit;min-height:90px;}
+  .modal select{width:100%;padding:14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-size:15px;}
+  .modal input{font-size:15px;}
+  .modal .sec{font-size:15px;font-weight:800;margin:22px 0 4px;color:var(--ink);}
+  .modal .sec:first-of-type{margin-top:6px;}
+  .modal .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  @media(max-width:640px){.modal .row3,.modal .row{grid-template-columns:1fr;}}
+  .age-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;}
+  .age-row .to{color:var(--muted);font-weight:700;background:#F1F5F9;padding:8px 12px;border-radius:8px;}
+  .char-note{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:13px;}
+  .char-note .need{color:var(--red);font-weight:700;} .char-note .ok{color:var(--green);font-weight:700;}
+  .char-note .count{color:var(--muted);}
+  .toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:640px){.toggle-grid{grid-template-columns:1fr;}}
+  .toggle-card{border:1.5px solid var(--line);background:#F9FAFB;border-radius:14px;padding:16px 18px;font-weight:700;cursor:pointer;transition:.15s;}
+  .toggle-card:hover{border-color:#CBD5E1;}
+  .toggle-card.on{border-color:var(--blue);background:#EFF6FF;color:#1D4ED8;box-shadow:0 4px 12px rgba(59,130,246,.15);}
+  .radio-row{display:flex;gap:30px;align-items:center;margin:8px 0 4px;}
+  .radio-row label{display:flex;align-items:center;gap:8px;text-transform:none;font-size:15px;color:var(--ink);font-weight:600;cursor:pointer;margin:0;letter-spacing:0;}
+  .radio-row input[type=radio]{width:18px;height:18px;accent-color:var(--blue);}
+  .policy-note{background:#FEF9E7;border:1px solid #FDE9A8;border-radius:12px;padding:14px 16px;font-size:13.5px;margin-top:10px;}
+  .policy-note b{color:#92700A;}
+  .doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .doc-card{border:1px solid var(--line);border-radius:12px;padding:18px;text-align:center;cursor:pointer;}
+  .doc-card:hover{border-color:var(--yellow);} .doc-card .dn{font-weight:700;font-size:13px;word-break:break-all;}
+  .doc-card .op{color:var(--blue);font-size:12px;margin-top:6px;}
+  .x{background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);float:right;}
+
+  /* ===== detail page (premium, matches client design) ===== */
+  .back{display:inline-flex;align-items:center;gap:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;font-weight:600;margin-bottom:20px;padding:0;}
+  .back:hover{color:var(--ink);}
+  .profile-card{background:#fff;border-radius:24px;border:1px solid var(--line);overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,.05);}
+  .profile-top{padding:34px 40px;}
+  @media(max-width:600px){.profile-top{padding:24px 20px;text-align:center;}}
+  .profile-flex{display:flex;align-items:center;gap:26px;flex-wrap:wrap;}
+  @media(max-width:600px){.profile-flex{justify-content:center;}}
+  .avatar-lg{width:120px;height:120px;border-radius:50%;object-fit:cover;background:#e2e8f0;
+    border:4px solid #fff;box-shadow:0 6px 20px rgba(15,23,42,.12);display:grid;place-items:center;font-size:46px;flex-shrink:0;}
+  .profile-info{flex:1;min-width:220px;}
+  .profile-info .nm{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .profile-info h2{font-size:26px;font-weight:800;color:var(--ink);}
+  .check{color:#0D6EFD;font-size:20px;}
+  .profile-info .sub{color:var(--muted);font-size:17px;margin:6px 0 12px;}
+  .profile-info .sub b{color:#0D6EFD;font-weight:700;}
+  .contact-row{display:flex;flex-wrap:wrap;gap:18px;}
+  @media(max-width:600px){.contact-row{justify-content:center;}}
+  .contact-row span{color:var(--muted);font-size:14px;display:inline-flex;align-items:center;gap:6px;}
+  .msg-btn{border:1.5px solid #0D6EFD;color:#0D6EFD;background:#fff;padding:12px 22px;border-radius:12px;
+    font-weight:800;font-size:14px;cursor:pointer;box-shadow:0 4px 12px rgba(13,110,253,.12);transition:.2s;white-space:nowrap;}
+  .msg-btn:hover{background:#0D6EFD;color:#fff;}
+  .msg-btn.solid{background:#0D6EFD;color:#fff;}
+  .msg-btn.solid:hover{background:#0a58ca;}
+  .msg-btn.indigo{border-color:var(--indigo);color:var(--indigo);}
+  .msg-btn.indigo:hover{background:var(--indigo);color:#fff;}
+  .msg-btn.indigo.solid{background:var(--indigo);color:#fff;}
+
+  .detail-tabs{display:flex;gap:34px;border-bottom:1px solid var(--line);padding:0 40px;}
+  @media(max-width:600px){.detail-tabs{padding:0 20px;gap:22px;overflow-x:auto;}}
+  .detail-tab{padding:16px 2px;cursor:pointer;color:var(--muted);font-weight:700;border:none;background:none;
+    position:relative;white-space:nowrap;font-size:15px;transition:color .2s;}
+  .detail-tab.on{color:#0D6EFD;}
+  .detail-tab.on::after{content:"";position:absolute;bottom:0;left:0;width:100%;height:3px;background:#0D6EFD;border-radius:3px 3px 0 0;}
+  .detail-tab.ind.on{color:var(--indigo);} .detail-tab.ind.on::after{background:var(--indigo);}
+  .detail-tab-body{padding:34px 40px;}
+  @media(max-width:600px){.detail-tab-body{padding:24px 20px;}}
+  .detail-tab-body h4{font-size:18px;font-weight:800;margin-bottom:20px;}
+
+  .kv{display:grid;grid-template-columns:1fr 1fr;gap:26px 30px;margin-top:6px;}
+  @media(max-width:600px){.kv{grid-template-columns:1fr;gap:20px;}}
+  .kv .k{font-size:12px;color:#94A3B8;text-transform:uppercase;font-weight:800;letter-spacing:.5px;}
+  .kv .v{font-weight:700;margin-top:5px;color:var(--ink);}
+  .doc-row{border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;
+    justify-content:space-between;align-items:center;gap:12px;}
+  .doc-row .dl{font-weight:700;display:flex;align-items:center;gap:10px;}
+  .doc-row .dl .fi{color:#0D6EFD;font-size:18px;}
+  .doc-prev{border:1px solid #0D6EFD;color:#0D6EFD;background:#fff;border-radius:999px;padding:6px 16px;font-size:13px;font-weight:700;cursor:pointer;}
+  .doc-prev:hover{background:#0D6EFD;color:#fff;}
+  .plan-card-big{color:#fff;border-radius:20px;padding:30px;box-shadow:0 16px 40px rgba(13,110,253,.28);}
+  .plan-card-big.rec{background:linear-gradient(135deg,#0D6EFD 0%,#0a58ca 100%);}
+  .plan-card-big.cand{background:linear-gradient(135deg,#6366F1 0%,#4338CA 100%);}
+  .plan-badge{display:inline-block;background:#fff;color:#111;font-weight:800;font-size:12px;padding:5px 14px;border-radius:8px;margin-bottom:10px;}
+  .plan-feats{margin:20px 0;display:flex;flex-wrap:wrap;gap:8px 24px;}
+  .plan-feats span{font-weight:600;}
+  .plan-dates{display:flex;gap:34px;flex-wrap:wrap;}
+  .plan-dates small{opacity:.8;display:block;font-size:12px;}
+
+  .loading{text-align:center;color:var(--muted);padding:40px;}
+  .empty{text-align:center;color:var(--muted);padding:30px;}
+
+  /* ===== premium messages ===== */
+  .chat-shell{display:grid;grid-template-columns:340px 1fr;gap:20px;height:calc(100vh - 150px);}
+  @media(max-width:800px){.chat-shell{grid-template-columns:1fr;height:auto;}}
+  .chat-side{background:#fff;border-radius:20px;border:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.05);}
+  .chat-side-head{padding:18px 20px;display:flex;justify-content:space-between;align-items:center;}
+  .chat-side-head h3{font-weight:800;font-size:19px;}
+  .chat-search{margin:0 16px 12px;background:#F1F3F9;border-radius:12px;display:flex;align-items:center;padding:0 14px;}
+  .chat-search input{border:none;background:transparent;padding:11px 8px;width:100%;font-size:14px;}
+  .chat-search input:focus{outline:none;}
+  .conv-scroll{flex:1;overflow-y:auto;padding:0 10px 12px;}
+  .conv-item{display:flex;gap:12px;padding:12px 12px;border-radius:14px;cursor:pointer;margin-bottom:4px;align-items:center;transition:background .15s;}
+  .conv-item:hover{background:#F8FAFC;}
+  .conv-item.on{background:#EEF2FF;}
+  .conv-av{width:46px;height:46px;border-radius:50%;background:#e2e8f0;display:grid;place-items:center;font-size:20px;flex-shrink:0;color:#64748B;object-fit:cover;}
+  .conv-av.admin{background:linear-gradient(135deg,#0f172a,#334155);color:#FFC107;font-weight:800;font-size:15px;}
+  .conv-meta{flex:1;min-width:0;}
+  .conv-meta .cn{font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px;}
+  .conv-meta .cn .rl{font-size:11px;color:#94A3B8;font-weight:600;text-transform:capitalize;}
+  .conv-meta .lm{color:#6b7280;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .conv-unread{background:#EF4444;color:#fff;border-radius:999px;font-size:11px;font-weight:800;min-width:20px;height:20px;display:grid;place-items:center;padding:0 6px;}
+  .chat-main{background:#fff;border-radius:20px;border:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.05);min-height:420px;}
+  .chat-topbar{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;}
+  .chat-topbar .conv-av{width:44px;height:44px;}
+  .chat-topbar .ctn{font-weight:800;font-size:16px;}
+  .chat-topbar .cst{font-size:12px;color:#22c55e;font-weight:600;}
+  .chat-scroll{flex:1;overflow-y:auto;padding:24px;background:#F9FAFB;}
+  .bubble-row{display:flex;margin-bottom:14px;}
+  .bubble-row.me{justify-content:flex-end;}
+  .bubble{max-width:66%;padding:11px 16px;border-radius:16px;font-size:14px;line-height:1.45;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .bubble.them{background:#fff;border:1px solid #E5E7EB;color:#111;border-bottom-left-radius:5px;}
+  .bubble.me{background:#4F46E5;color:#fff;border-bottom-right-radius:5px;}
+  .bubble .bt{display:block;font-size:10.5px;opacity:.7;margin-top:5px;text-align:right;}
+  .chat-compose{padding:16px;border-top:1px solid var(--line);display:flex;gap:12px;}
+  .chat-compose input{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:13px 16px;font-size:14px;}
+  .chat-compose input:focus{outline:none;border-color:var(--indigo);}
+  .chat-send{background:#4F46E5;color:#fff;border:none;border-radius:12px;padding:0 22px;font-weight:800;cursor:pointer;font-size:15px;display:grid;place-items:center;}
+  .chat-send:hover{background:#4338CA;}
+  .chat-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#94A3B8;gap:10px;padding:40px;text-align:center;}
+  .chat-empty .ce-ic{font-size:44px;opacity:.5;}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="login-card">
+    <div class="login-logo"><img src="/assets/jobifyPLlogo.png" alt="JobifyPL" onerror="this.replaceWith(Object.assign(document.createElement('div'),{innerHTML:'<b style=font-size:26px>Jobify<span style=background:#FFC107;padding:1px 6px;border-radius:5px>PL</span></b>'}))"></div>
+    <div class="login-sub">Admin Console</div>
+    <div class="admin-badge">🔒 ADMINISTRATOR ACCESS</div>
+
+    <div id="l-phone">
+      <label>Admin phone number</label>
+      <input id="a-phone" type="tel" placeholder="+91 9177415501" />
+      <button class="btn" id="a-send" onclick="adminSendOtp()">Send OTP</button>
+    </div>
+
+    <div id="l-otp" style="display:none;">
+      <label>Enter the 6-digit code</label>
+      <div class="otp-row" id="a-otp"></div>
+      <button class="btn amber" id="a-verify" onclick="adminVerifyOtp()">Verify &amp; Enter</button>
+      <button class="link" onclick="adminBackPhone()">← Change number</button>
+    </div>
+
+    <div class="msg" id="a-msg"></div>
+  </div>
+</div>
+
+<!-- ============ SHELL ============ -->
+<div id="shell">
+  <div class="topbar">
+    <button class="hamb" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+    <span class="logo"><img src="/assets/jobifyPLlogo.png" alt="JobifyPL" onerror="this.style.display='none'"></span>
+    <div class="search"><input placeholder="Search..." /></div>
+    <div class="top-actions">
+      <span class="ic">🔔</span>
+      <div class="top-avatar" id="topAvatar" onclick="document.getElementById('avatarMenu').classList.toggle('show')">👤</div>
+    </div>
+  </div>
+  <div class="avatar-menu" id="avatarMenu">
+    <a onclick="go('profile');document.getElementById('avatarMenu').classList.remove('show')">My Account</a>
+    <a onclick="go('profile');document.getElementById('avatarMenu').classList.remove('show')">Settings</a>
+    <div class="sep"></div>
+    <a class="danger" onclick="adminLogout()">Log Out</a>
+  </div>
+
+  <div class="sidebar">
+    <div class="navitem on" data-page="home"   onclick="go('home')"><span class="ic">🏠</span> Home</div>
+    <div class="navitem"    data-page="users"  onclick="go('users')"><span class="ic">👥</span> Users</div>
+    <div class="navitem"    data-page="jobs"   onclick="go('jobs')"><span class="ic">💼</span> Jobs Posted</div>
+    <div class="navitem"    data-page="apps"   onclick="go('apps')"><span class="ic">📄</span> Applications</div>
+    <div class="navitem"    data-page="messages" onclick="go('messages')"><span class="ic">✉️</span> Messages</div>
+    <div class="navitem"    data-page="plans"  onclick="go('plans')"><span class="ic">🪪</span> Plans</div>
+    <div class="navitem"    data-page="payments" onclick="go('payments')"><span class="ic">💵</span> Payments</div>
+    <div class="navitem"    data-page="logs"   onclick="go('logs')"><span class="ic">📞</span> Contacted info</div>
+  </div>
+
+  <div class="main">
+    <!-- HOME -->
+    <div class="page on" id="page-home">
+      <div class="hero">
+        <div>
+          <h3>Hello <span id="admin-name">Admin</span>!</h3>
+          <p>You have <b id="home-apps">0</b> applications on the platform. Let's start 🚀</p>
+          <button onclick="go('apps')">Review it</button>
+        </div>
+        <div class="rimg" style="width:90px;height:90px;font-size:32px;">🛠️</div>
+      </div>
+      <div class="grid2">
+        <div>
+          <div class="card">
+            <h4 style="margin-bottom:14px;">Platform Overview</h4>
+            <div class="statgrid">
+              <div class="stat"><div class="n" id="s-cand">0</div><div class="l">Candidates</div></div>
+              <div class="stat"><div class="n" id="s-rec">0</div><div class="l">Recruiters</div></div>
+              <div class="stat"><div class="n" id="s-jobs">0</div><div class="l">Jobs Posted</div></div>
+              <div class="stat"><div class="n" id="s-apps">0</div><div class="l">Applications</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <h4>Recent Applicants</h4>
+              <button class="btn-sm" style="background:rgba(255,210,61,.5);color:#111;" onclick="go('apps')">See all</button>
+            </div>
+            <div id="home-applicants"><div class="loading">Loading…</div></div>
+          </div>
+        </div>
+        <div>
+          <!-- INTERACTIVE CALENDAR -->
+          <div class="card">
+            <div class="cal-head">
+              <button class="cal-nav" onclick="calMove(-1)">‹</button>
+              <strong id="cal-title">—</strong>
+              <button class="cal-nav" onclick="calMove(1)">›</button>
+            </div>
+            <div class="cal-grid" id="cal-dows"></div>
+            <div class="cal-grid" id="cal-grid" style="margin-top:6px;"></div>
+          </div>
+          <!-- SELECTED-DAY DETAIL -->
+          <div class="card day-panel">
+            <h4 id="day-title" style="margin-bottom:12px;">Activity</h4>
+            <div class="day-stat" id="day-stats"></div>
+            <div class="mini-tabs" id="day-tabs"></div>
+            <div id="day-body"><div class="empty">Select a date to see activity.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="page" id="page-users">
+      <div class="center"><h2 class="page-title">Jobify Users</h2>
+        <div class="tabs">
+          <button class="tab on" data-utab="All" onclick="userTab('All')">All</button>
+          <button class="tab" data-utab="Recruiter" onclick="userTab('Recruiter')">Recruiters</button>
+          <button class="tab" data-utab="Candidate" onclick="userTab('Candidate')">Candidates</button>
+        </div>
+      </div>
+      <div class="search-sm"><input id="user-search" placeholder="🔍 Search name or company..." oninput="renderUsers()"></div>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>ID</th><th>Users</th><th>Professional Info</th><th>Email</th><th>Phone no</th><th>Type</th><th style="text-align:right;">Action</th>
+      </tr></thead><tbody id="users-body"><tr><td colspan="7" class="loading">Loading…</td></tr></tbody></table></div>
+    </div>
+
+    <!-- USER DETAIL -->
+    <div class="page" id="page-detail">
+      <button class="back" onclick="go(lastListPage)">← Back to Directory</button>
+      <div id="detail-body"><div class="loading">Loading…</div></div>
+    </div>
+
+    <!-- JOBS -->
+    <div class="page" id="page-jobs">
+      <h2 class="page-title blue">Admin Job Management</h2>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>ID</th><th>Status</th><th>Recruiter</th><th>Category</th><th>Position</th><th>Shift</th>
+        <th>Job Type</th><th>Work</th><th>Language</th><th>Location</th><th>Nationality</th><th>Age</th>
+        <th>Gender</th><th>Accepts</th><th>Description</th><th style="text-align:right;">Actions</th>
+      </tr></thead><tbody id="jobs-body"><tr><td colspan="16" class="loading">Loading…</td></tr></tbody></table></div>
+    </div>
+
+    <!-- APPLICATIONS -->
+    <div class="page" id="page-apps">
+      <h2 class="page-title">Job Applications <span id="apps-count" style="font-size:13px;background:#E2E8F0;padding:5px 12px;border-radius:20px;vertical-align:middle;"></span></h2>
+      <div class="tbl-wrap"><table><thead><tr>
+        <th>Candidate</th><th>Role</th><th>Applied Date</th><th>Contact</th><th style="text-align:right;">Actions</th>
+      </tr></thead><tbody id="apps-body"><tr><td colspan="5" class="loading">Loading…</td></tr></tbody></table></div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="page" id="page-messages">
+      <h2 class="page-title" style="margin-bottom:16px;">Messages</h2>
+      <div class="chat-shell">
+        <!-- conversation list -->
+        <div class="chat-side">
+          <div class="chat-side-head"><h3>Chatbox</h3><span style="color:#94A3B8;font-size:20px;">⋯</span></div>
+          <div class="chat-search"><span style="color:#94A3B8;">🔍</span>
+            <input id="conv-search" placeholder="Search" oninput="renderConvs()"></div>
+          <div class="conv-scroll" id="conv-list"><div class="loading">Loading…</div></div>
+        </div>
+        <!-- chat pane -->
+        <div class="chat-main" id="chat-main">
+          <div class="chat-empty" id="chat-empty">
+            <div class="ce-ic">💬</div>
+            <div style="font-weight:700;color:#64748B;">Select a conversation</div>
+            <div style="font-size:13px;">Choose someone on the left to start messaging.</div>
+          </div>
+          <div id="chat-active" style="display:none;flex-direction:column;height:100%;">
+            <div class="chat-topbar">
+              <div class="conv-av" id="chat-av">👤</div>
+              <div style="flex:1;">
+                <div class="ctn" id="chat-head">—</div>
+                <div class="cst" id="chat-status">Active now</div>
+              </div>
+            </div>
+            <div class="chat-scroll" id="chat-body"></div>
+            <div class="chat-compose">
+              <input id="chat-text" placeholder="Type your message..." onkeydown="if(event.key==='Enter')sendChat()">
+              <button class="chat-send" onclick="sendChat()">➤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLANS -->
+    <div class="page" id="page-plans">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div><h2 class="page-title" style="margin-bottom:2px;">Pricing Management</h2>
+          <p style="color:var(--muted);">Configure your subscription tiers and features.</p></div>
+        <button class="btn-sm btn-blue" style="padding:12px 20px;" onclick="openPlanModal()">+ Add New Plan</button>
+      </div>
+      <div class="center"><div class="tabs" style="margin-top:16px;">
+        <button class="tab on" data-ptab="recruiter" onclick="planTab('recruiter')">Recruiters</button>
+        <button class="tab" data-ptab="candidate" onclick="planTab('candidate')">Candidates</button>
+      </div></div>
+      <div class="plans-grid" id="plans-grid"><div class="loading">Loading…</div></div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div class="page" id="page-payments">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <h3>Payment Statistics</h3>
+        </div>
+        <div id="pay-chart" style="height:240px;"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Payment History</h3>
+        <div id="pay-history"><div class="loading">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="page" id="page-logs">
+      <h2 class="page-title">Logs &amp; Inquiries</h2>
+      <p style="color:var(--muted);margin-bottom:16px;">View incoming messages and inquiries.</p>
+      <div class="card">
+        <h3 style="margin-bottom:12px;">Contact Logs</h3>
+        <div class="tbl-wrap"><table><thead><tr>
+          <th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Date</th>
+        </tr></thead><tbody id="logs-body"><tr><td colspan="6" class="loading">Loading…</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="page-profile">
+      <button class="back" onclick="go('home')">← Back to Dashboard</button>
+      <h2 class="page-title">Edit Admin Profile</h2>
+      <div class="card" style="max-width:640px;">
+        <label>Full name</label><input id="p-name" />
+        <label>Email address</label><input id="p-email" type="email" />
+        <label>Phone number</label><input id="p-phone" disabled />
+        <button class="btn amber" style="margin-top:20px;max-width:200px;" onclick="saveProfile()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modals ===== -->
+<div class="modal-bg" id="modal-doc"><div class="modal">
+  <button class="x" onclick="closeModal('modal-doc')">&times;</button>
+  <h3 id="doc-title">Documents</h3>
+  <div class="doc-grid" id="doc-grid"></div>
+</div></div>
+
+<div class="modal-bg" id="modal-job"><div class="modal" style="max-width:760px;">
+  <button class="x" onclick="closeModal('modal-job')">&times;</button>
+  <h3>Edit Job Overview</h3>
+
+  <div class="sec">Role basics</div>
+  <div class="row3">
+    <div><label>Work Category</label>
+      <select id="j-category">
+        <option value="">Choose Work Category</option>
+        <option>WAREHOUSE JOB</option><option>FACTORY JOB</option><option>CONSTRUCTION JOB</option>
+        <option>PRODUCTION JOB</option><option>MANUFACTURING JOB</option><option>DRIVING JOB</option>
+        <option>DELIVERY JOB</option><option>HOTEL SECTOR JOB</option><option>SORTING &amp; PACKING JOB</option>
+        <option>WELDERS JOB</option><option>BPO JOB</option><option>SALES EXECUTIVES JOB</option>
+        <option>DATA ENTRY OPERATOR JOB</option><option>FREELANCERS JOB</option><option>TUTOR JOB</option>
+        <option>NANNIES &amp; CARETAKERS JOBS</option><option>OTHERS</option>
+      </select></div>
+    <div><label>Position *</label><input id="j-position" placeholder="e.g. delivery boy" /></div>
+    <div><label>Shift Timings</label>
+      <select id="j-shift"><option value="">Select</option><option>6 hours</option><option>8 hours</option><option>10 hours</option><option>12 hours</option></select></div>
+  </div>
+  <div class="row3">
+    <div><label>Job type</label>
+      <select id="j-jobtype"><option value="">Select</option><option>Regular Job</option><option>Seasonal Job</option></select></div>
+    <div><label>Work type</label>
+      <select id="j-worktype"><option value="">Select</option><option>Full Time</option><option>Part Time</option></select></div>
+    <div><label>Language</label>
+      <select id="j-lang"><option value="">Select</option><option>Basic English</option><option>Expert English Level</option><option>Polish</option><option>Ukraine</option><option>Not Mandatory</option></select></div>
+  </div>
+  <div class="row">
+    <div><label>Location (City)</label><input id="j-location" placeholder="e.g. Warszawa" /></div>
+    <div><label>Location detail</label><input id="j-locdetail" placeholder="area / note" /></div>
+  </div>
+
+  <div class="sec">Candidate preferences</div>
+  <div class="row3">
+    <div><label>Nationality *</label><input id="j-nat" placeholder="e.g. nepal" /></div>
+    <div><label>Age upto</label>
+      <div class="age-row"><input id="j-agefrom" type="number" placeholder="18" /><span class="to">to</span><input id="j-ageto" type="number" placeholder="20" /></div>
+    </div>
+    <div><label>Gender</label>
+      <select id="j-gender"><option value="">Select</option><option>Male</option><option>Female</option><option>Any</option></select></div>
+  </div>
+  <div class="row">
+    <div><label>Accepts to</label>
+      <select id="j-accepts"><option value="">Select</option><option>Student Only</option><option>Polish TRC holders</option><option>Polish Citizens</option><option>All are eligible</option></select></div>
+    <div></div>
+  </div>
+
+  <label>Job description</label><textarea id="j-desc" oninput="updateCharNote()" style="min-height:110px;"></textarea>
+  <div class="char-note"><span id="j-charwarn"></span><span class="count"><span id="j-charcount">0</span> characters</span></div>
+
+  <div class="sec">Additional Fields</div>
+  <label style="margin-top:2px;">Job Joining</label>
+  <div class="toggle-grid">
+    <div class="toggle-card" id="tc-join" onclick="toggleJoin()">Immediate Joining</div>
+    <div class="toggle-card" id="tc-permit" onclick="togglePermit()">Need Work Permit</div>
+  </div>
+  <label style="margin-top:16px;">Accommodation</label>
+  <div class="toggle-grid">
+    <div class="toggle-card" id="tc-acc-free" onclick="setAcc('Free')">Free Accommodation</div>
+    <div class="toggle-card" id="tc-acc-paid" onclick="setAcc('Paid')">Paid Accommodation</div>
+  </div>
+  <div class="sec">Will you charge any fee from candidates?</div>
+  <div class="radio-row">
+    <label><input type="radio" name="j-fee" value="yes" onchange="updateFeeNote()"> Yes</label>
+    <label><input type="radio" name="j-fee" value="no" onchange="updateFeeNote()" checked> No</label>
+  </div>
+  <div class="policy-note" id="j-feenote"><b>Important Policy Notice</b> — Selecting "No" means you agree not to charge any fee from candidates.</div>
+
+  <div class="foot">
+    <button class="btn-sm" style="background:#fff;border:1px solid var(--line);" onclick="closeModal('modal-job')">Cancel</button>
+    <button class="btn-sm btn-blue" onclick="saveJob()">Save Changes</button>
+  </div>
+</div></div>
+
+<div class="modal-bg" id="modal-plan"><div class="modal">
+  <button class="x" onclick="closeModal('modal-plan')">&times;</button>
+  <h3 id="plan-modal-title">Create New Plan</h3>
+  <label>Plan name</label><input id="pl-name" placeholder="e.g. Gold" />
+  <div class="row">
+    <div><label>Price</label><input id="pl-price" type="number" /></div>
+    <div><label>Currency</label>
+      <select id="pl-currency"><option>PLN</option><option>EUR</option><option>USD</option><option>GBP</option><option>INR</option></select>
+    </div>
+  </div>
+  <div class="row">
+    <div><label>Duration (days)</label><input id="pl-duration" type="number" placeholder="30" /></div>
+    <div><label>Postings (recruiter)</label><input id="pl-postings" type="number" placeholder="0" /></div>
+  </div>
+  <label>Features (one per line)</label><textarea id="pl-features" placeholder="UNLIMITED JOB VIEWS&#10;VALID FOR 30 DAYS&#10;CHAT SUPPORT"></textarea>
+  <div class="foot">
+    <button class="btn-sm btn-out-red" onclick="closeModal('modal-plan')">Cancel</button>
+    <button class="btn-sm btn-blue" id="pl-save" onclick="savePlan()">Create Plan</button>
+  </div>
+</div></div>
+
+<div class="modal-bg" id="modal-confirm"><div class="modal" style="max-width:400px;text-align:center;">
+  <div style="width:66px;height:66px;border-radius:50%;background:#FEE2E2;color:var(--red);display:grid;place-items:center;font-size:30px;margin:0 auto 16px;">⚠️</div>
+  <h3 id="confirm-title">Are you sure?</h3>
+  <p style="color:var(--muted);margin:10px 0 20px;" id="confirm-text"></p>
+  <div style="display:flex;gap:12px;">
+    <button class="btn-sm" style="flex:1;background:#F1F5F9;padding:12px;" onclick="closeModal('modal-confirm')">Cancel</button>
+    <button class="btn-sm" style="flex:1;background:var(--red);color:#fff;padding:12px;" id="confirm-ok">Delete</button>
+  </div>
+</div></div>
+
+<script>
+// ---------- helpers ----------
+const API = "";                       // same-origin on the website; app uses full Render URL
+function esc(s){ if(s==null) return ""; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+/* Resolve an uploaded file path to a real URL. Backend returns full paths like
+   "/uploads/xyz.png"; older rows may store just a filename. Prevents the
+   "/uploads//uploads/…" double-prefix that caused "file not found". */
+function fileUrl(p){ if(!p) return ""; p=String(p); if(/^https?:\/\//.test(p)) return p; return p.startsWith("/")?API+p:API+"/uploads/"+p; }
+function imgUrl(p){ return fileUrl(p); }
+function openFile(p){ const u=fileUrl(p); if(u) window.open(u,"_blank","noopener"); }
+function token(){ return localStorage.getItem("admin_token"); }
+async function api(path, opts={}){
+  const h = Object.assign({}, opts.headers||{});
+  if(token()) h["Authorization"] = "Bearer "+token();
+  if(opts.body && !(opts.body instanceof FormData)){ h["Content-Type"]="application/json"; opts.body=JSON.stringify(opts.body); }
+  const res = await fetch(API+path, {...opts, headers:h});
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.detail || "Request failed");
+  return data;
+}
+function fmtDate(iso){ if(!iso) return "—"; const d=new Date(iso); return d.toLocaleDateString()+" "+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+
+// ---------- LOGIN ----------
+let adminPhone="";
+const otpBox = document.getElementById("a-otp");
+for(let i=0;i<6;i++){ const inp=document.createElement("input"); inp.maxLength=1; inp.inputMode="numeric";
+  inp.addEventListener("input",()=>{ if(inp.value&&inp.nextElementSibling) inp.nextElementSibling.focus(); });
+  inp.addEventListener("keydown",e=>{ if(e.key==="Backspace"&&!inp.value&&inp.previousElementSibling) inp.previousElementSibling.focus(); });
+  otpBox.appendChild(inp); }
+function aMsg(t,k){ const m=document.getElementById("a-msg"); m.textContent=t; m.className="msg show "+k; }
+function aClear(){ document.getElementById("a-msg").className="msg"; }
+
+async function adminSendOtp(){
+  aClear();
+  adminPhone = document.getElementById("a-phone").value.replace(/\s/g,"");
+  if(!adminPhone.startsWith("+")||adminPhone.length<8) return aMsg("Enter a valid phone with country code (+91...)","err");
+  const b=document.getElementById("a-send"); b.disabled=true; b.textContent="Sending...";
+  try{
+    await api("/auth/send-otp",{method:"POST",body:{phone:adminPhone,role:"admin"}});
+    document.getElementById("l-phone").style.display="none";
+    document.getElementById("l-otp").style.display="block";
+    otpBox.children[0].focus(); aMsg("Code sent to "+adminPhone,"ok");
+  }catch(e){ aMsg(e.message,"err"); }
+  b.disabled=false; b.textContent="Send OTP";
+}
+async function adminVerifyOtp(){
+  aClear();
+  const code=[...otpBox.children].map(x=>x.value).join("");
+  if(code.length!==6) return aMsg("Enter all 6 digits","err");
+  const b=document.getElementById("a-verify"); b.disabled=true; b.textContent="Verifying...";
+  try{
+    const d=await api("/auth/verify-otp",{method:"POST",body:{phone:adminPhone,code,role:"admin"}});
+    if(d.role!=="admin"){ aMsg("This number is not an admin.","err"); b.disabled=false; b.textContent="Verify & Enter"; return; }
+    localStorage.setItem("admin_token", d.token);
+    enterShell();
+  }catch(e){ aMsg(e.message,"err"); }
+  b.disabled=false; b.textContent="Verify & Enter";
+}
+function adminBackPhone(){ document.getElementById("l-otp").style.display="none"; document.getElementById("l-phone").style.display="block"; aClear(); [...otpBox.children].forEach(x=>x.value=""); }
+function adminLogout(){ localStorage.removeItem("admin_token"); location.reload(); }
+
+// ---------- SHELL / ROUTING ----------
+let lastListPage="users";
+function enterShell(){
+  document.getElementById("login").style.display="none";
+  document.getElementById("shell").style.display="block";
+  loadDashboard(); loadProfileName();
+}
+function go(page){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+  document.getElementById("page-"+page).classList.add("on");
+  document.querySelectorAll(".navitem").forEach(n=>n.classList.toggle("on", n.dataset.page===page));
+  if(page==="users"||page==="jobs"||page==="apps"||page==="plans"||page==="payments"||page==="logs") lastListPage = (page==="detail"?lastListPage:page);
+  if(page==="users") loadUsers();
+  if(page==="jobs") loadJobs();
+  if(page==="apps") loadApps();
+  if(page==="messages") loadMessages();
+  if(page==="plans") loadPlans();
+  if(page==="payments") loadPayments();
+  if(page==="logs") loadLogs();
+  if(page==="profile") loadProfile();
+  document.querySelector(".sidebar").classList.remove("open");
+}
+function closeModal(id){ document.getElementById(id).classList.remove("show"); }
+
+// ---------- DASHBOARD ----------
+async function loadDashboard(){
+  try{
+    const d=await api("/admin/dashboard");
+    document.getElementById("s-cand").textContent=d.stats.candidates;
+    document.getElementById("s-rec").textContent=d.stats.recruiters;
+    document.getElementById("s-jobs").textContent=d.stats.jobs;
+    document.getElementById("s-apps").textContent=d.stats.applications;
+    document.getElementById("home-apps").textContent=d.stats.applications;
+    document.getElementById("home-applicants").innerHTML = d.recent_applicants.length ? d.recent_applicants.map(a=>`
+      <div class="userrow"><div class="rimg">${a.profile_photo?`<img src="${imgUrl(a.profile_photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:"👤"}</div>
+      <div><div style="font-weight:600;">${esc((a.first_name||"")+" "+(a.last_name||""))}</div>
+      <small style="color:#888;">${esc(a.applied_role||"")}</small></div></div>`).join("") : `<div class="empty">No applicants yet</div>`;
+  }catch(e){ console.error(e); }
+  initCalendar();
+}
+
+// ---------- INTERACTIVE CALENDAR ----------
+let calDate=new Date(), calSel=new Date(), calDayData=null, dayTab="jobs";
+function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function sameDay(a,b){ return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
+function initCalendar(){
+  if(!document.getElementById("cal-dows").children.length){
+    document.getElementById("cal-dows").innerHTML=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=>`<div class="cal-dow">${d}</div>`).join("");
+  }
+  renderCalendar();
+  selectDay(new Date());
+}
+function calMove(dir){ calDate=new Date(calDate.getFullYear(), calDate.getMonth()+dir, 1); renderCalendar(); }
+function renderCalendar(){
+  const y=calDate.getFullYear(), m=calDate.getMonth();
+  document.getElementById("cal-title").textContent=calDate.toLocaleString("default",{month:"long"})+" "+y;
+  const firstDow=(new Date(y,m,1).getDay()||7)-1;   // Mon=0
+  const days=new Date(y,m+1,0).getDate();
+  const today=new Date();
+  let html="";
+  for(let i=0;i<firstDow;i++) html+=`<div></div>`;
+  for(let d=1;d<=days;d++){
+    const dateObj=new Date(y,m,d);
+    const cls=["cal-day"];
+    if(sameDay(dateObj,today)) cls.push("today");
+    if(sameDay(dateObj,calSel)) cls.push("sel");
+    html+=`<div class="cal-cell"><div class="${cls.join(" ")}" onclick="selectDay(new Date(${y},${m},${d}))">${d}</div></div>`;
+  }
+  document.getElementById("cal-grid").innerHTML=html;
+}
+async function selectDay(dateObj){
+  calSel=dateObj; calDate=new Date(dateObj.getFullYear(),dateObj.getMonth(),1); renderCalendar();
+  const title=dateObj.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  document.getElementById("day-title").textContent="Activity — "+title;
+  document.getElementById("day-body").innerHTML=`<div class="loading">Loading…</div>`;
+  document.getElementById("day-stats").innerHTML="";
+  document.getElementById("day-tabs").innerHTML="";
+  try{
+    calDayData=await api("/admin/calendar?date="+ymd(dateObj));
+    const c=calDayData.counts;
+    document.getElementById("day-stats").innerHTML=`
+      <div class="ds"><div class="n">${c.jobs}</div><div class="l">Jobs</div></div>
+      <div class="ds"><div class="n">${c.candidates}</div><div class="l">Candidates</div></div>
+      <div class="ds"><div class="n">${c.recruiters}</div><div class="l">Recruiters</div></div>
+      <div class="ds"><div class="n">${c.payments}</div><div class="l">Payments</div></div>`;
+    const tabs=[["jobs","Jobs"],["candidates","Candidates"],["recruiters","Recruiters"],["payments","Payments"]];
+    document.getElementById("day-tabs").innerHTML=tabs.map(([k,l])=>`<button class="mini-tab ${dayTab===k?'on':''}" onclick="dayTabTo('${k}')">${l} (${c[k]})</button>`).join("");
+    renderDayBody();
+  }catch(e){ document.getElementById("day-body").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+function dayTabTo(t){ dayTab=t;
+  document.querySelectorAll("#day-tabs .mini-tab").forEach((b,i)=>b.classList.toggle("on",["jobs","candidates","recruiters","payments"][i]===t));
+  renderDayBody();
+}
+function renderDayBody(){
+  if(!calDayData) return;
+  const b=document.getElementById("day-body");
+  if(dayTab==="jobs"){
+    const r=calDayData.jobs;
+    b.innerHTML=r.length?r.map(j=>`<div class="dp-row"><div class="rimg" style="width:38px;height:38px;font-size:16px;">💼</div>
+      <div style="flex:1;"><div style="font-weight:700;">${esc(j.position||j.category)}</div>
+      <small style="color:#888;">${esc(j.category)} · ${esc(j.location||"")} · by ${esc(j.recruiter||"—")}</small></div></div>`).join("")
+      :`<div class="empty">No jobs posted on this day.</div>`;
+  } else if(dayTab==="candidates"){
+    const r=calDayData.candidates;
+    b.innerHTML=r.length?r.map(u=>`<div class="dp-row"><div class="rimg" style="width:38px;height:38px;">${u.photo?`<img src="${imgUrl(u.photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:"👤"}</div>
+      <div style="flex:1;"><div style="font-weight:700;">${esc(u.name)}</div><small style="color:#888;">Candidate registered</small></div>
+      <button class="btn-sm btn-dark" onclick="openDetail('Candidate',${u.id})">View</button></div>`).join("")
+      :`<div class="empty">No candidates registered on this day.</div>`;
+  } else if(dayTab==="recruiters"){
+    const r=calDayData.recruiters;
+    b.innerHTML=r.length?r.map(u=>`<div class="dp-row"><div class="rimg" style="width:38px;height:38px;">${u.photo?`<img src="${imgUrl(u.photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`:"🏢"}</div>
+      <div style="flex:1;"><div style="font-weight:700;">${esc(u.name)}</div><small style="color:#888;">${esc(u.company||"Recruiter registered")}</small></div>
+      <button class="btn-sm btn-dark" onclick="openDetail('Recruiter',${u.id})">View</button></div>`).join("")
+      :`<div class="empty">No recruiters registered on this day.</div>`;
+  } else {
+    const r=calDayData.payments;
+    b.innerHTML=r.length?r.map(t=>`<div class="dp-row"><div class="rimg" style="width:38px;height:38px;font-size:16px;">💳</div>
+      <div style="flex:1;"><div style="font-weight:700;">${esc(t.user||"—")}</div><small style="color:#888;">${esc(t.reason||"")}</small></div>
+      <div style="font-weight:800;color:${t.type==='credit'?'#10B981':'#EF4444'};">${t.type==='credit'?'+':'-'}${esc(t.amount)} PLN</div></div>`).join("")
+      :`<div class="empty">No payments on this day.</div>`;
+  }
+}
+async function loadProfileName(){
+  try{ const d=await api("/admin/profile"); document.getElementById("admin-name").textContent=(d.data.full_name||"Admin").split(" ")[0]; }catch(e){}
+}
+
+// ---------- USERS ----------
+let allUsers=[], curUserTab="All";
+async function loadUsers(){
+  try{ const d=await api("/admin/users"); allUsers=d.users; renderUsers(); }
+  catch(e){ document.getElementById("users-body").innerHTML=`<tr><td colspan="7" class="empty">${esc(e.message)}</td></tr>`; }
+}
+function userTab(t){ curUserTab=t; document.querySelectorAll("[data-utab]").forEach(b=>b.classList.toggle("on",b.dataset.utab===t)); renderUsers(); }
+function renderUsers(){
+  const q=(document.getElementById("user-search").value||"").toLowerCase();
+  let rows=allUsers.filter(u=>curUserTab==="All"||u.type===curUserTab);
+  rows=rows.filter(u=>(u.name||"").toLowerCase().includes(q)||(u.Sector||"").toLowerCase().includes(q));
+  const b=document.getElementById("users-body");
+  if(!rows.length){ b.innerHTML=`<tr><td colspan="7" class="empty">No users</td></tr>`; return; }
+  b.innerHTML=rows.map(u=>`<tr>
+    <td>${esc(u.id)}</td>
+    <td><span class="avatar-sq">${u.img?`<img src="${imgUrl(u.img)}" style="width:100%;height:100%;border-radius:10px;object-fit:cover;">`:"👤"}</span><b>${esc(u.name)}</b></td>
+    <td>${esc(u.type==="Recruiter"?(u.role+" in "+(u.Sector||"company")):u.role)}</td>
+    <td>${esc(u.email)}</td><td>${esc(u.phone)}</td>
+    <td><span class="type-badge ${u.type==="Recruiter"?"type-recruiter":"type-candidate"}">${esc(u.type)}</span></td>
+    <td><div class="actions-cell">
+      <button class="btn-sm btn-dark" onclick="openDetail('${u.type}',${u.id})">View</button>
+      <button class="btn-sm btn-out-red" onclick="askDelete('user',${u.id},'${esc(u.name)}')">🗑</button>
+    </div></td></tr>`).join("");
+}
+
+// ---------- DETAIL (premium tabbed profile — matches client design) ----------
+let detailState=null;   // {type, d, tab}
+async function openDetail(type,id){
+  lastListPage="users"; go("detail");
+  const box=document.getElementById("detail-body"); box.innerHTML=`<div class="loading">Loading…</div>`;
+  try{
+    if(type==="Candidate"){
+      const d=(await api("/admin/candidate/"+id)).data;
+      detailState={type:"Candidate", d, tab:"info"};
+    } else {
+      const d=(await api("/admin/recruiter/"+id)).data;
+      detailState={type:"Recruiter", d, tab:"info"};
+    }
+    renderDetail();
+  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+function detailTab(t){ detailState.tab=t; renderDetail(); }
+function renderDetail(){
+  const box=document.getElementById("detail-body");
+  const {type,d,tab}=detailState;
+  const isCand = type==="Candidate";
+  const accent = isCand ? "ind" : "";           // candidate = indigo, recruiter = blue
+  const solid  = isCand ? "indigo solid" : "solid";
+  const img = isCand ? d.profile_photo : d.profile_pic;
+  const fallback = isCand ? "👤" : "🏢";
+  const name = isCand
+    ? ((d.first_name||"")+" "+(d.last_name||"")).trim() || "Candidate"
+    : (((d.first_name||"")+" "+(d.last_name||"")).trim() || d.company_name || "Recruiter");
+  const sub = isCand
+    ? esc(d.role||"Candidate")
+    : `${esc(d.contact_position||"Recruiter")} at <b>${esc(d.company_name||"company")}</b>`;
+  const email = isCand ? d.email : d.company_email;
+
+  const avatar = img
+    ? `<img class="avatar-lg" src="${imgUrl(img)}" alt="">`
+    : `<div class="avatar-lg">${fallback}</div>`;
+
+  const tabs = isCand
+    ? [["info","Overview"],["jobs","Applied Jobs"],["plan","Subscription"]]
+    : [["info","Recruiter Info"],["jobs","Jobs Posted"],["plan","Business Plan"]];
+
+  box.innerHTML = `
+    <div class="profile-card">
+      <div class="profile-top">
+        <div class="profile-flex">
+          ${avatar}
+          <div class="profile-info">
+            <div class="nm"><h2>${esc(name)}</h2>${(!isCand&&d.verified)?'<span class="check">✔</span>':(!isCand?'<span class="check">✔</span>':'')}</div>
+            <div class="sub">${sub}</div>
+            <div class="contact-row">
+              ${email?`<span>✉️ ${esc(email)}</span>`:""}
+              <span>📱 ${esc(d.phone||"—")}</span>
+            </div>
+          </div>
+          <button class="msg-btn ${solid}" onclick="messageUser(${d.id})">Message ${isCand?"Candidate":"Recruiter"}</button>
+        </div>
+      </div>
+      <div class="detail-tabs">
+        ${tabs.map(([k,l])=>`<button class="detail-tab ${accent} ${tab===k?'on':''}" onclick="detailTab('${k}')">${l}</button>`).join("")}
+      </div>
+      <div class="detail-tab-body">${isCand?renderCandTab(d,tab):renderRecTab(d,tab)}</div>
+    </div>`;
+}
+
+function renderCandTab(d,tab){
+  if(tab==="info"){
+    const rows=[
+      ["Full Name",((d.first_name||"")+" "+(d.last_name||"")).trim()],
+      ["Contact Number",d.phone],["Email ID",d.email],["Date of Birth",d.dob],
+      ["Gender",d.gender],["Nationality",d.nationality],["Highest Qualification",d.qualification],
+      ["Languages Known",d.languages],["Applications",d.applications_count],
+    ];
+    const docs=d.documents||[];
+    return `<h4>Candidate Overview</h4>
+      <div class="kv">${rows.map(([k,v])=>`<div><div class="k">${k}</div><div class="v">${esc(v||"—")}</div></div>`).join("")}</div>
+      <h4 style="margin-top:36px;">Documents (${docs.length})</h4>
+      <div class="grid2">${docs.length?docs.map(x=>`
+        <div class="doc-row"><div class="dl"><span class="fi">📄</span>${esc(x.name||x.type)}</div>
+        <button class="doc-prev" onclick="openFile('${esc(x.file)}')">Preview</button></div>`).join("")
+        :'<div class="empty">No documents uploaded.</div>'}</div>`;
+  }
+  if(tab==="jobs"){
+    const jobs=d.applied_jobs||d.applications||[];
+    return `<h4>Application History</h4>
+      <div class="tbl-wrap"><table><thead><tr><th>Job Title</th><th>Role</th><th>Job Type</th><th>Applied Date</th><th style="text-align:right;">Status</th></tr></thead>
+      <tbody>${jobs.length?jobs.map(j=>`<tr><td>${esc(j.category||j.job_category||"")}</td><td>${esc(j.position||"")}</td>
+        <td>${esc(j.job_type||j.job_category_type||"")}</td><td>${esc(fmtDate(j.applied_at))}</td>
+        <td style="text-align:right;"><span class="jstatus">${esc(j.status||j.current_status||"Applied")}</span></td></tr>`).join("")
+        :'<tr><td colspan="5" class="empty">No applications yet.</td></tr>'}</tbody></table></div>`;
+  }
+  return renderPlanTab(d,"cand","Current Plan");
+}
+
+function renderRecTab(d,tab){
+  if(tab==="info"){
+    const rows=[
+      ["Sector",d.company_name||d.recruiter_type],["Direct Phone",d.phone],
+      ["Contact Position",d.contact_position],["Hiring Authority",d.hiring_authority],
+      ["Current Plan",d.current_plan?d.current_plan.name:"—"],["Verified Since",fmtDate(d.created_at)],
+    ];
+    return `<h4>About the Recruiter</h4>
+      <div class="kv">${rows.map(([k,v])=>`<div><div class="k">${k}</div><div class="v">${esc(v||"—")}</div></div>`).join("")}</div>`;
+  }
+  if(tab==="jobs"){
+    const jobs=d.jobs||[];
+    return `<h4>Active Job Postings</h4>
+      <div class="tbl-wrap"><table><thead><tr><th>Category</th><th>Role</th><th>Job Type</th><th>Work Type</th><th style="text-align:right;">Status</th></tr></thead>
+      <tbody>${jobs.length?jobs.map(j=>`<tr><td>${esc(j.category)}</td><td>${esc(j.position||"")}</td>
+        <td>${esc(j.job_type||"")}</td><td>${esc(j.work_type||"")}</td>
+        <td style="text-align:right;"><span class="jstatus ${j.status==='hold'?'hold':''}">${esc(j.status||"active")}</span></td></tr>`).join("")
+        :'<tr><td colspan="5" class="empty">No jobs posted.</td></tr>'}</tbody></table></div>`;
+  }
+  return renderPlanTab(d,"rec","Employer Tier");
+}
+
+function renderPlanTab(d,cls,badge){
+  const plan=d.current_plan;
+  if(!plan) return `<div class="empty">No active subscription plan.</div>`;
+  const feats=(plan.features||"").split("\n").map(f=>f.trim()).filter(Boolean);
+  return `<div class="plan-card-big ${cls}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+      <div><span class="plan-badge">${badge}</span><h3 style="font-size:24px;font-weight:800;margin:0;">${esc(plan.name)}</h3></div>
+      <div style="text-align:right;"><div style="font-size:30px;font-weight:800;">${esc(plan.price)} ${esc(plan.currency||"")}</div>
+        ${plan.duration_days?`<small style="opacity:.8;">Validity ${esc(plan.duration_days)} Days</small>`:""}</div>
+    </div>
+    ${feats.length?`<div class="plan-feats"><small style="opacity:.8;width:100%;">Plan Details</small>
+      ${feats.map(f=>`<span>• ${esc(f)}</span>`).join("")}</div>`:""}
+    ${(plan.start_date||plan.end_date)?`<div class="plan-dates">
+      ${plan.start_date?`<div><small>Plan Starts</small><span style="font-weight:700;">${esc(fmtDate(plan.start_date))}</span></div>`:""}
+      ${plan.end_date?`<div><small>Plan Ends</small><span style="font-weight:700;color:#FFC107;">${esc(fmtDate(plan.end_date))}</span></div>`:""}
+    </div>`:""}
+  </div>`;
+}
+
+// ---------- JOBS ----------
+let curJob=null;
+async function loadJobs(){
+  try{ const d=await api("/admin/jobs"); const b=document.getElementById("jobs-body");
+    if(!d.jobs.length){ b.innerHTML=`<tr><td colspan="16" class="empty">No jobs</td></tr>`; return; }
+    b.innerHTML=d.jobs.map(j=>`<tr>
+      <td>${esc(j.id)}</td>
+      <td><span class="jstatus ${j.status==='hold'?'hold':''}"><span class="status-dot" style="background:${j.status==='hold'?'#B45309':'#10B981'}"></span>${esc(j.status)}</span></td>
+      <td>${esc(j.recruiter_name)}</td><td>${esc(j.category)}</td><td>${esc(j.position||"")}</td>
+      <td>${esc(j.shift_timing||"")}</td><td>${esc(j.job_type||"")}</td><td>${esc(j.work_type||"")}</td>
+      <td>${esc(j.languages_required||"")}</td><td>${esc(j.location||"")}</td><td>${esc(j.nationalities||"")}</td>
+      <td>${esc((j.age_from||"")+"-"+(j.age_to||""))}</td><td>${esc(j.gender_pref||"")}</td><td>${esc(j.accepts_to||"")}</td>
+      <td style="max-width:220px;">${esc((j.description||"").slice(0,50))}${(j.description||"").length>50?"…":""}</td>
+      <td><div class="actions-cell">
+        <button class="btn-sm" style="background:#F1F5F9;" onclick='openJobModal(${JSON.stringify(j)})'>Edit</button>
+        <button class="btn-sm" style="background:#FFF7ED;color:#B45309;" onclick="toggleHold(${j.id})">${j.status==='hold'?'Unhold':'Hold'}</button>
+        <button class="btn-sm btn-out-red" onclick="askDelete('job',${j.id},'${esc(j.position||j.category)}')">🗑</button>
+      </div></td></tr>`).join("");
+  }catch(e){ document.getElementById("jobs-body").innerHTML=`<tr><td colspan="16" class="empty">${esc(e.message)}</td></tr>`; }
+}
+let jJoin=false, jPermit=false, jAcc="";
+function val(id,v){ const el=document.getElementById(id); el.value=(v==null?"":v); }
+function selVal(id,v){ // set a <select>; if value not among options, leave blank
+  const el=document.getElementById(id); el.value=v||"";
+  if(v && el.value!==v){ el.value=""; }   // unknown value → blank
+}
+function openJobModal(j){
+  curJob=j;
+  selVal("j-category",j.category);
+  val("j-position",j.position);
+  selVal("j-shift",j.shift_timing);
+  selVal("j-jobtype",j.job_type);
+  selVal("j-worktype",j.work_type);
+  selVal("j-lang",j.languages_required);
+  val("j-location",j.location);
+  val("j-locdetail","");
+  val("j-nat",j.nationalities);
+  val("j-agefrom",j.age_from);
+  val("j-ageto",j.age_to);
+  selVal("j-gender",j.gender_pref);
+  selVal("j-accepts",j.accepts_to);
+  val("j-desc",j.description);
+  updateCharNote();
+  // toggle cards
+  jJoin=(j.joining||"").toLowerCase().includes("immediate");
+  jPermit=!!j.need_work_permit;
+  jAcc=j.accommodation||"";
+  document.getElementById("tc-join").classList.toggle("on",jJoin);
+  document.getElementById("tc-permit").classList.toggle("on",jPermit);
+  document.getElementById("tc-acc-free").classList.toggle("on",jAcc==="Free");
+  document.getElementById("tc-acc-paid").classList.toggle("on",jAcc==="Paid");
+  // fee radio
+  const fee=!!j.charges_fee;
+  document.querySelector(`input[name="j-fee"][value="${fee?'yes':'no'}"]`).checked=true;
+  updateFeeNote();
+  document.getElementById("modal-job").classList.add("show");
+}
+function toggleJoin(){ jJoin=!jJoin; document.getElementById("tc-join").classList.toggle("on",jJoin); }
+function togglePermit(){ jPermit=!jPermit; document.getElementById("tc-permit").classList.toggle("on",jPermit); }
+function setAcc(v){ jAcc=(jAcc===v?"":v);
+  document.getElementById("tc-acc-free").classList.toggle("on",jAcc==="Free");
+  document.getElementById("tc-acc-paid").classList.toggle("on",jAcc==="Paid"); }
+function updateCharNote(){
+  const n=(document.getElementById("j-desc").value||"").length;
+  document.getElementById("j-charcount").textContent=n;
+  const w=document.getElementById("j-charwarn"); const MIN=300;
+  if(n<MIN) w.innerHTML=`<span class="need">⚠ ${MIN-n} more characters needed</span>`;
+  else w.innerHTML=`<span class="ok">✓ Looks good</span>`;
+}
+function updateFeeNote(){
+  const yes=document.querySelector('input[name="j-fee"][value="yes"]').checked;
+  document.getElementById("j-feenote").innerHTML = yes
+    ? `<b>Important Policy Notice</b> — Selecting "Yes" means you will charge a fee. This is discouraged and shown to candidates.`
+    : `<b>Important Policy Notice</b> — Selecting "No" means you agree not to charge any fee from candidates.`;
+}
+async function saveJob(){
+  const feeYes=document.querySelector('input[name="j-fee"][value="yes"]').checked;
+  try{
+    await api("/admin/job/"+curJob.id,{method:"PUT",body:{
+      category:document.getElementById("j-category").value, position:document.getElementById("j-position").value,
+      shift_timing:document.getElementById("j-shift").value, job_type:document.getElementById("j-jobtype").value,
+      work_type:document.getElementById("j-worktype").value, languages_required:document.getElementById("j-lang").value,
+      location:document.getElementById("j-location").value, nationalities:document.getElementById("j-nat").value,
+      age_from:parseInt(document.getElementById("j-agefrom").value)||null,
+      age_to:parseInt(document.getElementById("j-ageto").value)||null,
+      gender_pref:document.getElementById("j-gender").value, accepts_to:document.getElementById("j-accepts").value,
+      description:document.getElementById("j-desc").value,
+      joining: jJoin?"Immediate Joining":"", need_work_permit: jPermit,
+      accommodation: jAcc, charges_fee: feeYes,
+    }});
+    closeModal("modal-job"); loadJobs();
+  }catch(e){ alert(e.message); }
+}
+async function toggleHold(id){ try{ await api("/admin/job/"+id+"/toggle-hold",{method:"POST"}); loadJobs(); }catch(e){ alert(e.message); } }
+
+// ---------- APPLICATIONS ----------
+async function loadApps(){
+  try{ const d=await api("/admin/applications");
+    document.getElementById("apps-count").textContent=d.count+" Applicants";
+    const b=document.getElementById("apps-body");
+    if(!d.applications.length){ b.innerHTML=`<tr><td colspan="5" class="empty">No applications</td></tr>`; return; }
+    b.innerHTML=d.applications.map(a=>`<tr>
+      <td><span class="avatar-sq">${a.photo?`<img src="${imgUrl(a.photo)}" style="width:100%;height:100%;border-radius:10px;object-fit:cover;">`:"👤"}</span><b>${esc(a.name)}</b></td>
+      <td><span class="type-badge type-recruiter">${esc(a.role)}</span><div style="color:var(--muted);font-size:12px;margin-top:4px;">${esc(a.job_type||"")} • ${esc(a.work_type||"")}</div></td>
+      <td>${esc(fmtDate(a.applied_at))}</td>
+      <td>📱 ${esc(a.contact||"")}<div style="color:var(--muted);font-size:12px;">${esc(a.email||"")}</div></td>
+      <td><div class="actions-cell">
+        <button class="btn-sm btn-green" onclick='openDocs(${JSON.stringify(a.name)},${JSON.stringify(a.documents)})'>View Documents</button>
+        <button class="btn-sm btn-blue" onclick="messageUser(${a.candidate_id})">💬 Chat</button>
+      </div></td></tr>`).join("");
+  }catch(e){ document.getElementById("apps-body").innerHTML=`<tr><td colspan="5" class="empty">${esc(e.message)}</td></tr>`; }
+}
+function openDocs(name,docs){
+  document.getElementById("doc-title").textContent="Documents – "+name;
+  document.getElementById("doc-grid").innerHTML = (docs&&docs.length)? docs.map(x=>`<div class="doc-card" onclick="openFile('${esc(x.file)}')"><div class="dn">${esc(x.name||x.type)}</div><div class="op">Click to open</div></div>`).join("") : '<div class="empty">No documents uploaded</div>';
+  document.getElementById("modal-doc").classList.add("show");
+}
+
+// ---------- PLANS ----------
+let curPlanRole="recruiter", editingPlanId=null;
+function planTab(r){ curPlanRole=r; document.querySelectorAll("[data-ptab]").forEach(b=>b.classList.toggle("on",b.dataset.ptab===r)); loadPlans(); }
+async function loadPlans(){
+  try{ const d=await api("/admin/plans?role="+curPlanRole);
+    const g=document.getElementById("plans-grid");
+    if(!d.plans.length){ g.innerHTML=`<div class="empty">No plans yet — add one.</div>`; return; }
+    g.innerHTML=d.plans.map(p=>{
+      const feats=(p.features||"").split("\n").filter(x=>x.trim());
+      return `<div class="plan"><span class="tier">${esc(p.name)}</span>
+        <div style="font-size:22px;">🪪</div>
+        <div class="price">${esc(p.price)} <small>${esc(p.currency)}/mo</small></div>
+        ${p.postings?`<div class="feat"><span class="ck">✔</span> ${esc(p.postings)} POSTINGS</div>`:""}
+        ${feats.map(f=>`<div class="feat"><span class="ck">✔</span> ${esc(f)}</div>`).join("")}
+        <div class="plan-actions">
+          <button class="plan-edit" onclick='editPlan(${JSON.stringify(p)})'>✎ Edit</button>
+          <button class="btn-sm" style="background:var(--red);color:#fff;" onclick="askDelete('plan',${p.id},'${esc(p.name)}')">Delete</button>
+        </div></div>`;
+    }).join("");
+  }catch(e){ document.getElementById("plans-grid").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+function openPlanModal(){ editingPlanId=null; document.getElementById("plan-modal-title").textContent="Create New "+(curPlanRole==="recruiter"?"Recruiter":"Candidate")+" Plan";
+  document.getElementById("pl-save").textContent="Create Plan";
+  ["pl-name","pl-price","pl-duration","pl-postings","pl-features"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("modal-plan").classList.add("show"); }
+function editPlan(p){ editingPlanId=p.id; document.getElementById("plan-modal-title").textContent="Edit Plan";
+  document.getElementById("pl-save").textContent="Save Changes";
+  document.getElementById("pl-name").value=p.name||""; document.getElementById("pl-price").value=p.price||"";
+  document.getElementById("pl-currency").value=p.currency||"PLN"; document.getElementById("pl-duration").value=p.duration_days||"";
+  document.getElementById("pl-postings").value=p.postings||0; document.getElementById("pl-features").value=p.features||"";
+  document.getElementById("modal-plan").classList.add("show"); }
+async function savePlan(){
+  const body={ name:document.getElementById("pl-name").value, price:parseFloat(document.getElementById("pl-price").value)||0,
+    currency:document.getElementById("pl-currency").value, duration_days:parseInt(document.getElementById("pl-duration").value)||30,
+    postings:parseInt(document.getElementById("pl-postings").value)||0, features:document.getElementById("pl-features").value,
+    for_role:curPlanRole };
+  try{
+    if(editingPlanId) await api("/admin/plan/"+editingPlanId,{method:"PUT",body});
+    else await api("/admin/plan",{method:"POST",body});
+    closeModal("modal-plan"); loadPlans();
+  }catch(e){ alert(e.message); }
+}
+
+// ---------- PAYMENTS ----------
+async function loadPayments(){
+  try{ const d=await api("/admin/payments");
+    const h=document.getElementById("pay-history");
+    h.innerHTML = d.history.length ? d.history.map(t=>`
+      <div class="userrow" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:12px;"><div class="rimg">💳</div>
+        <div><div style="font-weight:600;">${esc(t.name)}</div><small style="color:#888;">${esc(t.reason||"")}</small></div></div>
+        <div style="text-align:right;"><div style="font-weight:800;color:${t.type==='credit'?'#10B981':'#EF4444'};">${t.type==='credit'?'+':'-'}${esc(t.amount)} PLN</div>
+        <small style="color:#888;">${esc(fmtDate(t.date))}</small></div></div>`).join("") : `<div class="empty">No payments yet</div>`;
+    // simple bar chart (no external lib)
+    const c=document.getElementById("pay-chart"); const months=Object.keys(d.monthly);
+    if(!months.length){ c.innerHTML=`<div class="empty">No payment data yet</div>`; return; }
+    const max=Math.max(1,...months.map(m=>d.monthly[m].debit+d.monthly[m].credit));
+    c.innerHTML=`<div style="display:flex;align-items:flex-end;gap:10px;height:220px;padding:10px;">${months.map(m=>{
+      const val=d.monthly[m].debit+d.monthly[m].credit; const hpx=Math.round((val/max)*180);
+      return `<div style="flex:1;text-align:center;"><div style="background:linear-gradient(180deg,#6366F1,#818CF8);border-radius:8px 8px 0 0;height:${hpx}px;"></div>
+        <div style="font-size:11px;color:#888;margin-top:6px;">${esc(m)}</div></div>`;}).join("")}</div>`;
+  }catch(e){ document.getElementById("pay-history").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+
+// ---------- LOGS ----------
+async function loadLogs(){
+  try{ const d=await api("/admin/logs/contact"); const b=document.getElementById("logs-body");
+    if(!d.logs.length){ b.innerHTML=`<tr><td colspan="6" class="empty">No contact logs</td></tr>`; return; }
+    b.innerHTML=d.logs.map(c=>`<tr><td>${esc(c.id)}</td><td><b>${esc(c.name)}</b></td><td>${esc(c.email)}</td>
+      <td>${esc(c.phone)}</td><td>${esc(c.message)}</td><td>${esc(fmtDate(c.date))}</td></tr>`).join("");
+  }catch(e){ document.getElementById("logs-body").innerHTML=`<tr><td colspan="6" class="empty">${esc(e.message)}</td></tr>`; }
+}
+
+// ---------- PROFILE ----------
+async function loadProfile(){
+  try{ const d=(await api("/admin/profile")).data;
+    document.getElementById("p-name").value=d.full_name||""; document.getElementById("p-email").value=d.email||"";
+    document.getElementById("p-phone").value=d.phone||"";
+  }catch(e){}
+}
+async function saveProfile(){
+  try{ await api("/admin/profile",{method:"PUT",body:{full_name:document.getElementById("p-name").value,email:document.getElementById("p-email").value}});
+    loadProfileName(); alert("Profile saved");
+  }catch(e){ alert(e.message); }
+}
+
+// ---------- DELETE CONFIRM ----------
+function askDelete(kind,id,label){
+  document.getElementById("confirm-title").textContent="Delete "+kind+"?";
+  document.getElementById("confirm-text").innerHTML="Are you sure you want to delete <b>"+esc(label)+"</b>?";
+  document.getElementById("modal-confirm").classList.add("show");
+  document.getElementById("confirm-ok").onclick=async()=>{
+    try{
+      if(kind==="user") await api("/admin/user/"+id,{method:"DELETE"});
+      if(kind==="job") await api("/admin/job/"+id,{method:"DELETE"});
+      if(kind==="plan") await api("/admin/plan/"+id,{method:"DELETE"});
+      closeModal("modal-confirm");
+      if(kind==="user") loadUsers(); if(kind==="job") loadJobs(); if(kind==="plan") loadPlans();
+    }catch(e){ alert(e.message); }
+  };
+}
+
+// ---------- MESSAGES / CHAT (premium 2-pane) ----------
+let curConv=null, allConvs=[];
+function convAvatar(c){
+  const isAdmin=(c.role||"").toLowerCase()==="admin";
+  const initials=(c.name||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+  if(isAdmin) return `<div class="conv-av admin">${esc(initials)}</div>`;
+  return `<div class="conv-av">${esc(initials||"👤")}</div>`;
+}
+async function loadMessages(){
+  try{ const d=await api("/admin/chat/conversations"); allConvs=d.conversations||[]; renderConvs(); }
+  catch(e){ document.getElementById("conv-list").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+function renderConvs(){
+  const q=(document.getElementById("conv-search").value||"").toLowerCase();
+  const list=allConvs.filter(c=>(c.name||"").toLowerCase().includes(q));
+  const el=document.getElementById("conv-list");
+  if(!list.length){ el.innerHTML=`<div class="empty">${q?"No matches":"No conversations yet"}</div>`; return; }
+  el.innerHTML=list.map(c=>`
+    <div class="conv-item ${curConv===c.conversation_id?'on':''}" onclick="openChat(${c.conversation_id})">
+      ${convAvatar(c)}
+      <div class="conv-meta">
+        <div class="cn">${esc(c.name)}<span class="rl">${esc(c.role||"")}</span></div>
+        <div class="lm">${esc(c.last_message||"No messages yet")}</div>
+      </div>
+      ${c.unread?`<span class="conv-unread">${c.unread}</span>`:""}
+    </div>`).join("");
+}
+async function openChat(cid){
+  curConv=cid;
+  const c=allConvs.find(x=>x.conversation_id===cid);
+  document.getElementById("chat-empty").style.display="none";
+  document.getElementById("chat-active").style.display="flex";
+  const av=document.getElementById("chat-av");
+  const isAdmin=(c&&(c.role||"").toLowerCase()==="admin");
+  const initials=((c&&c.name)||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+  av.className="conv-av"+(isAdmin?" admin":"");
+  av.textContent=initials||"👤";
+  document.getElementById("chat-head").textContent=(c&&c.name)||"Conversation";
+  renderConvs();  // refresh highlight + clear unread badge visually
+  try{ const d=await api("/admin/chat/"+cid+"/messages");
+    document.getElementById("chat-head").textContent=d.other_name||document.getElementById("chat-head").textContent;
+    const b=document.getElementById("chat-body");
+    b.innerHTML=d.messages.length?d.messages.map(m=>`
+      <div class="bubble-row ${m.mine?'me':''}">
+        <div class="bubble ${m.mine?'me':'them'}">${esc(m.body)}<span class="bt">${esc(fmtTime(m.time))}</span></div>
+      </div>`).join("") : `<div class="chat-empty"><div class="ce-ic">👋</div><div>No messages yet — say hello.</div></div>`;
+    b.scrollTop=b.scrollHeight;
+    // unread was cleared server-side on GET; refresh list counts
+    loadMessages();
+  }catch(e){ document.getElementById("chat-body").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+async function sendChat(){
+  const inp=document.getElementById("chat-text"); const t=inp.value.trim();
+  if(!t||!curConv) return;
+  inp.value="";
+  try{ await api("/admin/chat/send",{method:"POST",body:{conversation_id:curConv,body:t}});
+    openChat(curConv);
+  }catch(e){ alert(e.message); }
+}
+// "Message" button from a detail page → start/open chat then jump to Messages
+async function messageUser(userId){
+  try{ const d=await api("/admin/chat/start",{method:"POST",body:{other_user_id:userId}});
+    go("messages");
+    await loadMessages();
+    // ensure the new conversation is present in the list, then open it
+    if(!allConvs.find(x=>x.conversation_id===d.conversation_id)){
+      allConvs.unshift({conversation_id:d.conversation_id, name:d.name, role:"", last_message:"", unread:0});
+    }
+    openChat(d.conversation_id);
+  }catch(e){ alert(e.message); }
+}
+function fmtTime(iso){ if(!iso) return ""; const d=new Date(iso); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+
+// ---------- boot ----------
+if(token()){ enterShell(); }
+</script>
+</body>
+</html>

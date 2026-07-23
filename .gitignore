@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Local database — NEVER commit (PythonAnywhere uses its own MySQL)
+*.db
+*.sqlite
+*.sqlite3
+jobify.db
+
+# Uploaded files — user data, lives on the server disk, not in git
+uploads/
+
+# Secrets / environment
+.env
+.env.*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

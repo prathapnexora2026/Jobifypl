@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JobifyPL — Candidate Dashboard</title>
+<style>
+  :root{
+    --navy:#18274b; --navy2:#0f1b38; --yellow:#F5A800; --yellow-d:#e09a00;
+    --ink:#0f172a; --muted:#5b6472; --line:#E7E9EE; --bg:#F4F6FB; --card:#fff;
+    --blue:#2563EB; --green:#22C55E; --teal:#06B6D4; --danger:#EF4444; --indigo:#6366F1;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  img{max-width:100%;display:block;} a{text-decoration:none;color:inherit;}
+
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:260px;background:linear-gradient(180deg,var(--navy),var(--navy2));color:#fff;padding:22px 0;overflow-y:auto;z-index:50;}
+  .sidebar .brand{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:900;padding:0 22px 22px;}
+  .sidebar .brand img{height:40px;width:40px;object-fit:contain;}
+  .sidebar .brand .pl{background:var(--yellow);color:#111;border:2px solid #fff;padding:0 5px;border-radius:4px;line-height:1.05;}
+  .navitem{display:flex;align-items:center;gap:14px;padding:14px 22px;margin:4px 12px;border-radius:12px;cursor:pointer;color:#c3cbdb;font-weight:600;font-size:15px;border-left:4px solid transparent;transition:.15s;}
+  .navitem:hover{background:rgba(255,255,255,.07);color:#fff;} .navitem.on{background:linear-gradient(90deg,rgba(245,168,0,.18),transparent);border-left-color:var(--yellow);color:#fff;}
+  .navitem .ic{width:22px;text-align:center;font-size:18px;} .sidebar .sep{height:1px;background:rgba(255,255,255,.1);margin:12px 22px;}
+
+  .topbar{position:fixed;top:0;left:260px;right:0;height:70px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;z-index:40;}
+  .topbar .search{flex:1;max-width:460px;position:relative;}
+  .topbar .search input{width:100%;background:#F1F5F9;border:none;border-radius:12px;padding:12px 16px 12px 42px;font-size:15px;outline:none;}
+  .topbar .search svg{position:absolute;left:14px;top:12px;width:20px;height:20px;stroke:#94a3b8;fill:none;stroke-width:2;}
+  .topbar .right{display:flex;align-items:center;gap:18px;}
+  .topbar .av{width:42px;height:42px;border-radius:50%;background:#e2e8f0;display:grid;place-items:center;font-size:20px;object-fit:cover;border:2px solid var(--yellow);}
+  .lang-sel{display:flex;align-items:center;gap:6px;background:#111827;color:#fff;border-radius:20px;padding:8px 14px;font-size:13px;cursor:pointer;position:relative;}
+  .lang-drop{position:absolute;top:44px;right:0;background:#111827;color:#fff;border-radius:12px;padding:6px;min-width:150px;display:none;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  .lang-drop.show{display:block;} .lang-drop a{display:flex;gap:8px;padding:10px 12px;border-radius:8px;cursor:pointer;} .lang-drop a:hover{background:rgba(255,255,255,.08);}
+  .hamb{display:none;background:none;border:none;font-size:24px;cursor:pointer;margin-right:12px;}
+
+  .main{margin-left:260px;margin-top:70px;padding:30px;min-height:calc(100vh - 70px);}
+  @media(max-width:960px){.sidebar{transform:translateX(-100%);transition:.25s;} .sidebar.open{transform:translateX(0);} .topbar{left:0;} .main{margin-left:0;} .hamb{display:block!important;}}
+
+  .page{display:none;} .page.on{display:block;}
+  .page-head{margin-bottom:24px;} .page-head h1{font-size:28px;font-weight:800;color:var(--navy);} .page-head p{color:var(--muted);margin-top:4px;}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-bottom:28px;}
+  @media(max-width:800px){.stats{grid-template-columns:1fr;}}
+  .stat{background:#fff;border-radius:18px;padding:24px;box-shadow:0 6px 20px rgba(0,0,0,.05);display:flex;align-items:center;gap:16px;}
+  .stat .ic{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;font-size:24px;color:#fff;flex-shrink:0;}
+  .stat.blue .ic{background:var(--blue);} .stat.green .ic{background:var(--green);} .stat.indigo .ic{background:var(--indigo);}
+  .stat .v{font-size:28px;font-weight:800;color:var(--navy);} .stat .l{color:var(--muted);font-size:14px;}
+
+  .card{background:#fff;border-radius:18px;padding:24px;box-shadow:0 6px 20px rgba(0,0,0,.05);margin-bottom:24px;}
+  .card h2{font-size:20px;font-weight:800;color:var(--navy);margin-bottom:16px;}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-size:14px;padding:11px 22px;transition:.15s;}
+  .btn-y{background:var(--yellow);color:#111;} .btn-y:hover{background:var(--yellow-d);}
+  .btn-navy{background:var(--navy);color:#fff;} .btn-o{background:#fff;border:1.5px solid var(--line);color:var(--ink);}
+  .btn-blue{background:var(--blue);color:#fff;} .btn.sm{padding:8px 16px;font-size:13px;} .btn:disabled{opacity:.55;}
+
+  /* job cards grid */
+  .jobs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:22px;}
+  .jobcard{background:#fff;border-radius:18px;padding:22px;box-shadow:0 6px 20px rgba(0,0,0,.05);border:1px solid #eef1f6;}
+  .jobcard .top{display:flex;gap:14px;align-items:center;margin-bottom:12px;}
+  .jobcard .logo{width:52px;height:52px;border-radius:12px;background:#EEF2F8;display:grid;place-items:center;font-size:24px;flex-shrink:0;}
+  .jobcard h3{font-size:18px;font-weight:800;color:var(--navy);} .jobcard .co{color:var(--muted);font-size:13px;}
+  .jobcard .meta{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
+  .jobcard .chip{background:#EEF2F8;color:var(--navy);font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;}
+  .jobcard .chip.y{background:#FEF6DD;color:#92700a;}
+  .jobcard .desc{color:var(--muted);font-size:14px;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .jobcard .acts{display:flex;gap:10px;}
+  .jobcard .btn{flex:1;justify-content:center;}
+
+  /* applications */
+  .app-card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 6px 20px rgba(0,0,0,.05);margin-bottom:16px;}
+  .app-card .hd{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;}
+  .app-card h3{font-size:18px;font-weight:800;color:var(--navy);}
+  .badge{font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;background:#DCFCE7;color:#15803D;}
+  .track{display:flex;gap:0;margin:18px 0 4px;}
+  .track .step{flex:1;text-align:center;position:relative;}
+  .track .step::before{content:"";position:absolute;top:14px;left:-50%;width:100%;height:3px;background:#E5E7EB;}
+  .track .step:first-child::before{display:none;}
+  .track .step.done::before{background:var(--green);}
+  .track .dot{width:30px;height:30px;border-radius:50%;background:#E5E7EB;color:#fff;display:grid;place-items:center;margin:0 auto 6px;position:relative;z-index:1;font-size:13px;font-weight:800;}
+  .track .step.done .dot{background:var(--green);} .track .step.active .dot{background:var(--yellow);color:#111;}
+  .track .step .lbl{font-size:12px;color:var(--muted);}
+
+  /* messages 2-pane (same as recruiter) */
+  .chat-grid{display:grid;grid-template-columns:340px 1fr;gap:22px;height:calc(100vh - 180px);}
+  @media(max-width:900px){.chat-grid{grid-template-columns:1fr;height:auto;}}
+  .conv-panel,.chat-panel{background:#fff;border-radius:18px;box-shadow:0 6px 20px rgba(0,0,0,.05);overflow:hidden;display:flex;flex-direction:column;}
+  .conv-panel .ph{padding:18px 20px;font-weight:800;font-size:18px;color:var(--navy);border-bottom:1px solid var(--line);}
+  .conv-list{flex:1;overflow-y:auto;}
+  .conv{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;border-bottom:1px solid #F4F6FA;}
+  .conv:hover{background:#F8FAFC;} .conv.on{background:#FEF6DD;}
+  .conv .cav{width:46px;height:46px;border-radius:50%;background:#e2e8f0;display:grid;place-items:center;font-weight:800;color:#64748B;flex-shrink:0;}
+  .conv .cav.admin{background:linear-gradient(135deg,#0f172a,#334155);color:var(--yellow);font-size:14px;} .conv .cav.rec{background:#DBEAFE;color:#1D4ED8;}
+  .conv .nm{font-weight:700;font-size:15px;} .conv .pv{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .conv .un{background:var(--danger);color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center;padding:0 6px;}
+  .chat-top{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;}
+  .chat-top .cav{width:44px;height:44px;border-radius:50%;background:#DBEAFE;color:#1D4ED8;display:grid;place-items:center;font-weight:800;}
+  .chat-top .nm{font-weight:800;font-size:16px;color:var(--navy);} .chat-top .st{font-size:12px;color:var(--green);}
+  .chat-body{flex:1;overflow-y:auto;padding:24px;background:#F7F8FA;display:flex;flex-direction:column;}
+  .bubble{max-width:64%;padding:12px 16px;border-radius:16px;font-size:14.5px;line-height:1.45;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.05);}
+  .bubble.them{background:#fff;border:1px solid #EDEEF1;align-self:flex-start;border-bottom-left-radius:5px;}
+  .bubble.me{background:var(--yellow);align-self:flex-end;border-bottom-right-radius:5px;}
+  .bubble .who{font-weight:700;font-size:13px;margin-bottom:3px;} .bubble .bt{display:block;font-size:10.5px;opacity:.6;margin-top:5px;text-align:right;}
+  .chat-compose{display:flex;gap:12px;padding:16px;border-top:1px solid var(--line);}
+  .chat-compose input{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:13px 16px;outline:none;font-size:14px;}
+  .chat-compose .send{background:var(--yellow);border:none;border-radius:12px;padding:0 22px;font-weight:800;cursor:pointer;font-size:16px;}
+  .chat-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#94A3B8;gap:8px;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;} @media(max-width:700px){.grid2{grid-template-columns:1fr;}}
+  label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:14px 0 6px;}
+  input.f,select.f,textarea.f{width:100%;padding:13px 15px;border:1.5px solid var(--line);border-radius:11px;font-size:15px;outline:none;font-family:inherit;}
+  input.f:focus{border-color:var(--yellow);}
+  .prof-flex{display:flex;gap:26px;align-items:center;flex-wrap:wrap;}
+  .prof-flex .av{width:120px;height:120px;border-radius:50%;background:#e2e8f0;display:grid;place-items:center;font-size:46px;border:4px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,.1);}
+  .docrow{border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .empty{text-align:center;color:var(--muted);padding:30px;} .loading{text-align:center;color:var(--muted);padding:30px;}
+</style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+  <div class="brand"><img src="/assets/logo/mascot.png" onerror="this.style.display='none'">Jobify<span class="pl">PL</span></div>
+  <div class="navitem on" data-p="home" onclick="go('home')"><span class="ic">▦</span> Dashboard</div>
+  <div class="navitem" data-p="jobs" onclick="go('jobs')"><span class="ic">🔍</span> Browse Jobs</div>
+  <div class="navitem" data-p="apps" onclick="go('apps')"><span class="ic">📄</span> My Applications</div>
+  <div class="navitem" data-p="messages" onclick="go('messages')"><span class="ic">💬</span> Messages</div>
+  <div class="navitem" data-p="profile" onclick="go('profile')"><span class="ic">👤</span> My Profile</div>
+  <div class="sep"></div>
+  <div class="navitem" onclick="candLogout()"><span class="ic">↪</span> Logout</div>
+</div>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;flex:1;">
+    <button class="hamb" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+    <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input id="job-search" placeholder="Search jobs by title, company…" oninput="filterJobs(this.value)"></div>
+  </div>
+  <div class="right">
+    <div class="lang-sel" onclick="document.getElementById('lang-drop').classList.toggle('show')">🌐 <span id="lang-label">English</span> ▾
+      <div class="lang-drop" id="lang-drop"><a onclick="setLang('en')">🇬🇧 English</a><a onclick="setLang('pl')">🇵🇱 Polish</a><a onclick="setLang('uk')">🇺🇦 Ukrainian</a></div>
+    </div>
+    <div class="av" id="top-av">🧑</div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- HOME -->
+  <div class="page on" id="p-home">
+    <div class="page-head"><h1>Welcome, <span id="dash-name">there</span> 👋</h1><p>Find your next opportunity in Poland.</p></div>
+    <div class="stats">
+      <div class="stat blue"><div class="ic">🔍</div><div><div class="v" id="s-jobs">0</div><div class="l">Jobs Available</div></div></div>
+      <div class="stat green"><div class="ic">📄</div><div><div class="v" id="s-applied">0</div><div class="l">Applications Sent</div></div></div>
+      <div class="stat indigo"><div class="ic">💬</div><div><div class="v" id="s-msg">0</div><div class="l">Messages</div></div></div>
+    </div>
+    <div class="card"><h2>Recommended Jobs</h2><div id="home-jobs" class="jobs-grid"><div class="loading">Loading…</div></div></div>
+  </div>
+
+  <!-- BROWSE JOBS -->
+  <div class="page" id="p-jobs">
+    <div class="page-head"><h1>Browse Jobs</h1><p>Discover verified local jobs matched to you.</p></div>
+    <div id="jobs-grid" class="jobs-grid"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- MY APPLICATIONS -->
+  <div class="page" id="p-apps">
+    <div class="page-head"><h1>My Applications</h1><p>Track your applications and chat with recruiters.</p></div>
+    <div id="apps-list"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="page" id="p-messages">
+    <div class="page-head"><h1>Messages</h1><p>Chat with recruiters and JobifyPL support.</p></div>
+    <div style="margin-bottom:14px;"><button class="btn btn-navy sm" onclick="messageAdmin()">🎧 Message Admin / Support</button></div>
+    <div class="chat-grid">
+      <div class="conv-panel"><div class="ph">Conversations</div><div class="conv-list" id="conv-list"><div class="loading">Loading…</div></div></div>
+      <div class="chat-panel" id="chat-panel">
+        <div class="chat-empty" id="chat-empty"><div style="font-size:44px;opacity:.4;">💬</div><div style="font-weight:700;color:#64748B;">Select a conversation</div></div>
+        <div id="chat-active" style="display:none;flex-direction:column;height:100%;">
+          <div class="chat-top"><div class="cav" id="chat-av">🏢</div><div><div class="nm" id="chat-name">—</div><div class="st">● Active</div></div></div>
+          <div class="chat-body" id="chat-body"></div>
+          <div class="chat-compose"><input id="chat-text" placeholder="Type your message…" onkeydown="if(event.key==='Enter')sendChat()"><button class="send" onclick="sendChat()">➤</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="page" id="p-profile">
+    <div class="page-head"><h1>My Profile</h1><p>Keep your profile complete so recruiters can find you.</p></div>
+    <div class="card">
+      <div class="prof-flex"><div class="av" id="pp-av">🧑</div>
+        <div><div style="font-size:22px;font-weight:800;color:var(--navy);" id="pp-name">—</div><div style="color:var(--muted);margin-top:4px;" id="pp-sub"></div></div></div>
+      <div class="grid2" style="margin-top:10px;">
+        <div><label>First name</label><input class="f" id="ep-first"></div>
+        <div><label>Last name</label><input class="f" id="ep-last"></div>
+        <div><label>Date of birth</label><input class="f" id="ep-dob" placeholder="YYYY-MM-DD"></div>
+        <div><label>Gender</label><select class="f" id="ep-gender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+        <div><label>Nationality</label><input class="f" id="ep-nat"></div>
+        <div><label>Highest qualification</label><input class="f" id="ep-qual"></div>
+        <div><label>Languages (comma separated)</label><input class="f" id="ep-langs"></div>
+        <div><label>Email</label><input class="f" id="ep-email" type="email"></div>
+      </div>
+      <button class="btn btn-y" style="margin-top:22px;" onclick="saveProfile()">Save Changes</button>
+    </div>
+    <div class="card"><h2>My Documents</h2><div id="doc-list"><div class="loading">Loading…</div></div></div>
+  </div>
+</div>
+
+<script>
+const API="";
+function esc(s){ if(s==null)return""; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function token(){ return localStorage.getItem("token"); }
+async function api(path,opts={}){
+  const h=Object.assign({},opts.headers||{});
+  if(token())h["Authorization"]="Bearer "+token();
+  if(opts.body&&!(opts.body instanceof FormData)){h["Content-Type"]="application/json";opts.body=JSON.stringify(opts.body);}
+  const r=await fetch(API+path,{...opts,headers:h}); const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.detail||"Request failed"); return d;
+}
+function candLogout(){ localStorage.removeItem("token"); localStorage.removeItem("role"); window.location.href="index.html"; }
+if(!token()||localStorage.getItem("role")!=="candidate"){ window.location.href="index.html"; }
+
+function go(page){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+  document.getElementById("p-"+page).classList.add("on");
+  document.querySelectorAll(".navitem").forEach(n=>n.classList.toggle("on",n.dataset.p===page));
+  document.getElementById("sidebar").classList.remove("open");
+  if(page==="home"){ loadCounts(); loadJobs("home-jobs",true); }
+  if(page==="jobs") loadJobs("jobs-grid",false);
+  if(page==="apps") loadApps();
+  if(page==="messages") loadConvs();
+  if(page==="profile"){ loadProfile(); loadDocs(); }
+}
+
+// ---- counts ----
+async function loadCounts(){
+  try{ const c=await api("/jobs/me/counts"); document.getElementById("s-applied").textContent=c.applied||0; }catch(e){}
+  try{ const j=await api("/jobs"); document.getElementById("s-jobs").textContent=(j.jobs||j.data||[]).length||0; }catch(e){}
+  try{ const m=await api("/chat/conversations"); document.getElementById("s-msg").textContent=(m.conversations||[]).length||0; }catch(e){}
+  try{ const p=(await api("/candidate/profile")).profile; document.getElementById("dash-name").textContent=p.first_name||"there";
+    if(p.profile_photo) document.getElementById("top-av").innerHTML=`<img src="/uploads/${esc(p.profile_photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`; }catch(e){}
+}
+
+// ---- browse jobs ----
+let allJobs=[];
+async function loadJobs(target,limit){
+  const box=document.getElementById(target); box.innerHTML=`<div class="loading">Loading…</div>`;
+  try{ const d=await api("/jobs"); allJobs=d.jobs||d.data||[];
+    renderJobs(target, limit?allJobs.slice(0,6):allJobs);
+  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+function renderJobs(target,jobs){
+  const box=document.getElementById(target);
+  if(!jobs.length){ box.innerHTML=`<div class="empty">No jobs available right now.</div>`; return; }
+  box.innerHTML=jobs.map(j=>`<div class="jobcard">
+    <div class="top"><div class="logo">💼</div><div><h3>${esc(j.position||j.title)}</h3><div class="co">${esc(j.company_name||j.title||'')} · ${esc(j.location||'')}</div></div></div>
+    <div class="meta"><span class="chip">${esc(j.job_type||'')}</span><span class="chip">${esc(j.work_type||'')}</span>${j.accommodation?`<span class="chip y">${esc(j.accommodation)} stay</span>`:''}</div>
+    <div class="desc">${esc(j.description||'')}</div>
+    <div class="acts">
+      ${j.applied?`<button class="btn btn-o" disabled>✓ Applied</button>`:`<button class="btn btn-y" onclick="applyJob(${j.id},this)">Apply Now</button>`}
+    </div></div>`).join("");
+}
+function filterJobs(q){ q=(q||"").toLowerCase(); renderJobs("jobs-grid", allJobs.filter(j=>((j.position||"")+ (j.title||"")+(j.company_name||"")+(j.location||"")).toLowerCase().includes(q))); }
+async function applyJob(id,btn){ btn.disabled=true; btn.textContent="Applying…";
+  try{ await api("/jobs/"+id+"/apply",{method:"POST"}); btn.outerHTML=`<button class="btn btn-o" disabled>✓ Applied</button>`; loadCounts(); }
+  catch(e){ alert(e.message); btn.disabled=false; btn.textContent="Apply Now"; } }
+
+// ---- my applications ----
+async function loadApps(){
+  const box=document.getElementById("apps-list"); box.innerHTML=`<div class="loading">Loading…</div>`;
+  try{ const d=await api("/jobs/me/applications"); const apps=d.applications||[];
+    if(!apps.length){ box.innerHTML=`<div class="empty">You haven't applied to any jobs yet.</div>`; return; }
+    box.innerHTML=apps.map(a=>{
+      const tstatus=a.track_status||"application_sent";
+      const seen=tstatus==="recruiter_seen"||tstatus==="recruiter_contacted";
+      const contacted=tstatus==="recruiter_contacted";
+      return `<div class="app-card"><div class="hd"><div><h3>${esc(a.title)}</h3>
+        <div style="color:var(--muted);font-size:14px;">${esc(a.company_name||'')} · ${esc(a.location||'')}</div></div>
+        <span class="badge">${esc(a.status||'Applied')}</span></div>
+        <div class="track">
+          <div class="step done"><div class="dot">✓</div><div class="lbl">Application sent</div></div>
+          <div class="step ${seen?'done':'active'}"><div class="dot">${seen?'✓':'2'}</div><div class="lbl">Recruiter seen</div></div>
+          <div class="step ${contacted?'done':''}"><div class="dot">${contacted?'✓':'3'}</div><div class="lbl">Recruiter contacted</div></div>
+        </div>
+        ${a.recruiter_id?`<button class="btn btn-navy sm" style="margin-top:14px;" onclick="chatWithRecruiter(${a.recruiter_id},'${esc((a.company_name||'Recruiter').replace(/'/g,''))}')">💬 Chat with Recruiter</button>`:''}
+      </div>`;
+    }).join("");
+  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+
+// ---- messages ----
+let convs=[],curConv=null;
+function initials(n){ return (n||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"👤"; }
+function avc(role){ role=(role||"").toLowerCase(); return role==="admin"?"admin":(role==="recruiter"?"rec":""); }
+async function loadConvs(){
+  document.getElementById("chat-empty").style.display="flex"; document.getElementById("chat-active").style.display="none"; curConv=null;
+  const box=document.getElementById("conv-list"); box.innerHTML=`<div class="loading">Loading…</div>`;
+  try{ const d=await api("/chat/conversations"); convs=d.conversations||[];
+    if(!convs.length){ box.innerHTML=`<div class="empty">No conversations yet.<br><small>Apply to jobs to chat with recruiters.</small></div>`; return; }
+    box.innerHTML=convs.map(c=>`<div class="conv" onclick="openChat(${c.conversation_id})">
+      <div class="cav ${avc(c.role)}">${esc(initials(c.name))}</div>
+      <div style="flex:1;min-width:0;"><div class="nm">${esc(c.name)}</div><div class="pv">${esc(c.last_message||'No messages yet')}</div></div>
+      ${c.unread?`<span class="un">${c.unread}</span>`:""}</div>`).join("");
+  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+async function openChat(cid){
+  curConv=cid; document.getElementById("chat-empty").style.display="none"; document.getElementById("chat-active").style.display="flex";
+  const c=convs.find(x=>x.conversation_id===cid); const nm=(c&&c.name)||"Conversation";
+  const av=document.getElementById("chat-av"); av.className="cav "+avc(c&&c.role); av.textContent=initials(nm);
+  document.getElementById("chat-name").textContent=nm;
+  document.querySelectorAll("#conv-list .conv").forEach((el,i)=>el.classList.toggle("on",convs[i]&&convs[i].conversation_id===cid));
+  try{ const d=await api("/chat/"+cid+"/messages");
+    document.getElementById("chat-name").textContent=d.other_name||nm;
+    const b=document.getElementById("chat-body");
+    b.innerHTML=d.messages.length?d.messages.map(m=>`<div class="bubble ${m.mine?'me':'them'}">${!m.mine?`<div class="who">${esc(d.other_name)}</div>`:""}${esc(m.body)}<span class="bt">${esc(fmtT(m.time))}</span></div>`).join(""):`<div class="chat-empty">No messages yet — say hello 👋</div>`;
+    b.scrollTop=1e9; api("/chat/conversations").then(r=>{convs=r.conversations||[];}).catch(()=>{});
+  }catch(e){ document.getElementById("chat-body").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+function fmtT(iso){ if(!iso)return""; const d=new Date(iso); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+async function sendChat(){ const inp=document.getElementById("chat-text"); const t=inp.value.trim(); if(!t||!curConv)return; inp.value="";
+  try{ await api("/chat/send",{method:"POST",body:{conversation_id:curConv,body:t}}); openChat(curConv);}catch(e){alert(e.message);} }
+async function chatWithRecruiter(rid,name){ try{ const d=await api("/chat/start",{method:"POST",body:{other_user_id:rid}}); go("messages"); await loadConvs();
+    if(!convs.find(x=>x.conversation_id===d.conversation_id)) convs.unshift({conversation_id:d.conversation_id,name:d.name||name,role:"recruiter",last_message:"",unread:0});
+    openChat(d.conversation_id);}catch(e){alert(e.message);} }
+async function messageAdmin(){ try{ const d=await api("/chat/support",{method:"POST"}); go("messages"); await loadConvs();
+    if(!convs.find(x=>x.conversation_id===d.conversation_id)) convs.unshift({conversation_id:d.conversation_id,name:d.name,role:"admin",last_message:"",unread:0});
+    openChat(d.conversation_id);}catch(e){alert(e.message);} }
+
+// ---- profile ----
+async function loadProfile(){ try{ const p=(await api("/candidate/profile")).profile;
+    document.getElementById("pp-name").textContent=((p.first_name||"")+" "+(p.last_name||"")).trim()||"Candidate";
+    document.getElementById("pp-sub").textContent=(p.qualification||"")+(p.nationality?(" · "+p.nationality):"");
+    if(p.profile_photo) document.getElementById("pp-av").innerHTML=`<img src="/uploads/${esc(p.profile_photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    document.getElementById("ep-first").value=p.first_name||""; document.getElementById("ep-last").value=p.last_name||"";
+    document.getElementById("ep-dob").value=p.dob||""; document.getElementById("ep-gender").value=p.gender||"";
+    document.getElementById("ep-nat").value=p.nationality||""; document.getElementById("ep-qual").value=p.qualification||"";
+    document.getElementById("ep-langs").value=p.languages||""; document.getElementById("ep-email").value=p.email||"";
+  }catch(e){} }
+async function saveProfile(){ try{ await api("/candidate/profile",{method:"POST",body:{
+    first_name:document.getElementById("ep-first").value,last_name:document.getElementById("ep-last").value,
+    dob:document.getElementById("ep-dob").value,gender:document.getElementById("ep-gender").value,
+    nationality:document.getElementById("ep-nat").value,qualification:document.getElementById("ep-qual").value,
+    languages:document.getElementById("ep-langs").value,email:document.getElementById("ep-email").value}});
+    alert("Profile saved"); loadProfile(); loadCounts();
+  }catch(e){ alert(e.message); } }
+async function loadDocs(){ const box=document.getElementById("doc-list");
+  try{ const d=await api("/candidate/documents"); const docs=d.documents||[];
+    box.innerHTML=docs.length?docs.map(x=>`<div class="docrow"><div><b>📄 ${esc((x.original_name||x.doc_type||'Document'))}</b></div>
+      <a class="btn btn-o sm" href="/uploads/${esc(x.file_path)}" target="_blank">Preview</a></div>`).join(""):`<div class="empty">No documents uploaded yet.</div>`;
+  }catch(e){ box.innerHTML=`<div class="empty">No documents.</div>`; } }
+
+let LANG="en";
+function setLang(l){ LANG=l; localStorage.setItem("lang",l); document.getElementById("lang-label").textContent={en:"English",pl:"Polish",uk:"Ukrainian"}[l]; document.getElementById("lang-drop").classList.remove("show"); }
+
+go("home");
+</script>
+</body>
+</html>

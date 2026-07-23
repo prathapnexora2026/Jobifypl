@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JobifyPL — Recruiter Dashboard</title>
+<style>
+  :root{
+    --navy:#18274b; --navy2:#0f1b38; --yellow:#F5A800; --yellow-d:#e09a00;
+    --ink:#0f172a; --muted:#5b6472; --line:#E7E9EE; --bg:#F4F6FB; --card:#fff;
+    --blue:#2563EB; --green:#22C55E; --teal:#06B6D4; --danger:#EF4444; --purple:#6366F1;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  img{max-width:100%;display:block;}
+  a{text-decoration:none;color:inherit;}
+
+  /* ===== SIDEBAR ===== */
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:260px;background:linear-gradient(180deg,var(--navy),var(--navy2));color:#fff;padding:22px 0;overflow-y:auto;z-index:50;}
+  .sidebar .brand{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:900;padding:0 22px 22px;}
+  .sidebar .brand img{height:40px;width:40px;object-fit:contain;}
+  .sidebar .brand .pl{background:var(--yellow);color:#111;border:2px solid #fff;padding:0 5px;border-radius:4px;line-height:1.05;}
+  .navitem{display:flex;align-items:center;gap:14px;padding:14px 22px;margin:4px 12px;border-radius:12px;cursor:pointer;color:#c3cbdb;font-weight:600;font-size:15px;border-left:4px solid transparent;transition:.15s;}
+  .navitem:hover{background:rgba(255,255,255,.07);color:#fff;}
+  .navitem.on{background:linear-gradient(90deg,rgba(245,168,0,.18),transparent);border-left-color:var(--yellow);color:#fff;}
+  .navitem .ic{width:22px;text-align:center;font-size:18px;}
+  .sidebar .sep{height:1px;background:rgba(255,255,255,.1);margin:12px 22px;}
+
+  /* ===== TOPBAR + MAIN ===== */
+  .topbar{position:fixed;top:0;left:260px;right:0;height:70px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;z-index:40;}
+  .topbar .search{flex:1;max-width:440px;position:relative;}
+  .topbar .search input{width:100%;background:#F1F5F9;border:none;border-radius:12px;padding:12px 16px 12px 42px;font-size:15px;outline:none;}
+  .topbar .search svg{position:absolute;left:14px;top:12px;width:20px;height:20px;stroke:#94a3b8;fill:none;stroke-width:2;}
+  .topbar .right{display:flex;align-items:center;gap:20px;}
+  .topbar .hiring{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);font-weight:600;}
+  .switch{width:52px;height:28px;border-radius:20px;background:var(--yellow);position:relative;cursor:pointer;border:none;flex-shrink:0;}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s;}
+  .switch.off{background:#CBD5E1;} .switch.off::after{left:27px;}
+  .topbar .av{width:42px;height:42px;border-radius:50%;background:#e2e8f0;display:grid;place-items:center;font-size:20px;object-fit:cover;border:2px solid var(--yellow);cursor:pointer;}
+  .lang-sel{display:flex;align-items:center;gap:6px;background:#111827;color:#fff;border-radius:20px;padding:8px 14px;font-size:13px;cursor:pointer;position:relative;}
+  .lang-drop{position:absolute;top:44px;right:0;background:#111827;color:#fff;border-radius:12px;padding:6px;min-width:150px;display:none;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  .lang-drop.show{display:block;} .lang-drop a{display:flex;gap:8px;padding:10px 12px;border-radius:8px;cursor:pointer;} .lang-drop a:hover{background:rgba(255,255,255,.08);}
+
+  .main{margin-left:260px;margin-top:70px;padding:30px;min-height:calc(100vh - 70px);}
+  @media(max-width:960px){.sidebar{transform:translateX(-100%);transition:.25s;} .sidebar.open{transform:translateX(0);} .topbar{left:0;} .main{margin-left:0;} .hamb{display:block!important;}}
+  .hamb{display:none;background:none;border:none;font-size:24px;cursor:pointer;margin-right:12px;}
+
+  .page{display:none;} .page.on{display:block;}
+  .page-head{margin-bottom:24px;}
+  .page-head h1{font-size:28px;font-weight:800;color:var(--navy);}
+  .page-head p{color:var(--muted);margin-top:4px;}
+
+  /* stat cards */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-bottom:28px;}
+  @media(max-width:1100px){.stats{grid-template-columns:1fr 1fr;}}
+  @media(max-width:560px){.stats{grid-template-columns:1fr;}}
+  .stat{background:#fff;border-radius:18px;padding:24px;box-shadow:0 6px 20px rgba(0,0,0,.05);display:flex;align-items:center;gap:16px;}
+  .stat .ic{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;font-size:24px;color:#fff;flex-shrink:0;}
+  .stat.blue .ic{background:var(--blue);} .stat.yellow .ic{background:var(--yellow);} .stat.green .ic{background:var(--green);} .stat.teal .ic{background:var(--teal);}
+  .stat .v{font-size:28px;font-weight:800;color:var(--navy);} .stat .l{color:var(--muted);font-size:14px;}
+
+  .card{background:#fff;border-radius:18px;padding:24px;box-shadow:0 6px 20px rgba(0,0,0,.05);margin-bottom:24px;}
+  .card h2{font-size:20px;font-weight:800;color:var(--navy);margin-bottom:16px;}
+  .card .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;border:none;border-radius:12px;font-weight:700;cursor:pointer;font-size:14px;padding:11px 22px;transition:.15s;}
+  .btn-y{background:var(--yellow);color:#111;} .btn-y:hover{background:var(--yellow-d);}
+  .btn-navy{background:var(--navy);color:#fff;} .btn-navy:hover{background:var(--navy2);}
+  .btn-o{background:#fff;border:1.5px solid var(--line);color:var(--ink);} .btn-o:hover{border-color:var(--navy);}
+  .btn-blue{background:var(--blue);color:#fff;}
+  .btn.sm{padding:8px 16px;font-size:13px;}
+
+  /* table */
+  .tbl-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;min-width:640px;}
+  th{text-align:left;background:#F8FAFC;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.05em;padding:14px 16px;font-weight:800;}
+  td{padding:14px 16px;border-top:1px solid #F1F5F9;font-size:14px;vertical-align:middle;}
+  .badge{font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;display:inline-block;}
+  .badge.open{background:#DCFCE7;color:#15803D;} .badge.hold{background:#FEF3C7;color:#92700a;}
+  .chip{display:inline-block;background:#EAF1FF;color:#2563EB;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;}
+  .row-acts{display:flex;gap:8px;}
+  .iconbtn{width:36px;height:36px;border-radius:9px;border:1.5px solid;background:#fff;cursor:pointer;display:grid;place-items:center;font-size:14px;}
+  .iconbtn.e{border-color:#93C5FD;color:#2563EB;} .iconbtn.d{border-color:#FCA5A5;color:#EF4444;}
+
+  /* plans grid */
+  .plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:22px;}
+  .plan{background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:26px;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.05);}
+  .plan.cur{border-color:var(--purple);}
+  .plan h3{font-size:20px;font-weight:800;color:var(--navy);}
+  .plan .price{font-size:30px;font-weight:800;color:var(--yellow);margin:8px 0;} .plan .price small{font-size:14px;color:var(--muted);}
+  .plan .feat{text-align:left;color:#475569;font-size:14px;margin:9px 0;display:flex;gap:8px;align-items:center;}
+  .plan .feat .ck{color:var(--green);font-weight:800;}
+  .plan .btn{width:100%;justify-content:center;margin-top:16px;}
+
+  /* wallet */
+  .wallet-card{background:linear-gradient(160deg,#1f2a48,#0d1428);color:#fff;border-radius:20px;padding:30px;max-width:480px;}
+  .wallet-card .bal{font-size:36px;font-weight:800;}
+
+  /* messages: 2-pane */
+  .chat-grid{display:grid;grid-template-columns:340px 1fr;gap:22px;height:calc(100vh - 180px);}
+  @media(max-width:900px){.chat-grid{grid-template-columns:1fr;height:auto;}}
+  .conv-panel{background:#fff;border-radius:18px;box-shadow:0 6px 20px rgba(0,0,0,.05);overflow:hidden;display:flex;flex-direction:column;}
+  .conv-panel .ph{padding:18px 20px;font-weight:800;font-size:18px;color:var(--navy);border-bottom:1px solid var(--line);}
+  .conv-list{flex:1;overflow-y:auto;}
+  .conv{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;border-bottom:1px solid #F4F6FA;}
+  .conv:hover{background:#F8FAFC;} .conv.on{background:#FEF6DD;}
+  .conv .cav{width:46px;height:46px;border-radius:50%;background:#e2e8f0;display:grid;place-items:center;font-weight:800;color:#64748B;flex-shrink:0;}
+  .conv .cav.admin{background:linear-gradient(135deg,#0f172a,#334155);color:var(--yellow);font-size:14px;}
+  .conv .cav.cand{background:#DCFCE7;color:#15803D;}
+  .conv .nm{font-weight:700;font-size:15px;} .conv .pv{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .conv .un{background:var(--danger);color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center;padding:0 6px;}
+  .chat-panel{background:#fff;border-radius:18px;box-shadow:0 6px 20px rgba(0,0,0,.05);display:flex;flex-direction:column;overflow:hidden;}
+  .chat-top{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;}
+  .chat-top .cav{width:44px;height:44px;border-radius:50%;background:#e2e8f0;display:grid;place-items:center;font-weight:800;color:#64748B;}
+  .chat-top .cav.admin{background:linear-gradient(135deg,#0f172a,#334155);color:var(--yellow);font-size:14px;}
+  .chat-top .nm{font-weight:800;font-size:16px;color:var(--navy);} .chat-top .st{font-size:12px;color:var(--green);}
+  .chat-body{flex:1;overflow-y:auto;padding:24px;background:#F7F8FA;display:flex;flex-direction:column;}
+  .bubble{max-width:64%;padding:12px 16px;border-radius:16px;font-size:14.5px;line-height:1.45;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.05);}
+  .bubble.them{background:#fff;border:1px solid #EDEEF1;align-self:flex-start;border-bottom-left-radius:5px;}
+  .bubble.me{background:var(--yellow);align-self:flex-end;border-bottom-right-radius:5px;}
+  .bubble .who{font-weight:700;font-size:13px;margin-bottom:3px;} .bubble .bt{display:block;font-size:10.5px;opacity:.6;margin-top:5px;text-align:right;}
+  .chat-compose{display:flex;gap:12px;padding:16px;border-top:1px solid var(--line);}
+  .chat-compose input{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:13px 16px;outline:none;font-size:14px;}
+  .chat-compose .send{background:var(--yellow);border:none;border-radius:12px;padding:0 22px;font-weight:800;cursor:pointer;font-size:16px;}
+  .chat-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#94A3B8;gap:8px;}
+
+  /* profile */
+  .prof-flex{display:flex;gap:26px;align-items:center;flex-wrap:wrap;}
+  .prof-flex .av{width:120px;height:120px;border-radius:50%;background:#e2e8f0;display:grid;place-items:center;font-size:46px;object-fit:cover;border:4px solid #fff;box-shadow:0 6px 18px rgba(0,0,0,.1);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:700px){.grid2{grid-template-columns:1fr;}}
+  label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:14px 0 6px;}
+  input.f,select.f,textarea.f{width:100%;padding:13px 15px;border:1.5px solid var(--line);border-radius:11px;font-size:15px;outline:none;font-family:inherit;}
+  input.f:focus,textarea.f:focus{border-color:var(--yellow);}
+
+  .empty{text-align:center;color:var(--muted);padding:30px;}
+  .loading{text-align:center;color:var(--muted);padding:30px;}
+
+  /* modal (post job) */
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:120;display:none;align-items:center;justify-content:center;padding:20px;}
+  .modal-bg.show{display:flex;}
+  .modal{background:#fff;border-radius:20px;width:100%;max-width:720px;max-height:88vh;overflow-y:auto;padding:30px;}
+  .modal h2{margin-bottom:8px;} .modal .sub{color:var(--muted);margin-bottom:16px;}
+  .modal .foot{display:flex;justify-content:flex-end;gap:12px;margin-top:20px;}
+  .sec-title{font-weight:800;color:var(--navy);margin:20px 0 4px;}
+  .toggle-card{border:1.5px solid var(--line);border-radius:12px;padding:14px;font-weight:700;cursor:pointer;text-align:center;}
+  .toggle-card.on{border-color:var(--yellow);background:#FEF6DD;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;} @media(max-width:640px){.row3{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="brand"><img src="/assets/logo/mascot.png" onerror="this.style.display='none'">Jobify<span class="pl">PL</span></div>
+  <div class="navitem on" data-p="home" onclick="go('home')"><span class="ic">▦</span> Dashboard</div>
+  <div class="navitem" data-p="jobs" onclick="go('jobs')"><span class="ic">💼</span> My Jobs</div>
+  <div class="navitem" data-p="apps" onclick="go('apps')"><span class="ic">🗂</span> Applications</div>
+  <div class="navitem" data-p="messages" onclick="go('messages')"><span class="ic">💬</span> Messages</div>
+  <div class="navitem" data-p="packages" onclick="go('packages')"><span class="ic">🎁</span> Packages</div>
+  <div class="navitem" data-p="wallet" onclick="go('wallet')"><span class="ic">👛</span> Wallet</div>
+  <div class="navitem" data-p="payments" onclick="go('payments')"><span class="ic">💳</span> Payment History</div>
+  <div class="navitem" data-p="profile" onclick="go('profile')"><span class="ic">👤</span> Edit Profile</div>
+  <div class="sep"></div>
+  <div class="navitem" onclick="recLogout()"><span class="ic">↪</span> Logout</div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;flex:1;">
+    <button class="hamb" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+    <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Search jobs, applicants…"></div>
+  </div>
+  <div class="right">
+    <div class="hiring">Actively Hiring <button class="switch" id="sw-hiring" onclick="toggleHiring()"></button></div>
+    <div class="lang-sel" onclick="document.getElementById('lang-drop').classList.toggle('show')">🌐 <span id="lang-label">English</span> ▾
+      <div class="lang-drop" id="lang-drop">
+        <a onclick="setLang('en')">🇬🇧 English</a><a onclick="setLang('pl')">🇵🇱 Polish</a><a onclick="setLang('uk')">🇺🇦 Ukrainian</a>
+      </div>
+    </div>
+    <img class="av" id="top-av" src="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'av',textContent:'🏢'}))">
+  </div>
+</div>
+
+<div class="main">
+  <!-- HOME -->
+  <div class="page on" id="p-home">
+    <div class="page-head"><h1>Welcome, <span id="dash-name">Recruiter</span> 👋</h1><p>Here's what's happening with your hiring today.</p></div>
+    <div class="stats">
+      <div class="stat blue"><div class="ic">👁</div><div><div class="v" id="s-views">0</div><div class="l">Profile Views</div></div></div>
+      <div class="stat yellow"><div class="ic">💼</div><div><div class="v" id="s-jobs">0</div><div class="l">Jobs Posted</div></div></div>
+      <div class="stat green"><div class="ic">📄</div><div><div class="v" id="s-int">0</div><div class="l">Interested Candidates</div></div></div>
+      <div class="stat teal"><div class="ic">✉️</div><div><div class="v" id="s-msg">0</div><div class="l">Messages</div></div></div>
+    </div>
+    <div class="card">
+      <div class="hd"><h2>Recent Job Posts</h2><button class="btn btn-y" onclick="openPostModal()">+ Post a Job</button></div>
+      <div id="home-jobs" class="tbl-wrap"><div class="loading">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- JOBS -->
+  <div class="page" id="p-jobs">
+    <div class="page-head" style="display:flex;justify-content:space-between;align-items:center;">
+      <div><h1>My Jobs</h1><p>Manage your posted jobs.</p></div>
+      <button class="btn btn-y" onclick="openPostModal()">+ Post a Job</button>
+    </div>
+    <div class="card"><div id="jobs-body" class="tbl-wrap"><div class="loading">Loading…</div></div></div>
+  </div>
+
+  <!-- APPLICATIONS -->
+  <div class="page" id="p-apps">
+    <div class="page-head"><h1>Applications Received</h1><p>Review candidates who applied to your jobs.</p></div>
+    <div id="apps-body"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="page" id="p-messages">
+    <div class="page-head"><h1>Messages</h1><p>Chat with candidates and JobifyPL support.</p></div>
+    <div style="margin-bottom:14px;"><button class="btn btn-navy sm" onclick="messageAdmin()">🎧 Message Admin / Support</button></div>
+    <div class="chat-grid">
+      <div class="conv-panel">
+        <div class="ph">Conversations</div>
+        <div class="conv-list" id="conv-list"><div class="loading">Loading…</div></div>
+      </div>
+      <div class="chat-panel" id="chat-panel">
+        <div class="chat-empty" id="chat-empty"><div style="font-size:44px;opacity:.4;">💬</div><div style="font-weight:700;color:#64748B;">Select a conversation</div></div>
+        <div id="chat-active" style="display:none;flex-direction:column;height:100%;">
+          <div class="chat-top"><div class="cav" id="chat-av">👤</div><div><div class="nm" id="chat-name">—</div><div class="st">● Active</div></div></div>
+          <div class="chat-body" id="chat-body"></div>
+          <div class="chat-compose"><input id="chat-text" placeholder="Type your message…" onkeydown="if(event.key==='Enter')recSendChat()"><button class="send" onclick="recSendChat()">➤</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PACKAGES -->
+  <div class="page" id="p-packages">
+    <div class="page-head"><h1>Recruiter Packages</h1><p>Unlock more postings, visibility and support.</p></div>
+    <div id="pkg-cur"></div>
+    <div class="plans" id="pkg-list"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- WALLET -->
+  <div class="page" id="p-wallet">
+    <div class="page-head"><h1>Wallet</h1><p>Your balance and activity.</p></div>
+    <div class="wallet-card"><div style="opacity:.7;font-size:13px;letter-spacing:1px;">WALLET BALANCE</div><div class="bal" id="wal-bal">0.00 PLN</div>
+      <button class="btn btn-y" style="margin-top:16px;" onclick="alert('Top-up via PayU — available once the merchant account is live.')">+ Add Funds</button></div>
+    <div class="card" style="margin-top:24px;"><h2>Activity History</h2><div id="wal-history"></div></div>
+  </div>
+
+  <!-- PAYMENTS -->
+  <div class="page" id="p-payments">
+    <div class="page-head"><h1>Payment History</h1><p>All package purchases and receipts.</p></div>
+    <div class="card"><div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody id="pay-body"><tr><td colspan="4" class="loading">Loading…</td></tr></tbody></table></div></div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="page" id="p-profile">
+    <div class="page-head"><h1>Edit Profile</h1><p>These details power your public recruiter profile.</p></div>
+    <div class="card">
+      <div class="prof-flex">
+        <div class="av" id="pp-av">🏢</div>
+        <div><div style="font-size:22px;font-weight:800;color:var(--navy);" id="pp-name">—</div>
+          <div style="color:var(--muted);margin-top:4px;" id="pp-sub"></div></div>
+      </div>
+      <div class="grid2" style="margin-top:10px;">
+        <div><label>First name</label><input class="f" id="ep-first"></div>
+        <div><label>Last name</label><input class="f" id="ep-last"></div>
+        <div><label>Company name</label><input class="f" id="ep-company"></div>
+        <div><label>Contact position</label><input class="f" id="ep-position"></div>
+        <div><label>Company email (no gmail/yahoo)</label><input class="f" id="ep-email" type="email"></div>
+        <div><label>Phone</label><input class="f" id="ep-phone" disabled></div>
+      </div>
+      <button class="btn btn-y" style="margin-top:22px;" onclick="saveProfile()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- POST JOB MODAL (desktop) -->
+<div class="modal-bg" id="post-modal"><div class="modal">
+  <h2>Post a New Job</h2><div class="sub">Reach thousands of skilled job seekers in Poland.</div>
+  <div class="sec-title">Job Details</div>
+  <div class="row3">
+    <div><label>Work Category *</label>
+      <select class="f" id="j-cat"><option value="">Choose…</option></select></div>
+    <div><label>Position *</label><input class="f" id="j-pos" placeholder="e.g. Warehouse Operator"></div>
+    <div><label>Shift timings</label>
+      <select class="f" id="j-shift"><option value="">Select</option><option>6 hours</option><option>8 hours</option><option>10 hours</option><option>12 hours</option></select></div>
+  </div>
+  <div class="row3">
+    <div><label>Job Type</label><select class="f" id="j-jt"><option value="">Select</option><option>Regular Job</option><option>Seasonal Job</option></select></div>
+    <div><label>Work Type</label><select class="f" id="j-wt"><option value="">Select</option><option>Full Time</option><option>Part Time</option></select></div>
+    <div><label>Language *</label><select class="f" id="j-lang"><option value="">Select</option><option>Basic English</option><option>Expert English Level</option><option>Polish</option><option>Ukraine</option><option>Not Mandatory</option></select></div>
+  </div>
+  <div class="grid2">
+    <div><label>Location (City)</label><select class="f" id="j-city"><option value="">Select City</option></select></div>
+    <div><label>Nationalities Accepted *</label><input class="f" id="j-nat" placeholder="e.g. Nepal & Philippines"></div>
+  </div>
+  <div class="row3">
+    <div><label>Age from</label><input class="f" id="j-af" type="number"></div>
+    <div><label>Age to</label><input class="f" id="j-at" type="number"></div>
+    <div><label>Preferred Gender</label><select class="f" id="j-gen"><option value="">Select</option><option>Male</option><option>Female</option><option>Any</option></select></div>
+  </div>
+  <div class="grid2">
+    <div><label>Accepts to</label><select class="f" id="j-acc"><option value="">Select</option><option>Student Only</option><option>Polish TRC holders</option><option>Polish Citizens</option><option>All are eligible</option></select></div>
+    <div><label>Accommodation</label><select class="f" id="j-accom"><option value="">Select</option><option>Free</option><option>Paid</option></select></div>
+  </div>
+  <label>Job Description *</label><textarea class="f" id="j-desc" rows="4" placeholder="Describe the role (max 300 chars)…" maxlength="300"></textarea>
+  <div class="foot">
+    <button class="btn btn-o" onclick="closePostModal()">Cancel</button>
+    <button class="btn btn-y" onclick="submitPost()">Post Job</button>
+  </div>
+</div></div>
+
+<script>
+const API="";
+function esc(s){ if(s==null)return""; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function token(){ return localStorage.getItem("token"); }
+async function api(path,opts={}){
+  const h=Object.assign({},opts.headers||{});
+  if(token())h["Authorization"]="Bearer "+token();
+  if(opts.body&&!(opts.body instanceof FormData)){h["Content-Type"]="application/json";opts.body=JSON.stringify(opts.body);}
+  const r=await fetch(API+path,{...opts,headers:h}); const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.detail||"Request failed"); return d;
+}
+function recLogout(){ localStorage.removeItem("token"); localStorage.removeItem("role"); window.location.href="index.html"; }
+// guard: must be a logged-in recruiter
+if(!token()||localStorage.getItem("role")!=="recruiter"){ window.location.href="index.html"; }
+
+function go(page){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+  document.getElementById("p-"+page).classList.add("on");
+  document.querySelectorAll(".navitem").forEach(n=>n.classList.toggle("on",n.dataset.p===page));
+  document.getElementById("sidebar").classList.remove("open");
+  if(page==="home"){ loadDashboard(); loadJobs("home-jobs",true); }
+  if(page==="jobs") loadJobs("jobs-body",false);
+  if(page==="apps") loadApps();
+  if(page==="messages") loadConvs();
+  if(page==="packages") loadPackages();
+  if(page==="wallet") loadWallet();
+  if(page==="payments") loadPayments();
+  if(page==="profile") loadProfile();
+}
+
+// ---- dashboard ----
+let hiringOn=true;
+async function loadDashboard(){
+  try{ const d=await api("/recruiter/dashboard");
+    document.getElementById("dash-name").textContent=d.welcome_name||"Recruiter";
+    document.getElementById("s-views").textContent=d.profile_views||0;
+    document.getElementById("s-jobs").textContent=d.jobs_posted||0;
+    document.getElementById("s-int").textContent=d.interested_candidates||0;
+    document.getElementById("s-msg").textContent=d.messages||0;
+    hiringOn=!!d.actively_hiring; document.getElementById("sw-hiring").classList.toggle("off",!hiringOn);
+  }catch(e){ console.error(e); }
+  loadProfileAvatar();
+}
+async function loadProfileAvatar(){ try{ const p=(await api("/recruiter/profile")).profile; if(p.profile_pic) document.getElementById("top-av").src=p.profile_pic; }catch(e){} }
+async function toggleHiring(){ hiringOn=!hiringOn; document.getElementById("sw-hiring").classList.toggle("off",!hiringOn);
+  try{ await api("/recruiter/profile",{method:"POST",body:{actively_hiring:hiringOn}}); }catch(e){} }
+
+// ---- jobs ----
+async function loadJobs(target,limit){
+  const box=document.getElementById(target); box.innerHTML=`<div class="loading">Loading…</div>`;
+  try{ const d=await api("/recruiter/jobs"); let jobs=d.jobs; if(limit) jobs=jobs.slice(0,5);
+    if(!jobs.length){ box.innerHTML=`<div class="empty">No jobs posted yet.</div>`; return; }
+    box.innerHTML=`<table><thead><tr><th>Title</th><th>Location</th><th>Gender</th><th>Applied</th><th>Interested</th><th>Status</th><th>Posted</th><th></th></tr></thead><tbody>${jobs.map(j=>`
+      <tr><td><b>${esc(j.title)}</b></td><td>${esc(j.location)}</td><td><span class="chip">${esc(j.gender_pref||'Any')}</span></td>
+      <td>${j.applied_count}</td><td>${j.interested_count}</td><td><span class="badge ${j.status==='hold'?'hold':'open'}">${j.status==='open'?'Posted':esc(j.status)}</span></td>
+      <td>${esc(j.created_at)}</td><td><div class="row-acts"><button class="iconbtn d" onclick="delJob(${j.id})">🗑</button></div></td></tr>`).join("")}</tbody></table>`;
+  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+async function delJob(id){ if(!confirm("Delete this job?"))return; try{ await api("/recruiter/jobs/"+id,{method:"DELETE"}); loadJobs("jobs-body",false); loadJobs("home-jobs",true);}catch(e){alert(e.message);} }
+
+// ---- applications ----
+async function loadApps(){
+  const box=document.getElementById("apps-body"); box.innerHTML=`<div class="loading">Loading…</div>`;
+  try{ const d=await api("/recruiter/jobs");
+    if(!d.jobs.length){ box.innerHTML=`<div class="empty">No jobs yet — post one to receive applications.</div>`; return; }
+    box.innerHTML=d.jobs.map(j=>`<div class="card"><div class="hd"><h2>${esc(j.title)}</h2>
+      <span style="color:var(--muted);">Applied ${j.applied_count} · Interested ${j.interested_count}</span></div>
+      <button class="btn btn-navy sm" onclick="viewApplicants(${j.id},'${esc(j.title)}',this)">👁 View Applicants</button>
+      <div class="app-list" style="margin-top:14px;"></div></div>`).join("");
+  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+async function viewApplicants(jid,title,btn){
+  const list=btn.nextElementSibling; list.innerHTML=`<div class="loading">Loading…</div>`;
+  try{ const d=await api("/recruiter/jobs/"+jid+"/applicants"); const r=d.applicants;
+    list.innerHTML=r.length?`<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Nationality</th><th>Qualification</th><th>Status</th><th></th></tr></thead><tbody>${r.map(a=>`
+      <tr><td><b>${esc(a.name)}</b></td><td>${esc(a.nationality||'—')}</td><td>${esc(a.qualification||'—')}</td><td>${esc(a.status)}</td>
+      <td><div class="row-acts"><button class="btn btn-blue sm" onclick="recMessageCandidate(${a.candidate_id})">💬 Message</button>
+      <button class="btn btn-o sm" onclick="setAppStatus(${a.application_id},'shortlisted')">Shortlist</button></div></td></tr>`).join("")}</tbody></table></div>`
+      :`<div class="empty">No applicants yet.</div>`;
+  }catch(e){ list.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+async function setAppStatus(id,s){ try{ await api("/recruiter/applications/"+id+"/status?status="+s,{method:"PUT"}); alert("Marked "+s);}catch(e){alert(e.message);} }
+
+// ---- messages ----
+let convs=[],curConv=null;
+function initials(n){ return (n||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"👤"; }
+function avc(role){ role=(role||"").toLowerCase(); return role==="admin"?"admin":(role==="candidate"?"cand":""); }
+async function loadConvs(){
+  document.getElementById("chat-empty").style.display="flex"; document.getElementById("chat-active").style.display="none"; curConv=null;
+  const box=document.getElementById("conv-list"); box.innerHTML=`<div class="loading">Loading…</div>`;
+  try{ const d=await api("/chat/conversations"); convs=d.conversations||[];
+    if(!convs.length){ box.innerHTML=`<div class="empty">No conversations yet.</div>`; return; }
+    box.innerHTML=convs.map(c=>`<div class="conv" onclick="openChat(${c.conversation_id})">
+      <div class="cav ${avc(c.role)}">${esc(initials(c.name))}</div>
+      <div style="flex:1;min-width:0;"><div class="nm">${esc(c.name)}</div><div class="pv">${esc(c.last_message||'No messages yet')}</div></div>
+      ${c.unread?`<span class="un">${c.unread}</span>`:""}</div>`).join("");
+  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+async function openChat(cid){
+  curConv=cid; document.getElementById("chat-empty").style.display="none"; document.getElementById("chat-active").style.display="flex";
+  const c=convs.find(x=>x.conversation_id===cid); const nm=(c&&c.name)||"Conversation";
+  const av=document.getElementById("chat-av"); av.className="cav "+avc(c&&c.role); av.textContent=initials(nm);
+  document.getElementById("chat-name").textContent=nm;
+  document.querySelectorAll("#conv-list .conv").forEach((el,i)=>el.classList.toggle("on",convs[i]&&convs[i].conversation_id===cid));
+  try{ const d=await api("/chat/"+cid+"/messages");
+    document.getElementById("chat-name").textContent=d.other_name||nm;
+    const b=document.getElementById("chat-body");
+    b.innerHTML=d.messages.length?d.messages.map(m=>`<div class="bubble ${m.mine?'me':'them'}">${!m.mine?`<div class="who">${esc(d.other_name)}</div>`:""}${esc(m.body)}<span class="bt">${esc(fmtT(m.time))}</span></div>`).join(""):`<div class="chat-empty">No messages yet — say hello 👋</div>`;
+    b.scrollTop=1e9; api("/chat/conversations").then(r=>{convs=r.conversations||[];}).catch(()=>{});
+  }catch(e){ document.getElementById("chat-body").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+function fmtT(iso){ if(!iso)return""; const d=new Date(iso); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+async function recSendChat(){ const inp=document.getElementById("chat-text"); const t=inp.value.trim(); if(!t||!curConv)return; inp.value="";
+  try{ await api("/chat/send",{method:"POST",body:{conversation_id:curConv,body:t}}); openChat(curConv);}catch(e){alert(e.message);} }
+async function recMessageCandidate(uid){ try{ const d=await api("/chat/start",{method:"POST",body:{other_user_id:uid}}); go("messages"); await loadConvs();
+    if(!convs.find(x=>x.conversation_id===d.conversation_id)) convs.unshift({conversation_id:d.conversation_id,name:d.name,role:"candidate",last_message:"",unread:0});
+    openChat(d.conversation_id);}catch(e){alert(e.message);} }
+async function messageAdmin(){ try{ const d=await api("/chat/support",{method:"POST"}); go("messages"); await loadConvs();
+    if(!convs.find(x=>x.conversation_id===d.conversation_id)) convs.unshift({conversation_id:d.conversation_id,name:d.name,role:"admin",last_message:"",unread:0});
+    openChat(d.conversation_id);}catch(e){alert(e.message);} }
+
+// ---- packages ----
+async function loadPackages(){
+  const box=document.getElementById("pkg-list"); box.innerHTML=`<div class="loading">Loading…</div>`;
+  try{ const d=await api("/recruiter/packages");
+    document.getElementById("pkg-cur").innerHTML=d.current_plan?`<div class="card"><span class="badge" style="background:var(--purple);color:#fff;">Current Plan</span>
+      <h2 style="margin-top:8px;">🔵 ${esc(d.current_plan)}</h2>${d.current_expires?`<div style="color:var(--muted);">Expires ${esc(d.current_expires)}</div>`:""}</div>`:"";
+    box.innerHTML=d.packages.map(p=>{const cur=d.current_plan===p.name; return `<div class="plan ${cur?'cur':''}"><h3>${esc(p.name)}</h3>
+      <div class="price">${esc(p.price)} <small>${esc(p.currency)}/mo</small></div>
+      ${(p.features||[]).map(f=>`<div class="feat"><span class="ck">✓</span> ${esc(f)}</div>`).join("")}
+      <button class="btn ${cur?'btn-o':'btn-y'}" onclick="buyPkg(${p.id})">${cur?"Current Plan":"Choose "+esc(p.name)}</button></div>`;}).join("");
+  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+async function buyPkg(id){ try{ await api("/recruiter/packages/buy",{method:"POST",body:{plan_id:id}}); alert("Plan activated!"); loadPackages();}catch(e){alert(e.message);} }
+
+// ---- wallet / payments ----
+async function loadWallet(){ try{ const d=await api("/recruiter/packages"); document.getElementById("wal-bal").textContent=(d.wallet||0).toFixed(2)+" PLN"; }catch(e){}
+  try{ const p=await api("/recruiter/payments"); const rows=p.payments||[]; document.getElementById("wal-history").innerHTML=rows.length?rows.map(t=>`
+    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #F1F2F5;"><span>${esc(t.reason||t.description||"Transaction")}</span>
+    <b style="color:${t.type==='credit'?'#22C55E':'#EF4444'};">${t.type==='credit'?'+':'-'}${esc(t.amount)} PLN</b></div>`).join(""):`<div class="empty">No activity yet.</div>`;
+  }catch(e){ document.getElementById("wal-history").innerHTML=`<div class="empty">No activity yet.</div>`; } }
+async function loadPayments(){ const b=document.getElementById("pay-body");
+  try{ const d=await api("/recruiter/payments"); const rows=d.payments||[];
+    b.innerHTML=rows.length?rows.map(t=>`<tr><td>${esc(t.date||"")}</td><td>${esc(t.reason||t.description||"")}</td><td>${esc(t.amount)} PLN</td><td><span class="badge open">${esc(t.status||"active")}</span></td></tr>`).join(""):`<tr><td colspan="4" class="empty">No transactions yet.</td></tr>`;
+  }catch(e){ b.innerHTML=`<tr><td colspan="4" class="empty">${esc(e.message)}</td></tr>`; } }
+
+// ---- profile ----
+async function loadProfile(){ try{ const p=(await api("/recruiter/profile")).profile;
+    document.getElementById("pp-name").textContent=((p.first_name||"")+" "+(p.last_name||"")).trim()||p.company_name||"Recruiter";
+    document.getElementById("pp-sub").textContent=(p.contact_position||"")+(p.company_name?(" · "+p.company_name):"");
+    if(p.profile_pic) document.getElementById("pp-av").innerHTML=`<img src="${esc(p.profile_pic)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    document.getElementById("ep-first").value=p.first_name||""; document.getElementById("ep-last").value=p.last_name||"";
+    document.getElementById("ep-company").value=p.company_name||""; document.getElementById("ep-position").value=p.contact_position||"";
+    document.getElementById("ep-email").value=p.company_email||""; document.getElementById("ep-phone").value=p.phone||"";
+  }catch(e){} }
+async function saveProfile(){ try{ await api("/recruiter/profile",{method:"POST",body:{
+    first_name:document.getElementById("ep-first").value,last_name:document.getElementById("ep-last").value,
+    company_name:document.getElementById("ep-company").value,contact_position:document.getElementById("ep-position").value,
+    company_email:document.getElementById("ep-email").value}});
+    alert("Profile saved"); loadProfile(); loadDashboard();
+  }catch(e){ alert(e.message); } }
+
+// ---- post job modal ----
+const CATS=["WAREHOUSE JOB","FACTORY JOB","CONSTRUCTION JOB","PRODUCTION JOB","MANUFACTURING JOB","DRIVING JOB","DELIVERY JOB","HOTEL SECTOR JOB","SORTING & PACKING JOB","WELDERS JOB","BPO JOB","SALES EXECUTIVES JOB","DATA ENTRY OPERATOR JOB","FREELANCERS JOB","TUTOR JOB","CARE TAKER JOBS","OTHERS"];
+const CITIES=["Warsaw","Kraków","Gdańsk","Poznań","Katowice","Lublin","Bydgoszcz","Wrocław","Kielce","Łódź","Szczecin","Białystok","Toruń","Gdynia","Rzeszów","Olsztyn","Zielona Góra","Gorzów Wielkopolski","Radom","Częstochowa","Opole","Sopot","Zakopane","Elbląg","Tczew","Płock","Rybnik","Tychy"];
+function fillSelect(id,arr,ph){ const el=document.getElementById(id); el.innerHTML=`<option value="">${ph}</option>`+arr.map(o=>`<option>${o}</option>`).join(""); }
+fillSelect("j-cat",CATS,"Choose Work category"); fillSelect("j-city",CITIES,"Select City");
+function openPostModal(){ document.getElementById("post-modal").classList.add("show"); }
+function closePostModal(){ document.getElementById("post-modal").classList.remove("show"); }
+async function submitPost(){
+  const g=id=>document.getElementById(id).value;
+  const body={category:g("j-cat"),position:g("j-pos"),shift_timing:g("j-shift"),job_type:g("j-jt"),work_type:g("j-wt"),
+    languages_required:g("j-lang"),location:g("j-city"),nationalities:g("j-nat"),
+    age_from:parseInt(g("j-af"))||null,age_to:parseInt(g("j-at"))||null,gender_pref:g("j-gen"),accepts_to:g("j-acc"),
+    accommodation:g("j-accom"),description:g("j-desc"),joining:"Immediate Joining",hiring_authority:"Company"};
+  if(!body.category||!body.position){ alert("Please fill Work Category and Position."); return; }
+  if(!body.languages_required){ alert("Please select a Language."); return; }
+  if(!body.nationalities){ alert("Please enter Nationalities Accepted."); return; }
+  if(!body.description){ alert("Please write a Job Description."); return; }
+  try{ await api("/recruiter/jobs",{method:"POST",body}); alert("✅ Job posted successfully!"); closePostModal();
+    ["j-pos","j-nat","j-desc","j-af","j-at"].forEach(i=>document.getElementById(i).value="");
+    go("jobs");
+  }catch(e){ if(/recruiter|403|forbidden/i.test(e.message)){ alert("Session expired, please log in again."); recLogout(); return;} alert(e.message); }
+}
+
+// ---- language (labels only for now) ----
+let LANG="en";
+function setLang(l){ LANG=l; localStorage.setItem("lang",l);
+  document.getElementById("lang-label").textContent={en:"English",pl:"Polish",uk:"Ukrainian"}[l];
+  document.getElementById("lang-drop").classList.remove("show"); }
+
+// boot
+go("home");
+</script>
+</body>
+</html>

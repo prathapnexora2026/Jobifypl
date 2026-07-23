@@ -5,9 +5,9 @@ On Render:  uvicorn app.main:app --host 0.0.0.0 --port $PORT
 """
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.database import Base, engine
@@ -60,6 +60,23 @@ app.mount("/uploads", StaticFiles(directory=UPLOADS), name="uploads")
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# APK download for testers. Serves the latest Android build as a file download
+# so testers can install it directly from the site (no Play Store needed yet).
+DOWNLOADS = Path(__file__).resolve().parent.parent / "downloads"
+APK_FILE = DOWNLOADS / "JobifyPL.apk"
+
+
+@app.get("/download/app")
+def download_apk():
+    if not APK_FILE.exists():
+        raise HTTPException(status_code=404, detail="APK not available yet")
+    return FileResponse(
+        APK_FILE,
+        media_type="application/vnd.android.package-archive",
+        filename="JobifyPL.apk",
+    )
 
 
 # Serve the frontend directory (index.html, recruiter.html, assets).

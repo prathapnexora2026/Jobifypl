@@ -1,0 +1,11 @@
+{
+  "name": "jobifypl-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "JobifyPL mobile app (Capacitor shell)",
+  "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2"
+  }
+}

@@ -1,0 +1,17 @@
+# Node
+node_modules/
+
+# Capacitor / Android build output (regenerable)
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/gradle-home/
+android/capacitor-cordova-android-plugins/build/
+
+# Built APKs (large; host separately)
+*.apk
+*.aab
+
+# OS / editor
+.DS_Store

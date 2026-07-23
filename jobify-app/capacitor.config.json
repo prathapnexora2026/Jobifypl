@@ -1,0 +1,10 @@
+{
+  "appId": "pl.jobifypl.app",
+  "appName": "JobifyPL",
+  "webDir": "www",
+  "server": {
+    "url": "https://ccccccc.pythonanywhere.com",
+    "cleartext": false,
+    "androidScheme": "https"
+  }
+}

@@ -850,6 +850,15 @@ async function loadQuotaCard(){
       ? `${remaining} post${remaining===1?'':'s'} remaining`
       : `No posts remaining — upgrade to post more`;
     card.style.display="block";   // always re-show while a plan is active
+    // When they've just used up all posts, show the upgrade/renewal popup ONCE
+    // per plan cycle (so it isn't nagging on every dashboard visit).
+    if(remaining<=0 && total>0){
+      const seenKey="quota_done_"+(q.plan_name||"")+"_"+total+"_"+(q.expires||"");
+      if(!localStorage.getItem(seenKey)){
+        localStorage.setItem(seenKey,"1");
+        if(typeof showRecPlanNotice==="function") showRecPlanNotice(true);
+      }
+    }
   }catch(e){ card.style.display="none"; }
 }
 async function loadRecNotifications(){

@@ -32,6 +32,15 @@ def mark_read(nid: int, user: User = Depends(get_current_user), db: Session = De
     return {"status": "success"}
 
 
+@notif_router.delete("/{nid}")
+def delete_notification(nid: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete one of the caller's notifications (candidate or recruiter)."""
+    n = db.query(Notification).filter(Notification.id == nid, Notification.user_id == user.id).first()
+    if n:
+        db.delete(n); db.commit()
+    return {"status": "success"}
+
+
 # ---------------- Chat (works for admin / recruiter / candidate) ----------------
 from app.services.chat import (
     get_or_create_conversation, other_party_id, post_message, display_name, display_photo

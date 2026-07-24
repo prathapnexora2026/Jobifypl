@@ -59,7 +59,8 @@ async def payu_notify(request: Request,
         pay.status = "paid"
         pay.fulfilled = True
         if pay.purpose == "wallet_topup":
-            credit_wallet(db, pay.user_id, pay.amount, "Wallet top-up (PayU)")
+            credit_wallet(db, pay.user_id, pay.amount, "Wallet top-up (PayU)",
+                          method="payu", payu_ref=pay.payu_order_id)
         elif pay.purpose == "plan" and pay.plan_id:
             # Candidate subscription plan
             plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == pay.plan_id).first()
@@ -68,7 +69,8 @@ async def payu_notify(request: Request,
                 if wal:
                     wal.total_spent += plan.price
                 db.add(WalletTransaction(user_id=pay.user_id, amount=plan.price,
-                                        type="debit", reason=f"Subscription (PayU): {plan.name}"))
+                                        type="debit", reason=f"Subscription: {plan.name}",
+                                        method="payu", payu_ref=pay.payu_order_id))
                 activate_plan(db, pay.user_id, plan, "payu")
         elif pay.purpose == "rec_plan" and pay.plan_id:
             # Recruiter package: activate quota + posting rights
@@ -78,7 +80,8 @@ async def payu_notify(request: Request,
                 if wal:
                     wal.total_spent += plan.price
                 db.add(WalletTransaction(user_id=pay.user_id, amount=plan.price,
-                                        type="debit", reason=f"{plan.name} Plan (PayU)"))
+                                        type="debit", reason=f"{plan.name} Plan",
+                                        method="payu", payu_ref=pay.payu_order_id))
                 from app.routers.recruiter import activate_recruiter_package
                 activate_recruiter_package(db, pay.user_id, plan)
         db.commit()

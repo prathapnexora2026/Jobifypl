@@ -885,7 +885,8 @@ async function loadRecNotifications(){
         return `<div class="rnoti ${n.is_read?'':'unread'}" data-nid="${n.id}">
           <div class="nl">${esc(letter)}</div>
           <div class="nc"><div class="trow"><div class="jt">${esc(n.title||'Notification')}</div>${n.company?`<div class="cdot"></div><div class="cmp">${esc(n.company)}</div>`:""}</div>
-            <div class="nm">${esc(n.body||'')}</div><div class="ntime">${esc(fmtNotifTime(n.created_at))}</div></div></div>`;
+            <div class="nm">${esc(n.body||'')}</div><div class="ntime">${esc(fmtNotifTime(n.created_at))}</div></div>
+          <span class="svg-ic" style="color:#94A3B8;align-self:center;cursor:pointer;" onclick="event.stopPropagation();recNotifMenu(${n.id})"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></span></div>`;
       }).join("");
     }
     box.innerHTML=html || `<div class="empty">No notifications yet.</div>`;
@@ -893,6 +894,11 @@ async function loadRecNotifications(){
     for(const n of (d.notifications||[])){ if(!n.is_read){ api("/notifications/"+n.id+"/read",{method:"POST"}).catch(()=>{}); } }
     const dot=document.getElementById("head-bell-dot"); if(dot) dot.style.display="none";
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+function recNotifMenu(id){ if(confirm("Delete this notification?")) recDeleteNotif(id); }
+async function recDeleteNotif(id){
+  try{ await api("/notifications/"+id,{method:"DELETE"}); loadRecNotifications(); }
+  catch(e){ alert(e.message); }
 }
 let recJobs=[];   // cache of the recruiter's posted jobs (full fields) — used to prefill the Edit wizard
 async function loadJobs(target){

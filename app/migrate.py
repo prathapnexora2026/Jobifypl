@@ -32,5 +32,9 @@ def run_migrations():
         with engine.begin() as conn:
             # users.photo — admin profile photo (added after first deploy)
             _add_column(conn, "users", "photo", "VARCHAR(255)")
+            # wallet_transactions: our txn id + method + PayU ref (detailed history)
+            _add_column(conn, "wallet_transactions", "ref", "VARCHAR(40)")
+            _add_column(conn, "wallet_transactions", "method", "VARCHAR(20)")
+            _add_column(conn, "wallet_transactions", "payu_ref", "VARCHAR(64)")
     except Exception as e:
         print(f"[migrate] skipped: {e}")

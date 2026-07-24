@@ -38,10 +38,12 @@ def _get_wallet(db, user_id):
 # the PayU notify webhook once a real payment is confirmed. Keeping them here
 # (one place) means "what a successful payment does" can never drift apart.
 # ---------------------------------------------------------------------------
-def credit_wallet(db: Session, user_id: int, amount: float, reason: str):
+def credit_wallet(db: Session, user_id: int, amount: float, reason: str,
+                  method: str = "wallet", payu_ref: str = None):
     w = _get_wallet(db, user_id)
     w.balance += amount
-    db.add(WalletTransaction(user_id=user_id, amount=amount, type="credit", reason=reason))
+    db.add(WalletTransaction(user_id=user_id, amount=amount, type="credit", reason=reason,
+                            method=method, payu_ref=payu_ref))
     db.add(Notification(user_id=user_id, title="Wallet topped up",
                         body=f"{amount:.2f} PLN added to your wallet."))
     return w
@@ -71,7 +73,8 @@ def transactions(user: User = Depends(get_current_user), db: Session = Depends(g
     rows = db.query(WalletTransaction).filter(
         WalletTransaction.user_id == user.id).order_by(WalletTransaction.created_at.desc()).all()
     return {"status": "success", "transactions": [
-        {"amount": t.amount, "type": t.type, "reason": t.reason,
+        {"id": t.id, "amount": t.amount, "type": t.type, "reason": t.reason,
+         "ref": t.ref, "method": t.method, "payu_ref": t.payu_ref,
          "created_at": t.created_at.isoformat()} for t in rows
     ]}
 

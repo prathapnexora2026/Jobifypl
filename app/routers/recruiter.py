@@ -483,11 +483,15 @@ def quota(user: User = Depends(require_recruiter), db: Session = Depends(get_db)
 @router.get("/payments")
 def payment_history(user: User = Depends(require_recruiter), db: Session = Depends(get_db)):
     rows = db.query(WalletTransaction).filter(
-        WalletTransaction.user_id == user.id, WalletTransaction.type == "debit"
+        WalletTransaction.user_id == user.id
     ).order_by(WalletTransaction.created_at.desc()).all()
     return {"status": "success", "payments": [
-        {"date": t.created_at.strftime("%b %d, %Y"), "description": t.reason,
-         "amount": f"{t.amount:.2f}", "status": "active"} for t in rows
+        {"date": t.created_at.strftime("%b %d, %Y"),
+         "created_at": t.created_at.isoformat() if t.created_at else None,
+         "description": t.reason, "reason": t.reason,
+         "amount": f"{t.amount:.2f}", "type": t.type,
+         "ref": t.ref, "method": t.method, "payu_ref": t.payu_ref,
+         "status": "active"} for t in rows
     ]}
 
 

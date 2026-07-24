@@ -275,7 +275,7 @@ def admin_add_wallet(user_id: int, body: AddWalletIn,
         db.add(w); db.flush()
     w.balance += body.amount
     db.add(WalletTransaction(user_id=user_id, amount=body.amount, type="credit",
-                            reason="Admin credit (test)"))
+                            reason="Admin credit", method="admin"))
     db.add(Notification(user_id=user_id, title="Wallet credited",
                         body=f"Admin added {body.amount:.2f} PLN to your wallet."))
     db.commit()
@@ -298,7 +298,7 @@ def admin_add_wallet_candidate(user_id: int, body: AddWalletIn,
         db.add(w); db.flush()
     w.balance += body.amount
     db.add(WalletTransaction(user_id=user_id, amount=body.amount, type="credit",
-                            reason="Admin credit"))
+                            reason="Admin credit", method="admin"))
     db.add(Notification(user_id=user_id, title="Wallet credited",
                         body=f"Admin added {body.amount:.2f} PLN to your wallet."))
     db.commit()

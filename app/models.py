@@ -164,7 +164,21 @@ class WalletTransaction(Base):
     amount = Column(Float)
     type = Column(String(10))   # credit / debit
     reason = Column(String(120))
+    ref = Column(String(40), nullable=True, index=True,
+                 default=lambda: _new_txn_ref())            # our transaction id, e.g. TXN-...
+    method = Column(String(20), nullable=True)               # payu / wallet / admin
+    payu_ref = Column(String(64), nullable=True)             # PayU order id (if paid via PayU)
     created_at = Column(DateTime, default=now)
+
+
+def _new_txn_ref():
+    """A readable, unique transaction reference, e.g. TXN-7F3A9C21."""
+    import uuid
+    return "TXN-" + uuid.uuid4().hex[:8].upper()
+
+
+def new_txn_ref():
+    return _new_txn_ref()
 
 
 class SubscriptionPlan(Base):

@@ -328,6 +328,17 @@
   .hist-item{background:#fff;border:1px solid #EEF0F3;border-radius:16px;padding:16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;box-shadow:0 3px 10px rgba(0,0,0,.04);}
   .hist-item .hl{display:flex;align-items:center;gap:14px;} .hist-item .sd{width:12px;height:12px;border-radius:50%;flex-shrink:0;} .hist-item .pn{font-size:16px;font-weight:700;color:var(--ink);} .hist-item .hd{color:var(--muted);font-size:13px;margin-top:3px;}
   .hist-item .hp{font-size:17px;font-weight:800;color:var(--ink);}
+  /* detailed transaction card */
+  .txn-card{background:#fff;border:1px solid #EEF0F3;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+  .txn-row1{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .txn-reason{font-weight:800;font-size:15px;color:var(--ink);flex:1;}
+  .txn-amt{font-size:17px;font-weight:800;white-space:nowrap;} .txn-amt.cr{color:var(--green);} .txn-amt.db{color:var(--red);}
+  .txn-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .txn-badge{font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.5px;}
+  .txn-badge.cr{background:#E6F7EC;color:#0E9F5A;} .txn-badge.db{background:#FDEBEC;color:#D6455D;}
+  .txn-chip{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:#EEF2FF;color:#4F46E5;}
+  .txn-date{font-size:12px;color:var(--muted);}
+  .txn-ref{margin-top:8px;font-size:11px;color:var(--slate);display:flex;flex-direction:column;gap:2px;border-top:1px dashed #EEF0F3;padding-top:8px;}
 
   /* ===== PLANS ===== */
   #s-plans{background:#F8FAFC;}
@@ -479,7 +490,7 @@
     <div class="home-top">
       <div class="av" id="home-av" data-ic="person"></div>
       <div class="hi">Welcome back!<b id="home-name">Job Seeker</b></div>
-      <div class="wal" id="home-wal"><span data-ic="wallet-sm"></span> 0 PLN</div>
+      <div class="wal" id="home-wal" onclick="go('s-wallet')" style="cursor:pointer;"><span data-ic="wallet-sm"></span> 0 PLN</div>
       <div class="ic" onclick="go('s-notif')" data-ic="bell"><span class="badge" id="notif-badge" style="display:none;"></span></div>
       <div class="ic" onclick="openSidebar()" data-ic="menu"></div>
     </div>
@@ -494,7 +505,7 @@
 
   <!-- MY APPLICATIONS -->
   <div class="screen hasnav" id="s-apps">
-    <div class="topbar center"><button class="back" onclick="go('s-home')" data-ic="back"></button><h1>Your Applications</h1><div class="r"><div class="ic" onclick="go('s-notif')" data-ic="bell"></div></div></div>
+    <div class="topbar center"><button class="back" onclick="go('s-home')" data-ic="back"></button><h1>Your Applications</h1><div class="r"><div class="ic" onclick="openSidebar()" data-ic="menu"></div></div></div>
     <div class="search-bar"><span data-ic="search"></span><input id="app-search" placeholder="Search applications…" oninput="filterApps(this.value)"></div>
     <div id="apps-list"><div class="loading">Loading…</div></div>
   </div>
@@ -520,7 +531,7 @@
 
   <!-- MESSAGES LIST -->
   <div class="screen hasnav" id="s-messages">
-    <div class="topbar center"><button class="back" onclick="go('s-home')" data-ic="back"></button><h1>Messages</h1><div class="r"><div class="ic" onclick="openSupportChat()" data-ic="headset"></div></div></div>
+    <div class="topbar center"><button class="back" onclick="go('s-home')" data-ic="back"></button><h1>Messages</h1><div class="r" style="display:flex;gap:8px;"><div class="ic" onclick="openSupportChat()" data-ic="headset"></div><div class="ic" onclick="openSidebar()" data-ic="menu"></div></div></div>
     <div id="msg-list"><div class="loading">Loading conversations…</div></div>
   </div>
 
@@ -645,6 +656,9 @@
       <div class="sb-item" onclick="closeSidebar();go('s-profile')"><span data-ic="person"></span><span class="txt">Profile</span></div>
       <div class="sb-item" onclick="closeSidebar();go('s-apps')"><span data-ic="doc"></span><span class="txt">Job Applications</span></div>
       <div class="sb-item" onclick="closeSidebar();go('s-messages')"><span data-ic="chat"></span><span class="txt">Messages</span></div>
+      <div class="sb-item" onclick="closeSidebar();go('s-notif')"><span data-ic="bell"></span><span class="txt">Notifications</span></div>
+      <div class="sb-item" onclick="closeSidebar();go('s-wallet')"><span data-ic="wallet"></span><span class="txt">Wallet</span></div>
+      <div class="sb-item" onclick="closeSidebar();go('s-plans')"><span data-ic="star"></span><span class="txt">Plans &amp; Pricing</span></div>
       <div class="sb-item" onclick="comingSoon('Shopping')"><span data-ic="bag"></span><span class="txt">Shopping <span class="soon">Arriving Soon</span></span></div>
       <div class="sb-item" onclick="comingSoon('Legalisation')"><span data-ic="scale"></span><span class="txt">Legalisation <span class="soon">Arriving Soon</span></span></div>
       <div class="sb-item danger" onclick="closeSidebar();confirmLogout()"><span data-ic="logout"></span><span class="txt">Logout</span></div>
@@ -1425,11 +1439,25 @@ async function loadWallet(){
   }catch(e){}
   const box=document.getElementById("wl-history"); box.innerHTML=`<div class="loading">Loading…</div>`;
   try{ const d=await api("/wallet/transactions"); const tx=d.transactions||[];
-    if(!tx.length){ box.innerHTML=`<div class="empty"><div class="ei">${svg("card")}</div><div>No purchases yet</div></div>`; return; }
-    box.innerHTML=tx.map(t=>{ const active=(t.type||'').toLowerCase()==='topup'||(t.amount||0)>0;
-      return `<div class="hist-item"><div class="hl"><div class="sd" style="background:${active?'var(--green)':'var(--slate)'};"></div>
-        <div><div class="pn">${esc(t.title||t.type||'Transaction')}</div><div class="hd">${esc(fmtTime(t.created_at)||t.date||'')}</div></div></div>
-        <div class="hp">${(t.amount||0)>=0?'+':''}${Math.round(t.amount||0)} PLN</div></div>`;
+    if(!tx.length){ box.innerHTML=`<div class="empty"><div class="ei">${svg("card")}</div><div>No transactions yet</div></div>`; return; }
+    box.innerHTML=tx.map(t=>{
+      const credit=(t.type||'').toLowerCase()==='credit';
+      const methodLabel = t.method==='payu' ? 'PayU' : (t.method==='admin' ? 'Admin credit' : (t.method==='wallet'?'Wallet':''));
+      return `<div class="txn-card">
+        <div class="txn-row1">
+          <div class="txn-reason">${esc(t.reason||(credit?'Credit':'Debit'))}</div>
+          <div class="txn-amt ${credit?'cr':'db'}">${credit?'+':'−'}${Math.round(Math.abs(t.amount||0))} PLN</div>
+        </div>
+        <div class="txn-meta">
+          <span class="txn-badge ${credit?'cr':'db'}">${credit?'CREDIT':'DEBIT'}</span>
+          ${methodLabel?`<span class="txn-chip">${esc(methodLabel)}</span>`:''}
+          <span class="txn-date">${esc(fmtDate(t.created_at))} · ${esc(fmtTime(t.created_at))}</span>
+        </div>
+        <div class="txn-ref">
+          ${t.ref?`<span>Txn ID: <b>${esc(t.ref)}</b></span>`:''}
+          ${t.payu_ref?`<span>PayU Ref: ${esc(t.payu_ref)}</span>`:''}
+        </div>
+      </div>`;
     }).join("");
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
@@ -1615,7 +1643,7 @@ async function loadNotifications(){
         <div class="nl" style="background:#2869FE;">${esc(letter)}</div>
         <div class="nc"><div class="trow"><div class="jt">${esc(n.title||'')}</div><div class="cdot"></div><div class="cmp">${esc(n.company||'JobifyPL')}</div></div>
           <div class="nm">${esc(n.body||'')}</div><div class="ntime">${esc(fmtTime(n.created_at)||'')}</div></div>
-        <div style="color:var(--slate);" data-ic="dots" onclick="event.stopPropagation();readNotif(${n.id},this.closest('.noti-item'))"></div></div>`;
+        <div class="noti-dots" style="color:var(--slate);" data-ic="dots" onclick="event.stopPropagation();notifMenu(${n.id},this)"></div></div>`;
     }).join("");
     paintIcons(box);
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
@@ -1635,6 +1663,15 @@ async function tapNotif(id,jobId,el){
 }
 async function readNotif(id,el){ try{ await api("/notifications/"+id+"/read",{method:"POST"}); if(el)el.classList.remove("unread");
   const unread=[...document.querySelectorAll("#notif-list .noti-item.unread")].length>0; document.getElementById("notif-badge").style.display=unread?"block":"none"; }catch(e){} }
+
+// 3-dot menu on a notification → delete.
+function notifMenu(id, dotsEl){
+  if(confirm("Delete this notification?")) deleteNotif(id);
+}
+async function deleteNotif(id){
+  try{ await api("/notifications/"+id,{method:"DELETE"}); loadNotifications(); }
+  catch(e){ toast(e.message); }
+}
 
 /* ============ POPUPS ============ */
 function openUpgrade(){ document.getElementById("pop-upgrade").classList.add("show"); }

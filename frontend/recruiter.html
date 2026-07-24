@@ -528,7 +528,7 @@
       <div class="wallet-card">
         <div class="bal" id="wal-bal">0.00 PLN</div>
         <div class="sub"><div class="l">WALLET BALANCE</div><div class="n" id="wal-bal2">0.00 PLN</div></div>
-        <button class="btn blue" style="margin-top:16px;" onclick="alert('Top-up via PayU — available once the merchant account is live.')">+ Add Funds</button>
+        <button class="btn blue" style="margin-top:16px;" onclick="openRecTopup()">+ Add Funds</button>
       </div>
       <div class="sect"><h2 style="font-size:20px;">Activity History</h2><div id="wal-history" style="margin-top:12px;"></div></div>
     </div>
@@ -1084,7 +1084,32 @@ async function loadPackages(){
     box.innerHTML=html;
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
-async function buyPackage(id){ try{ await api("/recruiter/packages/buy",{method:"POST",body:{plan_id:id}}); alert("Plan activated!"); loadPackages(); loadQuotaCard(); }catch(e){ alert(e.message); } }
+// Buy a package: ask how to pay (wallet or direct via PayU), then activate.
+let _recBuyPlanId=null;
+function buyPackage(id){
+  _recBuyPlanId=id;
+  document.getElementById("rec-pop-paychoice").classList.add("show");
+}
+function recClosePayChoice(){ document.getElementById("rec-pop-paychoice").classList.remove("show"); }
+async function recPayPlanWallet(){
+  const id=_recBuyPlanId; recClosePayChoice();
+  try{
+    const r=await api("/recruiter/packages/buy",{method:"POST",body:{plan_id:id}});
+    recPayResult("success",{kind:"plan", plan_name:r.plan_name, posts_total:r.posts_total});
+    loadPackages(); loadQuotaCard&&loadQuotaCard();
+  }catch(e){
+    if(/balance|insufficient|fund/i.test(e.message)) _recToast("Insufficient wallet balance. Add funds or pay directly.");
+    else _recToast(e.message);
+  }
+}
+async function recPayPlanDirect(){
+  const id=_recBuyPlanId; recClosePayChoice();
+  try{
+    const r=await api("/recruiter/packages/checkout",{method:"POST",body:{plan_id:id}});
+    if(r.paid){ recPayResult("success",{kind:"plan", plan_name:r.plan_name, posts_total:r.posts_total}); loadPackages(); loadQuotaCard&&loadQuotaCard(); return; }
+    recStartPayu(r.redirect_url, r.ext_order_id, {kind:"plan", plan_name:r.plan_name, posts_total:r.posts_total});
+  }catch(e){ _recToast(e.message); }
+}
 
 async function loadWallet(){
   try{ const d=await api("/recruiter/packages");
@@ -1319,15 +1344,20 @@ async function tgPlan(id){
     const btn=c.querySelector(".choose"); if(btn) btn.textContent=isSel?"Activating…":"Choose Plan";
   });
   try{
-    await api("/recruiter/packages/buy",{method:"POST",body:{plan_id:id}});
+    const r=await api("/recruiter/packages/buy",{method:"POST",body:{plan_id:id}});
+    recPayResult("success",{kind:"plan", plan_name:r.plan_name, posts_total:r.posts_total});
     loadQuotaCard();                 // refresh the dashboard sticky
     renderPlanStep();                // now that a plan is active → flip to "Post this Job"
   }catch(e){
     document.querySelectorAll("#wz-plans .plancard").forEach((c,i)=>{
       const btn=c.querySelector(".choose"); if(btn && wizPlanIds[i]===id) btn.textContent="Choose Plan";
     });
-    if(/balance|insufficient|fund/i.test(e.message)) alert("Insufficient wallet balance to activate this plan.");
-    else alert(e.message);
+    if(/balance|insufficient|fund/i.test(e.message)){
+      // Offer to add funds / pay directly instead of a dead-end alert.
+      _recBuyPlanId=id;
+      document.getElementById("rec-pop-paychoice").classList.add("show");
+    }
+    else _recToast(e.message);
   }
 }
 function wireSheet(id,ph,options,field,title){
@@ -1433,8 +1463,10 @@ async function submitJob(){
     // Backend is the source of truth; frontend never blocks a post when a valid plan exists.
     if(/no active plan|choose a plan|job-post limit|used up|upgrade to post/i.test(e.message)){
       const exhausted=/used up|upgrade to post|limit/i.test(e.message);
-      alert(exhausted ? "You've used all your job posts — upgrade to post more."
-                      : "Choose a plan to post jobs.");
+      // Used up all posts on an active plan → suggest upgrade OR waiting for renewal.
+      // No plan at all → just prompt to choose one.
+      recPayResult && document.getElementById("rec-pr-icon"); // ensure popup exists
+      showRecPlanNotice(exhausted);
       showScreen("s-dash"); railTo('packages');
     }
     // profile not complete → show a proper popup with "Complete Profile", NOT a raw alert
@@ -1535,6 +1567,169 @@ document.addEventListener("DOMContentLoaded",function(){
     window.Capacitor.Plugins.App.addListener("backButton", recHandleBack);
   }
 });
+
+/* ================= RECRUITER PAYMENTS (PayU) ================= */
+function _recToast(t){
+  let el=document.getElementById("rec-toast");
+  if(!el){ el=document.createElement("div"); el.id="rec-toast"; document.body.appendChild(el);
+    el.style.cssText="position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 18px;border-radius:10px;z-index:200;font-size:14px;opacity:0;transition:.25s;pointer-events:none;max-width:88%;text-align:center;"; }
+  el.textContent=t; el.style.opacity="1"; clearTimeout(el._t); el._t=setTimeout(()=>el.style.opacity="0",2400);
+}
+
+/* Shown when a recruiter runs out of posts (exhausted) or has no plan.
+   Exhausted → offer upgrade now OR wait for next renewal. No plan → choose one. */
+async function showRecPlanNotice(exhausted){
+  let expires="";
+  try{ const q=await api("/recruiter/quota"); if(q.expires) expires=q.expires; }catch(e){}
+  const icon=document.getElementById("rec-pr-icon"), title=document.getElementById("rec-pr-title");
+  const msg=document.getElementById("rec-pr-msg"), amt=document.getElementById("rec-pr-amount");
+  const sub=document.getElementById("rec-pr-sub"), prim=document.getElementById("rec-pr-primary");
+  icon.style.background="#FFF6E5"; icon.textContent=exhausted?"📌":"🗂️";
+  if(exhausted){
+    title.textContent="All job posts used";
+    msg.textContent="You've used all posts in your current plan.";
+    amt.textContent="";
+    sub.textContent = expires ? ("Upgrade now to post more, or wait — your plan renews around "+expires+".")
+                              : "Upgrade to a higher plan to post more jobs.";
+  } else {
+    title.textContent="Choose a plan";
+    msg.textContent="Pick a plan to start posting jobs.";
+    amt.textContent=""; sub.textContent="Plans set how many jobs you can post.";
+  }
+  prim.textContent="View Plans"; prim.disabled=false;
+  document.getElementById("rec-pop-result").classList.add("show");
+}
+
+function openRecTopup(){ document.getElementById("rec-topup-amt").value=""; document.getElementById("rec-pop-topup").classList.add("show"); }
+function closeRecTopup(){ document.getElementById("rec-pop-topup").classList.remove("show"); }
+async function recDoTopup(){
+  const amt=parseFloat(document.getElementById("rec-topup-amt").value);
+  if(!amt||amt<=0){ _recToast("Enter a valid amount"); return; }
+  try{
+    const r=await api("/recruiter/wallet/topup-checkout",{method:"POST",body:{amount:amt}});
+    closeRecTopup();
+    if(r.paid){ recPayResult("success",{amount:amt, kind:"wallet"}); loadWallet(); return; }
+    recStartPayu(r.redirect_url, r.ext_order_id, {amount:amt, kind:"wallet"});
+  }catch(e){ _recToast(e.message); }
+}
+
+/* result popup */
+function recClosePayResult(){ document.getElementById("rec-pop-result").classList.remove("show"); }
+function recPayResult(state, info){
+  info=info||{};
+  const icon=document.getElementById("rec-pr-icon"), title=document.getElementById("rec-pr-title");
+  const msg=document.getElementById("rec-pr-msg"), amt=document.getElementById("rec-pr-amount");
+  const sub=document.getElementById("rec-pr-sub"), prim=document.getElementById("rec-pr-primary");
+  if(state==="pending"){
+    icon.style.background="#FFF6E5"; icon.textContent="⏳"; title.textContent="Confirming payment…";
+    msg.textContent="Please wait while we confirm your payment."; amt.textContent=""; sub.textContent="This can take a few seconds.";
+    prim.textContent="Please wait"; prim.disabled=true;
+  } else if(state==="success"){
+    icon.style.background="#E6F7EC"; icon.textContent="✅";
+    if(info.kind==="plan"){
+      title.textContent="Congratulations! 🎉";
+      msg.textContent=(info.plan_name||"Your plan")+" is now active.";
+      amt.textContent=(info.posts_total!=null? (info.posts_total+" job posts") : "");
+      amt.style.color="var(--blue)";
+      sub.textContent="You can now post jobs. Quota is enforced automatically.";
+    } else {
+      title.textContent="Payment successful";
+      msg.textContent="Amount added to your wallet.";
+      amt.textContent=info.amount!=null? ("+ "+Math.round(info.amount)+" PLN"):""; amt.style.color="var(--green)";
+      sub.textContent="A receipt is saved in your activity history.";
+    }
+    prim.textContent="Done"; prim.disabled=false;
+  } else if(state==="failed"){
+    icon.style.background="#FDEBEC"; icon.textContent="❌"; title.textContent="Payment not completed";
+    msg.textContent="Your payment was cancelled or failed. No amount was deducted.";
+    amt.textContent=""; sub.textContent="You can try again anytime."; prim.textContent="Close"; prim.disabled=false;
+  }
+  document.getElementById("rec-pop-result").classList.add("show");
+}
+
+function recStartPayu(url, ext, info){
+  if(!url){ _recToast("Could not start payment"); return; }
+  try{ localStorage.setItem("rec_payu_pending", JSON.stringify({ext, info, ts:Date.now()})); }catch(e){}
+  window.location.href=url;
+}
+async function recResumePendingPayu(){
+  let pend=null;
+  try{ pend=JSON.parse(localStorage.getItem("rec_payu_pending")||"null"); }catch(e){}
+  if(!pend||!pend.ext) return;
+  if(Date.now()-(pend.ts||0) > 30*60*1000){ localStorage.removeItem("rec_payu_pending"); return; }
+  const info=pend.info||{};
+  recPayResult("pending", info);
+  const started=Date.now();
+  const iv=setInterval(async()=>{
+    try{
+      const s=await api("/recruiter/payment-status/"+encodeURIComponent(pend.ext));
+      if(s.payment_status==="paid"||s.fulfilled){
+        clearInterval(iv); localStorage.removeItem("rec_payu_pending");
+        recPayResult("success", info);
+        loadWallet&&loadWallet(); (typeof loadPackages==="function")&&loadPackages(); (typeof loadQuotaCard==="function")&&loadQuotaCard();
+      } else if(s.payment_status==="failed"){
+        clearInterval(iv); localStorage.removeItem("rec_payu_pending"); recPayResult("failed", info);
+      }
+    }catch(e){}
+    if(Date.now()-started > 3*60*1000){
+      clearInterval(iv); localStorage.removeItem("rec_payu_pending");
+      recPayResult("pending", info);
+      document.getElementById("rec-pr-title").textContent="Still processing";
+      document.getElementById("rec-pr-msg").textContent="If money was deducted, it will reflect shortly. Check your activity.";
+      const prim=document.getElementById("rec-pr-primary"); prim.textContent="OK"; prim.disabled=false;
+    }
+  },2500);
+}
+document.addEventListener("DOMContentLoaded", recResumePendingPayu);
 </script>
+
+<style>
+  .pop-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;display:none;align-items:center;justify-content:center;padding:20px;}
+  .pop-bg.show{display:flex;}
+  .pop-bg .pop{background:#fff;border-radius:18px;padding:24px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+  .pop-bg .pop h3{margin:0 0 6px;font-size:20px;} .pop-bg .pop p{margin:0 0 12px;color:#64748B;font-size:14px;}
+  .pop-bg .pop .inp{width:100%;padding:14px;border:1px solid #E2E8F0;border-radius:10px;font-size:18px;text-align:center;}
+  .pop-bg .pop .btn{width:100%;margin-top:12px;}
+  .pop-bg .pop .later{width:100%;margin-top:10px;background:none;border:none;color:#64748B;padding:10px;cursor:pointer;font-size:14px;}
+</style>
+
+<!-- recruiter: add funds amount popup -->
+<div class="pop-bg" id="rec-pop-topup">
+  <div class="pop">
+    <h3>Add Money to Wallet</h3>
+    <p>Enter the amount you want to add (PLN).</p>
+    <input class="inp" id="rec-topup-amt" type="number" inputmode="numeric" placeholder="Amount (PLN)">
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn" style="flex:1;background:#F1F5F9;color:#111;" onclick="document.getElementById('rec-topup-amt').value=100">100</button>
+      <button class="btn" style="flex:1;background:#F1F5F9;color:#111;" onclick="document.getElementById('rec-topup-amt').value=200">200</button>
+      <button class="btn" style="flex:1;background:#F1F5F9;color:#111;" onclick="document.getElementById('rec-topup-amt').value=500">500</button>
+    </div>
+    <button class="btn blue" onclick="recDoTopup()">Add Money</button>
+    <button class="later" onclick="closeRecTopup()">Cancel</button>
+  </div>
+</div>
+
+<!-- recruiter: choose payment method for a package -->
+<div class="pop-bg" id="rec-pop-paychoice">
+  <div class="pop">
+    <h3>Choose payment method</h3>
+    <p>Pay for this package from your wallet, or pay directly.</p>
+    <button class="btn blue" onclick="recPayPlanWallet()">Pay from Wallet</button>
+    <button class="btn" style="background:#F1F5F9;color:#111;margin-top:10px;" onclick="recPayPlanDirect()">Pay Directly</button>
+    <button class="later" onclick="recClosePayChoice()">Cancel</button>
+  </div>
+</div>
+
+<!-- recruiter: payment result popup -->
+<div class="pop-bg" id="rec-pop-result">
+  <div class="pop" style="text-align:center;">
+    <div id="rec-pr-icon" style="width:72px;height:72px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:38px;"></div>
+    <h3 id="rec-pr-title">Payment</h3>
+    <p id="rec-pr-msg"></p>
+    <div id="rec-pr-amount" style="font-size:24px;font-weight:800;margin:8px 0;"></div>
+    <div id="rec-pr-sub" style="color:#64748B;font-size:13px;margin-bottom:14px;"></div>
+    <button class="btn blue" id="rec-pr-primary" onclick="recClosePayResult()">Done</button>
+  </div>
+</div>
 </body>
 </html>

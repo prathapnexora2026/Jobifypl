@@ -180,6 +180,20 @@ def post_job(body: JobIn, user: User = Depends(require_recruiter), db: Session =
         raise HTTPException(402, "No active plan. Choose a plan to post jobs.")
     if (sub.posts_used or 0) >= (sub.posts_total or 0):
         raise HTTPException(402, "Your plan's job-post limit is used up. Upgrade to post more.")
+
+    # Remember contact details on the global profile so we don't re-ask next time.
+    # Only fill blanks — never overwrite what the recruiter already saved.
+    if body.contact_email and not p.company_email:
+        p.company_email = body.contact_email
+    if body.contact_email and not user.email:
+        user.email = body.contact_email
+    if body.contact_first_name and not p.first_name:
+        p.first_name = body.contact_first_name
+    if body.contact_last_name and not p.last_name:
+        p.last_name = body.contact_last_name
+    if body.hiring_authority and not p.hiring_authority:
+        p.hiring_authority = body.hiring_authority
+
     company = p.company_name or f"{p.first_name or ''} {p.last_name or ''}".strip() or "Self-Hiring"
     if body.hiring_authority == "Self-Hiring":
         company = "Self-Hiring"
@@ -474,3 +488,110 @@ def payment_history(user: User = Depends(require_recruiter), db: Session = Depen
         {"date": t.created_at.strftime("%b %d, %Y"), "description": t.reason,
          "amount": f"{t.amount:.2f}", "status": "active"} for t in rows
     ]}
+
+
+# ======================= RECRUITER PAYMENTS (PayU) =======================
+# Card details are entered on PayU's secure hosted page; we only ever act on a
+# signature-verified webhook (see app/routers/payu_router.py). Wallet balance is
+# credited / a package is activated only AFTER PayU confirms the money.
+from app.config import settings as _settings
+from app.services import payu as _payu
+from app.models import Payment as _Payment
+
+
+def activate_recruiter_package(db: Session, user_id: int, plan: SubscriptionPlan):
+    """Activate a recruiter package (shared by wallet + PayU paths). Deactivates
+    any current plan, starts the new one with its posting quota, enables posting,
+    and notifies the recruiter. Does NOT touch wallet balance (caller decides)."""
+    db.query(UserSubscription).filter(
+        UserSubscription.user_id == user_id, UserSubscription.status == "active"
+    ).update({"status": "expired"})
+    start = dt.datetime.utcnow()
+    end = start + dt.timedelta(days=plan.duration_days or 30)
+    db.add(UserSubscription(user_id=user_id, plan_id=plan.id, start_date=start, end_date=end,
+                            status="active", posts_total=plan.postings or 0, posts_used=0))
+    prof = db.query(RecruiterProfile).filter(RecruiterProfile.user_id == user_id).first()
+    if prof:
+        prof.can_post_jobs = True
+    db.add(Notification(user_id=user_id, title="Plan activated",
+                        body=f"{plan.name} is active. You can post {plan.postings or 0} job(s) until {end.date().isoformat()}."))
+
+
+class RecTopupIn(BaseModel):
+    amount: float
+
+
+@router.post("/wallet/topup-checkout")
+def rec_topup_checkout(body: RecTopupIn, user: User = Depends(require_recruiter),
+                       db: Session = Depends(get_db)):
+    """Start a real PayU top-up for a recruiter. Returns a redirect URL; wallet
+    is credited later by the verified webhook. Falls back to instant credit in
+    test mode (PAYU_ENABLED=false)."""
+    if body.amount <= 0:
+        raise HTTPException(400, "Invalid amount")
+    if not _settings.PAYU_ENABLED:
+        w = _wallet(db, user.id)
+        w.balance += body.amount
+        db.add(WalletTransaction(user_id=user.id, amount=body.amount, type="credit",
+                                reason="Wallet top-up (test mode)"))
+        db.commit()
+        return {"status": "success", "paid": True, "balance": w.balance}
+    ext = _payu.new_ext_order_id("recwallet", user.id)
+    pay = _Payment(user_id=user.id, ext_order_id=ext, amount=body.amount, currency="PLN",
+                   purpose="wallet_topup", status="pending")
+    db.add(pay); db.commit()
+    try:
+        res = _payu.create_order(
+            ext_order_id=ext, amount_pln=body.amount,
+            description=f"JobifyPL recruiter wallet top-up ({body.amount:.2f} PLN)",
+            buyer_email=user.email or "", buyer_phone=user.phone or "")
+    except Exception as e:
+        pay.status = "failed"; db.commit()
+        raise HTTPException(502, f"Payment gateway error: {e}")
+    pay.payu_order_id = res.get("payu_order_id"); db.commit()
+    return {"status": "success", "paid": False, "redirect_url": res["redirect_uri"], "ext_order_id": ext}
+
+
+@router.post("/packages/checkout")
+def rec_package_checkout(body: BuyIn, user: User = Depends(require_recruiter),
+                         db: Session = Depends(get_db)):
+    """Buy a recruiter package by paying DIRECTLY via PayU. Package activates
+    after the verified webhook. Falls back to instant activate in test mode."""
+    plan = db.query(SubscriptionPlan).filter(
+        SubscriptionPlan.id == body.plan_id, SubscriptionPlan.for_role == "recruiter").first()
+    if not plan:
+        raise HTTPException(404, "Package not found")
+    if not _settings.PAYU_ENABLED:
+        w = _wallet(db, user.id)
+        w.total_spent += plan.price
+        db.add(WalletTransaction(user_id=user.id, amount=plan.price, type="debit",
+                                reason=f"{plan.name} Plan (test)"))
+        activate_recruiter_package(db, user.id, plan)
+        db.commit()
+        return {"status": "success", "paid": True, "plan_name": plan.name,
+                "posts_total": plan.postings or 0}
+    ext = _payu.new_ext_order_id("recplan", user.id)
+    pay = _Payment(user_id=user.id, ext_order_id=ext, amount=plan.price,
+                   currency=plan.currency or "PLN", purpose="rec_plan", plan_id=plan.id,
+                   status="pending")
+    db.add(pay); db.commit()
+    try:
+        res = _payu.create_order(
+            ext_order_id=ext, amount_pln=plan.price,
+            description=f"JobifyPL recruiter package: {plan.name}",
+            buyer_email=user.email or "", buyer_phone=user.phone or "")
+    except Exception as e:
+        pay.status = "failed"; db.commit()
+        raise HTTPException(502, f"Payment gateway error: {e}")
+    pay.payu_order_id = res.get("payu_order_id"); db.commit()
+    return {"status": "success", "paid": False, "redirect_url": res["redirect_uri"], "ext_order_id": ext}
+
+
+@router.get("/payment-status/{ext_order_id}")
+def rec_payment_status(ext_order_id: str, user: User = Depends(require_recruiter),
+                       db: Session = Depends(get_db)):
+    pay = db.query(_Payment).filter(
+        _Payment.ext_order_id == ext_order_id, _Payment.user_id == user.id).first()
+    if not pay:
+        raise HTTPException(404, "Payment not found")
+    return {"status": "success", "payment_status": pay.status, "fulfilled": pay.fulfilled}

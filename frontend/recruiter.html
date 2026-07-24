@@ -1552,10 +1552,27 @@ function recHandleBack(){
   const pop=document.querySelector(".pop-bg.show, .modal.show, .sheet.show");
   if(pop){ pop.classList.remove("show"); return; }
 
+  // Which screen is active right now?
+  const active=document.querySelector(".screen.active");
+  const activeId=active?active.id:"";
+
+  // PRE-LOGIN: on the recruiter login screen, Back returns to the role picker
+  // (index/app.html), NOT close the app — mirrors the candidate side.
+  if(activeId==="s-login"){
+    window.location.href="app.html";   // back to "I want a job / I want to hire"
+    return;
+  }
+  // In the post-a-job wizard → step back (or to dashboard).
+  if(activeId==="s-wizard"){ if(typeof wzBack==="function"){ wzBack(); return; } }
+  // On onboarding → back to login.
+  if(activeId==="s-onboard"){ showScreen("s-login"); return; }
+  // On the success screen → dashboard.
+  if(activeId==="s-success"){ showScreen("s-dash"); if(typeof go==="function") go("home"); return; }
+
   // in a chat -> back to conversation list
   if(typeof inChatView==="function" && inChatView()){ closeRecChat(); return; }
 
-  // not on home, or have nav history -> go back one page
+  // dashboard: not on home, or have nav history -> go back one page
   if((typeof curPage!=="undefined" && curPage!=="home") || (typeof navStack!=="undefined" && navStack.length)){
     goBack(); return;
   }

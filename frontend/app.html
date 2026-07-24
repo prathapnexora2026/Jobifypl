@@ -642,7 +642,7 @@
       <div class="mt">Main Menu</div>
       <div class="sb-item" onclick="closeSidebar();go('s-home')"><span data-ic="home"></span><span class="txt">Home</span></div>
       <div class="sb-item" onclick="closeSidebar();go('s-profile')"><span data-ic="person"></span><span class="txt">Profile</span></div>
-      <div class="sb-item" onclick="closeSidebar();go('s-apps')"><span data-ic="doc"></span><span class="txt">Job Listings</span></div>
+      <div class="sb-item" onclick="closeSidebar();go('s-apps')"><span data-ic="doc"></span><span class="txt">Job Applications</span></div>
       <div class="sb-item" onclick="closeSidebar();go('s-messages')"><span data-ic="chat"></span><span class="txt">Messages</span></div>
       <div class="sb-item" onclick="comingSoon('Shopping')"><span data-ic="bag"></span><span class="txt">Shopping <span class="soon">Arriving Soon</span></span></div>
       <div class="sb-item" onclick="comingSoon('Legalisation')"><span data-ic="scale"></span><span class="txt">Legalisation <span class="soon">Arriving Soon</span></span></div>
@@ -1236,8 +1236,18 @@ async function applyJob(id,btn){
   }
 }
 const FILTER_TITLES={category:"Job Category",location:"Location",job_type:"Job Type",work_type:"Work Type"};
+// Predefined filter options (same as the recruiter's posting lists) so candidates
+// can filter even before any jobs are posted. Merged with values from live jobs.
+const FILTER_OPTIONS={
+  category:["WAREHOUSE JOB","FACTORY JOB","CONSTRUCTION JOB","PRODUCTION JOB","MANUFACTURING JOB","DRIVING JOB","DELIVERY JOB","HOTEL SECTOR JOB","SORTING & PACKING JOB","WELDERS JOB","BPO JOB","SALES EXECUTIVES JOB","DATA ENTRY OPERATOR JOB","FREELANCERS JOB","TUTOR JOB","CARE TAKER JOBS","OTHERS"],
+  location:["Warsaw","Kraków","Gdańsk","Poznań","Katowice","Lublin","Bydgoszcz","Wrocław","Kielce","Łódź","Szczecin","Białystok","Toruń","Gdynia","Rzeszów","Olsztyn","Radom","Częstochowa","Opole","Sopot","Bytom","Sosnowiec","Gliwice","Tarnów","Bielsko-Biała","Koszalin","Płock","Rybnik"],
+  job_type:["Regular Job","Seasonal Job"],
+  work_type:["Full Time","Part Time"],
+};
 function openFilter(kind){
-  const vals=[...new Set(allJobs.map(j=>j[kind]).filter(Boolean))];
+  // Predefined options + any real values from live jobs (deduped).
+  const fromJobs=allJobs.map(j=>j[kind]).filter(Boolean);
+  const vals=[...new Set([...(FILTER_OPTIONS[kind]||[]), ...fromJobs])];
   sheetKind="filter_"+kind;
   document.getElementById("sheet").innerHTML=`
     <div class="sheet-head"><span class="st">${esc(FILTER_TITLES[kind]||"Filter")}</span><button class="cls" onclick="closeSheet()">×</button></div>
@@ -1330,6 +1340,8 @@ async function loadProfile(){
 }
 
 /* ============ MESSAGES ============ */
+function fmtDate(iso){ if(!iso)return""; const d=new Date(iso); if(isNaN(d))return esc(iso);
+  return d.toLocaleDateString([], {day:'2-digit',month:'short',year:'numeric'}); }
 function fmtTime(iso){ if(!iso)return""; const d=new Date(iso); if(isNaN(d))return esc(iso);
   const now=new Date(); const sameDay=d.toDateString()===now.toDateString();
   if(sameDay) return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
@@ -1503,15 +1515,25 @@ window.addEventListener("load", resumePendingPayu);
 async function loadPlans(){
   try{ const w=await api("/wallet"); document.getElementById("plan-bal").textContent=`${Math.round(w.balance||0)} ${w.currency||'PLN'}`; }catch(e){}
   const box=document.getElementById("plans-list"); box.innerHTML=`<div class="loading">Loading plans…</div>`;
-  try{ const d=await api("/plans"); const plans=d.plans||[];
-    box.innerHTML=plans.map(p=>`<div class="plan-card ${p.recommended?'best':''}">
-      ${p.recommended?`<div class="best-badge">BEST VALUE</div>`:''}
+  // Find the currently active plan (so we show "Currently Active" instead of "Buy Now").
+  let activeName=null, activeEnd=null;
+  try{ const c=await api("/plans/current"); if(c.plan){ activeName=c.plan.name; activeEnd=c.plan.end_date; } }catch(e){}
+  try{ const d=await api("/plans"); let plans=d.plans||[];
+    // De-dupe defensively by name (in case the DB has accidental duplicates).
+    const seen=new Set(); plans=plans.filter(p=>{ const k=(p.name||"")+"|"+p.price; if(seen.has(k))return false; seen.add(k); return true; });
+    box.innerHTML=plans.map(p=>{
+      const isActive = activeName && p.name===activeName;
+      return `<div class="plan-card ${p.recommended?'best':''} ${isActive?'current':''}">
+      ${isActive?`<div class="best-badge" style="background:var(--green);">CURRENTLY ACTIVE</div>`:(p.recommended?`<div class="best-badge">BEST VALUE</div>`:'')}
       <div class="ph"><div class="pt">${esc(p.name)}</div><div class="pp" id="plan-price-${p.id}">${Math.round(p.price)} ${esc(p.currency||'PLN')}</div></div>
       <div class="plan-feat">${svg("check-done")}<span>${esc(p.feature1||'Unlimited Job Views')}</span></div>
       <div class="plan-feat">${svg("calendar")}<span>${esc(p.feature2||('Valid for '+p.duration_days+' Days'))}</span></div>
-      <div class="plan-input"><div class="il">Have a referral code?</div><input id="ref-${p.id}" placeholder="Enter code" oninput="applyRef(${p.id},${p.price},'${esc(p.currency||'PLN')}')"><div class="disc" id="disc-${p.id}" style="display:none;">10% Discount Applied!</div></div>
-      <button class="plan-buy" onclick="buyPlan(${p.id},this)">Buy Now</button>
-    </div>`).join("");
+      ${isActive
+        ? `<div class="plan-feat" style="color:var(--green);">${svg("check-done")}<span>Active${activeEnd?(' · valid till '+fmtDate(activeEnd)):''}</span></div>
+           <button class="plan-buy" style="background:#E6F7EC;color:#0E9F5A;" disabled>Currently Enrolled</button>`
+        : `<div class="plan-input"><div class="il">Have a referral code?</div><input id="ref-${p.id}" placeholder="Enter code" oninput="applyRef(${p.id},${p.price},'${esc(p.currency||'PLN')}')"><div class="disc" id="disc-${p.id}" style="display:none;">10% Discount Applied!</div></div>
+           <button class="plan-buy" onclick="buyPlan(${p.id},this)">Buy Now</button>`}
+    </div>`;}).join("");
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
 function applyRef(id,price,cur){

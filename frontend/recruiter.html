@@ -540,8 +540,8 @@
         <div class="desc">All package renewals, one-off purchases, and receipts in a single place.</div>
       </div>
       <div class="sect"><h2 style="font-size:20px;margin-bottom:12px;">Recent Transactions</h2>
-        <div style="overflow-x:auto;"><table class="tbl"><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
-        <tbody id="pay-body"><tr><td colspan="4" class="loading">Loading…</td></tr></tbody></table></div>
+        <div style="overflow-x:auto;"><table class="tbl"><thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Method</th><th>Type</th></tr></thead>
+        <tbody id="pay-body"><tr><td colspan="5" class="loading">Loading…</td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -1133,16 +1133,41 @@ async function loadWallet(){
   }catch(e){}
   try{ const p=await api("/recruiter/payments");
     const h=document.getElementById("wal-history");
-    h.innerHTML=(p.payments&&p.payments.length)?p.payments.map(t=>`<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #F1F2F5;"><span>${esc(t.reason||t.description||"Transaction")}</span><b style="color:${(t.type==='credit')?'#22C55E':'#EF4444'};">${t.type==='credit'?'+':'-'}${esc(t.amount)} PLN</b></div>`).join(""):`<div class="empty">No activity yet.</div>`;
+    h.innerHTML=(p.payments&&p.payments.length)?p.payments.map(t=>recTxnCard(t)).join(""):`<div class="empty">No activity yet.</div>`;
   }catch(e){ document.getElementById("wal-history").innerHTML=`<div class="empty">No activity yet.</div>`; }
+}
+// Detailed transaction card (recruiter): reason, credit/debit, method, txn id, PayU ref.
+function recTxnCard(t){
+  const credit=(t.type||'').toLowerCase()==='credit';
+  const methodLabel = t.method==='payu' ? 'PayU' : (t.method==='admin' ? 'Admin credit' : (t.method==='wallet'?'Wallet':''));
+  const amt=parseFloat(t.amount)||0;
+  return `<div style="background:#fff;border:1px solid #EEF0F3;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.04);">
+    <div style="display:flex;justify-content:space-between;gap:12px;">
+      <div style="font-weight:800;">${esc(t.reason||t.description||'Transaction')}</div>
+      <div style="font-weight:800;white-space:nowrap;color:${credit?'#22C55E':'#EF4444'};">${credit?'+':'−'}${Math.round(Math.abs(amt))} PLN</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center;">
+      <span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;${credit?'background:#E6F7EC;color:#0E9F5A;':'background:#FDEBEC;color:#D6455D;'}">${credit?'CREDIT':'DEBIT'}</span>
+      ${methodLabel?`<span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:#EEF2FF;color:#4F46E5;">${esc(methodLabel)}</span>`:''}
+      <span style="font-size:12px;color:#94A3B8;">${esc(t.date||'')}</span>
+    </div>
+    ${(t.ref||t.payu_ref)?`<div style="margin-top:8px;font-size:11px;color:#64748B;border-top:1px dashed #EEF0F3;padding-top:8px;">
+      ${t.ref?`Txn ID: <b>${esc(t.ref)}</b>`:''}${(t.ref&&t.payu_ref)?' · ':''}${t.payu_ref?`PayU Ref: ${esc(t.payu_ref)}`:''}</div>`:''}
+  </div>`;
 }
 async function loadPayments(){
   const b=document.getElementById("pay-body");
   try{ const d=await api("/recruiter/payments");
     const rows=d.payments||d.history||[];
-    if(!rows.length){ b.innerHTML=`<tr><td colspan="4" class="empty">No transactions yet.</td></tr>`; return; }
-    b.innerHTML=rows.map(t=>`<tr><td>${esc(t.date||"")}</td><td>${esc(t.reason||t.description||"")}</td><td>${esc(t.amount)}</td><td><span class="badge-active">${esc(t.status||"active")}</span></td></tr>`).join("");
-  }catch(e){ b.innerHTML=`<tr><td colspan="4" class="empty">${esc(e.message)}</td></tr>`; }
+    if(!rows.length){ b.innerHTML=`<tr><td colspan="5" class="empty">No transactions yet.</td></tr>`; return; }
+    b.innerHTML=rows.map(t=>{
+      const credit=(t.type||'').toLowerCase()==='credit';
+      return `<tr><td>${esc(t.date||"")}</td><td>${esc(t.reason||t.description||"")}<br><small style="color:#94A3B8;">${esc(t.ref||'')}${t.payu_ref?(' · PayU '+esc(t.payu_ref)):''}</small></td>
+      <td style="color:${credit?'#22C55E':'#EF4444'};font-weight:700;">${credit?'+':'−'}${esc(t.amount)}</td>
+      <td>${esc((t.method||'').toUpperCase()||'—')}</td>
+      <td><span class="badge-active">${credit?'CREDIT':'DEBIT'}</span></td></tr>`;
+    }).join("");
+  }catch(e){ b.innerHTML=`<tr><td colspan="5" class="empty">${esc(e.message)}</td></tr>`; }
 }
 
 // ---- edit profile ----

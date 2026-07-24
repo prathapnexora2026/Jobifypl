@@ -14,7 +14,7 @@ from app.database import get_db
 from app.models import (
     User, Role, CandidateProfile, RecruiterProfile, CandidateDocument,
     Job, JobApplication, SubscriptionPlan, UserSubscription,
-    WalletTransaction, ContactMessage, Wallet, Notification,
+    WalletTransaction, ContactMessage, Wallet, Notification, CustomOption,
 )
 from app.security import require_admin
 
@@ -536,6 +536,75 @@ def update_admin_profile(body: AdminProfileIn, db: Session = Depends(get_db), ad
         admin.email = body.email
     db.commit()
     return {"status": "success", "msg": "Profile updated"}
+
+
+# ==================== CUSTOM OPTIONS (cities / languages) ====================
+# Recruiters can add new cities/languages while posting; admin manages the full
+# list here. Anything added shows for ALL recruiters.
+_ADMIN_OPTION_FIELDS = {"language", "city"}
+
+
+@router.get("/options/{field}")
+def admin_list_options(field: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    if field not in _ADMIN_OPTION_FIELDS:
+        raise HTTPException(400, "Unsupported field")
+    rows = (db.query(CustomOption, RecruiterProfile)
+            .outerjoin(RecruiterProfile, RecruiterProfile.user_id == CustomOption.created_by)
+            .filter(CustomOption.field == field)
+            .order_by(CustomOption.created_at.desc()).all())
+    out = []
+    for opt, rp in rows:
+        out.append({
+            "id": opt.id, "value": opt.value,
+            "added_by": (f"{rp.first_name or ''} {rp.last_name or ''}".strip() or rp.company_name)
+                        if rp else "—",
+            "created_at": opt.created_at.isoformat() if opt.created_at else None,
+        })
+    return {"status": "success", "options": out}
+
+
+class AdminOptionIn(BaseModel):
+    value: str
+
+
+@router.post("/options/{field}")
+def admin_add_option(field: str, body: AdminOptionIn,
+                     db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    if field not in _ADMIN_OPTION_FIELDS:
+        raise HTTPException(400, "Unsupported field")
+    val = (body.value or "").strip()
+    if not val:
+        raise HTTPException(400, "Value required")
+    exists = db.query(CustomOption).filter(
+        CustomOption.field == field, func.lower(CustomOption.value) == val.lower()).first()
+    if exists:
+        raise HTTPException(400, "Already exists")
+    opt = CustomOption(field=field, value=val, created_by=admin.id)
+    db.add(opt); db.commit()
+    return {"status": "success", "id": opt.id, "value": val}
+
+
+@router.put("/options/{opt_id}")
+def admin_edit_option(opt_id: int, body: AdminOptionIn,
+                      db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    opt = db.query(CustomOption).filter(CustomOption.id == opt_id).first()
+    if not opt:
+        raise HTTPException(404, "Option not found")
+    val = (body.value or "").strip()
+    if not val:
+        raise HTTPException(400, "Value required")
+    opt.value = val
+    db.commit()
+    return {"status": "success", "value": val}
+
+
+@router.delete("/options/{opt_id}")
+def admin_delete_option(opt_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    opt = db.query(CustomOption).filter(CustomOption.id == opt_id).first()
+    if not opt:
+        raise HTTPException(404, "Option not found")
+    db.delete(opt); db.commit()
+    return {"status": "success"}
 
 
 # ============================ ADMIN MESSAGING ============================

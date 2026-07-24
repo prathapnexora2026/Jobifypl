@@ -48,8 +48,8 @@
   .top-actions .ic{font-size:20px;cursor:pointer;}
   .top-avatar{width:38px;height:38px;border-radius:50%;background:#cbd5e1;cursor:pointer;object-fit:cover;
     display:grid;place-items:center;font-size:18px;}
-  .avatar-menu{position:absolute;top:58px;right:16px;background:#fff;border-radius:12px;
-    box-shadow:0 10px 30px rgba(0,0,0,.15);padding:8px;display:none;min-width:170px;z-index:60;}
+  .avatar-menu{position:fixed;top:58px;right:16px;background:#fff;border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,.15);padding:8px;display:none;min-width:170px;z-index:2000;}
   .avatar-menu.show{display:block;}
   .avatar-menu a{display:block;padding:11px 14px;color:var(--ink);text-decoration:none;border-radius:8px;font-size:14px;cursor:pointer;}
   .avatar-menu a:hover{background:#F1F5F9;} .avatar-menu .sep{height:1px;background:var(--line);margin:6px 0;}
@@ -343,6 +343,7 @@
     <div class="navitem"    data-page="messages" onclick="go('messages')"><span class="ic">✉️</span> Messages</div>
     <div class="navitem"    data-page="plans"  onclick="go('plans')"><span class="ic">🪪</span> Plans</div>
     <div class="navitem"    data-page="payments" onclick="go('payments')"><span class="ic">💵</span> Payments</div>
+    <div class="navitem"    data-page="options" onclick="go('options')"><span class="ic">🏙️</span> Cities & Languages</div>
     <div class="navitem"    data-page="logs"   onclick="go('logs')"><span class="ic">📞</span> Contacted info</div>
   </div>
 
@@ -510,6 +511,23 @@
         <div class="tbl-wrap"><table><thead><tr>
           <th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Date</th>
         </tr></thead><tbody id="logs-body"><tr><td colspan="6" class="loading">Loading…</td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- CUSTOM OPTIONS (cities & languages) -->
+    <div class="page" id="page-options">
+      <h2 class="page-title">Cities &amp; Languages</h2>
+      <p style="color:#64748B;margin:-8px 0 18px;">Manage the cities and languages recruiters can pick when posting jobs. Anything you add here (or a recruiter adds) shows for all recruiters.</p>
+      <div class="opt-tabs" style="display:flex;gap:8px;margin-bottom:16px;">
+        <button class="tab on" data-otab="city" onclick="optTab('city')">Cities</button>
+        <button class="tab" data-otab="language" onclick="optTab('language')">Languages</button>
+      </div>
+      <div class="card" style="max-width:720px;">
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <input id="opt-new" placeholder="Add a new city…" style="flex:1;">
+          <button class="btn amber" style="max-width:120px;" onclick="addOption()">+ Add</button>
+        </div>
+        <div id="opt-list"><div class="empty">Loading…</div></div>
       </div>
     </div>
 
@@ -719,6 +737,7 @@ function go(page){
   if(page==="messages") loadMessages();
   if(page==="plans") loadPlans();
   if(page==="payments") loadPayments();
+  if(page==="options") loadOptions();
   if(page==="logs") loadLogs();
   if(page==="profile") loadProfile();
   document.querySelector(".sidebar").classList.remove("open");
@@ -1232,6 +1251,45 @@ async function saveProfile(){
   try{ await api("/admin/profile",{method:"PUT",body:{full_name:document.getElementById("p-name").value,email:document.getElementById("p-email").value}});
     loadProfileName(); alert("Profile saved");
   }catch(e){ alert(e.message); }
+}
+
+// ---------- CUSTOM OPTIONS (cities & languages) ----------
+let curOptField="city";
+function optTab(f){
+  curOptField=f;
+  document.querySelectorAll('.opt-tabs .tab').forEach(b=>b.classList.toggle('on',b.dataset.otab===f));
+  document.getElementById("opt-new").placeholder = f==="city" ? "Add a new city…" : "Add a new language…";
+  loadOptions();
+}
+async function loadOptions(){
+  const box=document.getElementById("opt-list"); box.innerHTML=`<div class="empty">Loading…</div>`;
+  try{
+    const d=await api("/admin/options/"+curOptField); const opts=d.options||[];
+    if(!opts.length){ box.innerHTML=`<div class="empty">No ${curOptField==='city'?'cities':'languages'} added yet.</div>`; return; }
+    box.innerHTML=opts.map(o=>`<div class="dp-row" style="justify-content:space-between;">
+      <div><b>${esc(o.value)}</b><div style="font-size:12px;color:#94A3B8;">Added by ${esc(o.added_by||'—')}${o.created_at?(' · '+fmtDate(o.created_at)):''}</div></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sm btn-dark" onclick="editOption(${o.id},'${esc(o.value).replace(/'/g,"\\'")}')">Edit</button>
+        <button class="btn-sm btn-out-red" onclick="deleteOption(${o.id},'${esc(o.value).replace(/'/g,"\\'")}')">Delete</button>
+      </div></div>`).join("");
+  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+async function addOption(){
+  const inp=document.getElementById("opt-new"); const v=(inp.value||"").trim();
+  if(!v){ alert("Enter a value"); return; }
+  try{ await api("/admin/options/"+curOptField,{method:"POST",body:{value:v}}); inp.value=""; loadOptions(); }
+  catch(e){ alert(e.message); }
+}
+async function editOption(id,cur){
+  const v=prompt("Edit value:",cur); if(v===null) return;
+  const val=v.trim(); if(!val) return;
+  try{ await api("/admin/options/"+id,{method:"PUT",body:{value:val}}); loadOptions(); }
+  catch(e){ alert(e.message); }
+}
+async function deleteOption(id,label){
+  if(!confirm(`Delete "${label}"?`)) return;
+  try{ await api("/admin/options/"+id,{method:"DELETE"}); loadOptions(); }
+  catch(e){ alert(e.message); }
 }
 
 // ---------- DELETE CONFIRM ----------

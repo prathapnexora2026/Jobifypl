@@ -1287,8 +1287,10 @@ function renderWizard(){
     wireSheet("f-shift","Select",SHIFTS,"shift_timing","Shift Timings");
     wireSheet("f-jt","Select",JOBTYPES,"job_type","Job Type");
     wireSheet("f-wt","Select",WORKTYPES,"work_type","Work Type");
-    wireSheet("f-lang","Select Language",LANGS,"languages_required","Languages Required");
-    wireSheet("f-city","Select City",CITIES,"location","Select City");
+    // Language & City are SEARCHABLE with an "Add new" option that saves to the
+    // shared DB so all recruiters see it afterwards.
+    wireSearchSheet("f-lang","Select Language",LANGS,"languages_required","Languages Required","language");
+    wireSearchSheet("f-city","Select City",CITIES,"location","Select City","city");
   }
   else if(wzStep===2){
     b.innerHTML=`
@@ -1376,6 +1378,61 @@ function wireSheet(id,ph,options,field,title){
     const el=document.querySelector('.fsel[data-sheet="'+id+'"]');
     if(el){ el.classList.toggle("ph",!job[field]); el.childNodes[0].nodeValue=job[field]||ph; }
   });
+}
+
+// Searchable sheet with "Add new" — merges fixed options + DB custom options,
+// lets the recruiter type to filter, and add a brand-new value (saved to DB).
+const _customOptCache={};   // field -> [values]
+async function _loadCustomOptions(optField){
+  if(_customOptCache[optField]) return _customOptCache[optField];
+  try{ const d=await api("/recruiter/options/"+optField); _customOptCache[optField]=d.options||[]; }
+  catch(e){ _customOptCache[optField]=[]; }
+  return _customOptCache[optField];
+}
+function wireSearchSheet(id,ph,baseOptions,field,title,optField){
+  SHEET_OPENERS[id]=async()=>{
+    const custom=await _loadCustomOptions(optField);
+    // merge + de-dupe (case-insensitive), keep fixed first
+    const seen=new Set(); const merged=[];
+    [...baseOptions,...custom].forEach(o=>{ const k=(o||"").toLowerCase(); if(o&&!seen.has(k)){ seen.add(k); merged.push(o);} });
+    openSearchSheet(title||ph, merged, job[field], optField, (v)=>{
+      job[field]=v||"";
+      const el=document.querySelector('.fsel[data-sheet="'+id+'"]');
+      if(el){ el.classList.toggle("ph",!job[field]); el.childNodes[0].nodeValue=job[field]||ph; }
+    });
+  };
+}
+let _searchSheetState=null;
+function openSearchSheet(title, options, current, optField, cb){
+  _searchSheetState={title,options,current,optField,cb};
+  _renderSearchSheet("");
+  document.getElementById("sheet-bg").classList.add("show");
+}
+function _renderSearchSheet(q){
+  const {title,options,current,cb}=_searchSheetState;
+  const ql=(q||"").toLowerCase().trim();
+  const filtered=options.filter(o=>o.toLowerCase().includes(ql));
+  const exactExists=options.some(o=>o.toLowerCase()===ql);
+  let body=filtered.map(o=>`<div class="opt ${o===current?'on':''}" onclick="_pickSearchOpt('${esc(o).replace(/'/g,"\\'")}')"><span>${esc(o)}</span><span class="rc">${o===current?'✓':''}</span></div>`).join("");
+  if(ql && !exactExists){
+    body+=`<div class="opt" style="color:var(--blue);font-weight:700;" onclick="_addSearchOpt('${esc(q).replace(/'/g,"\\'")}')">+ Add "${esc(q)}"</div>`;
+  }
+  if(!filtered.length && !ql){ body=`<div style="padding:20px;text-align:center;color:#94A3B8;">Type to search…</div>`; }
+  document.getElementById("sheet").innerHTML=`
+    <div class="sheet-head"><span class="st">${esc(title||"Select")}</span><button class="cls" onclick="hideSheet()">×</button></div>
+    <div style="padding:10px 16px;"><input id="search-sheet-inp" placeholder="Search or type to add…" oninput="_renderSearchSheet(this.value)"
+      style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:10px;font-size:15px;"></div>
+    <div class="sheet-body">${body}</div>`;
+  const inp=document.getElementById("search-sheet-inp"); if(inp){ inp.value=q; inp.focus(); }
+}
+function _pickSearchOpt(v){ const cb=_searchSheetState.cb; hideSheet(); cb&&cb(v); }
+async function _addSearchOpt(v){
+  const st=_searchSheetState; const val=(v||"").trim(); if(!val) return;
+  try{
+    await api("/recruiter/options/"+st.optField,{method:"POST",body:{value:val}});
+    _customOptCache[st.optField]=[...(_customOptCache[st.optField]||[]),val]; // update cache
+  }catch(e){ /* still let them use it locally even if save fails */ }
+  const cb=st.cb; hideSheet(); cb&&cb(val);
 }
 // in-place toggles (no re-render → page keeps its scroll position)
 function tgJoin(btn){ job.joining=(job.joining==='Immediate Joining'?'':'Immediate Joining'); btn.classList.toggle("on",job.joining==='Immediate Joining'); }

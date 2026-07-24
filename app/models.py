@@ -277,3 +277,15 @@ class OtpCode(Base):
     expires_at = Column(DateTime, nullable=False)
     consumed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=now)
+
+
+class CustomOption(Base):
+    """Recruiter-added dropdown values (e.g. a language or city not in the fixed
+    list). Once one recruiter adds a value it's stored here and offered to ALL
+    recruiters. `field` groups them (e.g. 'language', 'city')."""
+    __tablename__ = "custom_options"
+    id = Column(Integer, primary_key=True, index=True)
+    field = Column(String(30), index=True)     # 'language' | 'city'
+    value = Column(String(120))
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=now)

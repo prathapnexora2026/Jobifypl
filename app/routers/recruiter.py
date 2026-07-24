@@ -10,13 +10,14 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import (
     User, Role, RecruiterProfile, Job, JobApplication, CandidateProfile,
     CandidateDocument, Wallet, WalletTransaction, SubscriptionPlan,
-    UserSubscription, Notification,
+    UserSubscription, Notification, CustomOption,
 )
 
 # Human labels for the document types a candidate can upload (recruiter CV view).
@@ -595,3 +596,44 @@ def rec_payment_status(ext_order_id: str, user: User = Depends(require_recruiter
     if not pay:
         raise HTTPException(404, "Payment not found")
     return {"status": "success", "payment_status": pay.status, "fulfilled": pay.fulfilled}
+
+
+# ---------- Custom dropdown options (languages, cities) shared across recruiters ----------
+_ALLOWED_OPTION_FIELDS = {"language", "city"}
+
+
+@router.get("/options/{field}")
+def get_custom_options(field: str, user: User = Depends(require_recruiter),
+                       db: Session = Depends(get_db)):
+    """Return the recruiter-added values for a field (merged with the fixed list
+    on the frontend). field ∈ {language, city}."""
+    if field not in _ALLOWED_OPTION_FIELDS:
+        raise HTTPException(400, "Unsupported field")
+    rows = db.query(CustomOption).filter(CustomOption.field == field)\
+        .order_by(CustomOption.value).all()
+    return {"status": "success", "options": [r.value for r in rows]}
+
+
+class AddOptionIn(BaseModel):
+    value: str
+
+
+@router.post("/options/{field}")
+def add_custom_option(field: str, body: AddOptionIn,
+                      user: User = Depends(require_recruiter), db: Session = Depends(get_db)):
+    """Add a new value to a field's shared option list (once), so every recruiter
+    sees it afterwards. Case-insensitive de-dupe."""
+    if field not in _ALLOWED_OPTION_FIELDS:
+        raise HTTPException(400, "Unsupported field")
+    val = (body.value or "").strip()
+    if not val:
+        raise HTTPException(400, "Value required")
+    if len(val) > 120:
+        raise HTTPException(400, "Value too long")
+    exists = db.query(CustomOption).filter(
+        CustomOption.field == field,
+        func.lower(CustomOption.value) == val.lower()).first()
+    if not exists:
+        db.add(CustomOption(field=field, value=val, created_by=user.id))
+        db.commit()
+    return {"status": "success", "value": val}

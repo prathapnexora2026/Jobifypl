@@ -142,6 +142,15 @@
   .empty .ei{display:flex;justify-content:center;color:#CBD5E1;margin-bottom:6px;} .empty div{margin-top:6px;font-weight:700;}
   .loading{text-align:center;color:var(--muted);padding:30px;}
 
+  /* my documents (view/replace/delete) */
+  .mydoc-card{background:#fff;border:1px solid #EEF0F3;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+  .mydoc-top{display:flex;align-items:center;gap:12px;}
+  .mydoc-ic{width:44px;height:44px;border-radius:10px;background:#F1F5F9;display:grid;place-items:center;font-size:22px;flex-shrink:0;}
+  .mydoc-info{flex:1;min-width:0;} .mydoc-name{font-weight:800;font-size:15px;} .mydoc-file{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mydoc-actions{display:flex;gap:8px;margin-top:12px;}
+  .mydoc-actions button{flex:1;padding:9px;border:1px solid #E2E8F0;background:#fff;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);}
+  .mydoc-actions button.danger{color:var(--red);border-color:#FCE0E0;}
+  #s-docview{display:flex;flex-direction:column;} #s-docview #dv-body{position:relative;}
   /* documents upload */
   .doc-block{margin-top:8px;}
   .doc-block .dt{font-size:15px;font-weight:800;margin:20px 0 8px;} .doc-block .dt .req{color:var(--red);}
@@ -394,7 +403,7 @@
 
   <!-- BUILD YOUR CV -->
   <div class="screen" id="s-cv">
-    <div class="topbar center"><button class="back" onclick="go('s-signin')" data-ic="back"></button><h1>Build Your CV</h1></div>
+    <div class="topbar center"><button class="back" onclick="cvBack()" data-ic="back"></button><h1>Build Your CV</h1></div>
     <div class="pad">
       <div class="cv-photo" id="cv-photo"><span data-ic="person-lg"></span><div class="cam" onclick="pickPhoto()" data-ic="camera"></div></div>
       <input type="file" id="cv-photo-input" accept="image/*" style="display:none;" onchange="uploadPhoto(this)">
@@ -446,6 +455,22 @@
       <button class="linkbtn" onclick="go('s-home')">Skip for now</button>
     </div>
     <input type="file" id="doc-file-input" accept="image/*,.pdf,.doc,.docx" style="display:none;">
+  </div>
+
+  <!-- MY DOCUMENTS (view / replace / delete) -->
+  <div class="screen" id="s-mydocs">
+    <div class="topbar"><button class="back" onclick="go(docsBackScreen||'s-profile')" data-ic="back"></button><h1 style="margin-left:4px;">My Documents</h1></div>
+    <div class="pad" id="mydocs-list"><div class="loading">Loading…</div></div>
+    <div class="pad">
+      <button class="add-more" onclick="addNewDoc()"><span data-ic="plus"></span> Upload New Document</button>
+    </div>
+    <input type="file" id="mydoc-file-input" accept="image/*,.pdf,.doc,.docx" style="display:none;">
+  </div>
+
+  <!-- DOCUMENT VIEWER (in-app PDF/image preview) -->
+  <div class="screen" id="s-docview">
+    <div class="topbar"><button class="back" onclick="go('s-mydocs')" data-ic="back"></button><h1 style="margin-left:4px;" id="dv-title">Document</h1></div>
+    <div id="dv-body" style="flex:1;background:#f1f2f5;"></div>
   </div>
 
   <!-- HOME -->
@@ -528,7 +553,8 @@
       <div class="pf-stat"><div class="circle" style="background:#D4FFEA;" id="pf-contacted">0</div><div class="lbl">Contacted</div></div>
     </div>
     <div class="pf-menu">
-      <div class="pf-item" onclick="go('s-cv')"><div class="l"><div class="iconc" data-ic="person"></div><div class="t">Personal Information</div></div><div class="chev" data-ic="chevron"></div></div>
+      <div class="pf-item" onclick="openPersonalInfo()"><div class="l"><div class="iconc" data-ic="person"></div><div class="t">Personal Information</div></div><div class="chev" data-ic="chevron"></div></div>
+      <div class="pf-item" onclick="openMyDocs()"><div class="l"><div class="iconc" data-ic="doc"></div><div class="t">My Documents</div></div><div class="chev" data-ic="chevron"></div></div>
       <div class="pf-item" onclick="go('s-wallet')"><div class="l"><div class="iconc" data-ic="wallet"></div><div class="t">Wallet</div></div><div class="chev" data-ic="chevron"></div></div>
       <div class="pf-item" onclick="go('s-plans')"><div class="l"><div class="iconc" data-ic="star"></div><div class="t">Plans</div></div><div class="chev" data-ic="chevron"></div></div>
       <div class="pf-item" onclick="go('s-contact')"><div class="l"><div class="iconc" data-ic="call"></div><div class="t">Contact Us</div></div><div class="chev" data-ic="chevron"></div></div>
@@ -886,7 +912,7 @@ async function siVerify(){
   try{ const d=await api("/auth/verify-otp",{method:"POST",body:{phone:authPhone,code,role:"candidate"}});
     if(d.role!=="candidate"){ siMsg("This number is not a candidate account.","err"); return; }
     localStorage.setItem("token",d.token); localStorage.setItem("role",d.role);
-    if(d.new_user||!d.onboarding_completed){ go("s-cv"); } else { go("s-home"); }
+    if(d.new_user||!d.onboarding_completed){ cvBackScreen="s-signin"; go("s-cv"); } else { go("s-home"); }
   }catch(e){ siMsg(e.message,"err"); }
 }
 function confirmLogout(){ document.getElementById("pop-logout").classList.add("show"); }
@@ -959,6 +985,103 @@ function doneCal(){
   cvDob=`${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(calDay).padStart(2,"0")}`;
   document.getElementById("cv-dob-txt").textContent=`${calDay} ${MON[calMonth]} ${calYear}`;
   document.getElementById("cv-dob").classList.add("filled"); closeCal();
+}
+
+// Remember where the CV / documents screens were opened from, so Back returns
+// there instead of the sign-in screen (which felt like a logout).
+let cvBackScreen="s-signin";
+function openPersonalInfo(){ cvBackScreen="s-profile"; go("s-cv"); }
+function cvBack(){ go(cvBackScreen||"s-profile"); }
+function openMyDocs(){ docsBackScreen="s-profile"; go("s-mydocs"); renderMyDocs(); }
+let docsBackScreen="s-profile";
+
+// Friendly labels for doc types (match the upload flow).
+const DOC_TYPE_LABELS={resume:"Resume / CV",passport:"Passport",trc_card:"TRC Card",pesel:"PESEL",
+  driving_license:"Driving License",student_card:"Student Card",other:"Other Document"};
+let _replaceDocId=null, _replaceDocType=null;
+
+async function renderMyDocs(){
+  const box=document.getElementById("mydocs-list"); box.innerHTML=`<div class="loading">Loading…</div>`;
+  try{
+    const d=await api("/candidate/documents"); const docs=d.documents||[];
+    if(!docs.length){ box.innerHTML=`<div class="empty"><div class="ei">${svg("doc")}</div><div>No documents uploaded yet</div><p style="color:var(--muted);font-weight:400;margin-top:6px;">Upload your CV, passport, TRC card and more.</p></div>`; return; }
+    box.innerHTML=docs.map(x=>{
+      const label=DOC_TYPE_LABELS[x.doc_type]||x.original_name||x.doc_type||"Document";
+      const isPdf=/\.pdf$/i.test(x.file_path||"");
+      return `<div class="mydoc-card">
+        <div class="mydoc-top">
+          <div class="mydoc-ic">${isPdf?"📄":"🖼️"}</div>
+          <div class="mydoc-info"><div class="mydoc-name">${esc(label)}</div>
+            <div class="mydoc-file">${esc(x.original_name||"")}</div></div>
+        </div>
+        <div class="mydoc-actions">
+          <button onclick="viewDoc('${esc(x.file_path)}','${esc(label)}')">View</button>
+          <button onclick="replaceDoc(${x.id},'${esc(x.doc_type)}')">Replace</button>
+          <button class="danger" onclick="deleteDoc(${x.id},'${esc(label)}')">Delete</button>
+        </div>
+      </div>`;
+    }).join("");
+  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+
+function viewDoc(path, title){
+  const url=fileUrl(path);
+  document.getElementById("dv-title").textContent=title||"Document";
+  const body=document.getElementById("dv-body");
+  const isPdf=/\.pdf$/i.test(path||"");
+  const isImg=/\.(png|jpe?g|gif|webp|bmp)$/i.test(path||"");
+  if(isImg){
+    body.innerHTML=`<div style="height:100%;overflow:auto;display:flex;align-items:center;justify-content:center;padding:12px;"><img src="${esc(url)}" style="max-width:100%;height:auto;border-radius:8px;"></div>`;
+  } else if(isPdf){
+    // In-app PDF: use an object/iframe. Works in Android WebView.
+    body.innerHTML=`<iframe src="${esc(url)}" style="width:100%;height:100%;border:none;"></iframe>
+      <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;">
+        <a href="${esc(url)}" target="_blank" style="background:var(--yellow);color:#111;padding:10px 18px;border-radius:20px;font-weight:700;text-decoration:none;">Open full screen</a></div>`;
+  } else {
+    body.innerHTML=`<div style="padding:24px;text-align:center;">Preview not available. <a href="${esc(url)}" target="_blank" style="color:var(--blue);">Open document</a></div>`;
+  }
+  go("s-docview");
+}
+
+async function deleteDoc(id, label){
+  if(!confirm(`Delete "${label}"? This cannot be undone.`)) return;
+  try{ await api("/candidate/documents/"+id,{method:"DELETE"}); toast("Document deleted"); renderMyDocs(); }
+  catch(e){ toast(e.message); }
+}
+
+function replaceDoc(id, docType){
+  _replaceDocId=id; _replaceDocType=docType;
+  const inp=document.getElementById("mydoc-file-input");
+  inp.value=""; inp.onchange=()=>doReplaceUpload(inp.files[0]);
+  inp.click();
+}
+async function doReplaceUpload(file){
+  if(!file) return;
+  try{
+    // delete old, then upload new of same type (backend has no PUT, so replace = delete+add)
+    if(_replaceDocId) await api("/candidate/documents/"+_replaceDocId,{method:"DELETE"});
+    const fd=new FormData(); fd.append("doc_type",_replaceDocType||"other"); fd.append("file",file);
+    await api("/candidate/documents",{method:"POST",body:fd});
+    toast("Document replaced"); renderMyDocs();
+  }catch(e){ toast(e.message); }
+  _replaceDocId=null; _replaceDocType=null;
+}
+
+let _newDocType="other";
+function addNewDoc(){
+  // Simple: ask which type via the existing sheet, then upload. Default "other".
+  const inp=document.getElementById("mydoc-file-input");
+  inp.value=""; _newDocType="other";
+  inp.onchange=()=>doNewUpload(inp.files[0]);
+  inp.click();
+}
+async function doNewUpload(file){
+  if(!file) return;
+  try{
+    const fd=new FormData(); fd.append("doc_type",_newDocType||"other"); fd.append("file",file);
+    await api("/candidate/documents",{method:"POST",body:fd});
+    toast("Document uploaded"); renderMyDocs();
+  }catch(e){ toast(e.message); }
 }
 
 async function loadCvIfAny(){

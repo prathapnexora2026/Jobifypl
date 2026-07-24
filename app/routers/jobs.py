@@ -1,12 +1,28 @@
 """Jobs endpoints — browse, view, apply, mark interested, track (candidate-facing)."""
+import datetime as dt
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, Role, Job, JobApplication, Notification, RecruiterProfile
+from app.models import (
+    User, Role, Job, JobApplication, Notification, RecruiterProfile, UserSubscription,
+)
 from app.security import get_current_user, get_optional_user
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
+
+
+def _candidate_has_active_plan(db, user_id) -> bool:
+    """True if the candidate has a non-expired active subscription.
+    Viewing jobs is free; APPLYING requires an active plan."""
+    now = dt.datetime.utcnow()
+    sub = (db.query(UserSubscription)
+           .filter(UserSubscription.user_id == user_id,
+                   UserSubscription.status == "active")
+           .filter((UserSubscription.end_date == None) | (UserSubscription.end_date >= now))
+           .first())
+    return sub is not None
 
 
 def _recruiter_photo(db, recruiter_id):
@@ -92,6 +108,9 @@ def job_detail(job_id: int, db: Session = Depends(get_db),
 def apply_job(job_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if user.role != Role.candidate:
         raise HTTPException(403, "Only candidates can apply")
+    # PAYWALL: viewing is free, but applying needs an active plan (min 25 PLN).
+    if not _candidate_has_active_plan(db, user.id):
+        raise HTTPException(402, "Buy a plan to apply for jobs.")
     job = db.query(Job).filter(Job.id == job_id, Job.status == "open").first()
     if not job:
         raise HTTPException(404, "Job not found or closed")

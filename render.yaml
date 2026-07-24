@@ -31,7 +31,7 @@ services:
 
       # --- Public URL (PayU redirect/notify + APK point here) ---
       - key: BASE_URL
-        value: https://jobify.pl
+        value: https://jobifypl.pl
 
       # --- Auth ---
       - key: JWT_SECRET

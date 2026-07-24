@@ -59,7 +59,7 @@ def create_order(*, ext_order_id: str, amount_pln: float, description: str,
         "totalAmount": to_minor_units(amount_pln),
         "extOrderId": ext_order_id,
         "buyer": {
-            "email": buyer_email or "buyer@jobify.pl",
+            "email": buyer_email or "buyer@jobifypl.pl",
             "phone": buyer_phone or "",
             "language": "pl",
         },

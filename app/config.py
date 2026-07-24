@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     DEV_ROLE_OVERRIDE: bool = True
 
     # --- Public base URL of the deployed site (used for PayU redirect/notify URLs) ---
-    # Local dev: http://localhost:8000 ; Production: https://jobify.pl
+    # Local dev: http://localhost:8000 ; Production: https://jobifypl.pl
     BASE_URL: str = "http://localhost:8000"
 
     # --- Where uploaded files & the APK live on disk. ---

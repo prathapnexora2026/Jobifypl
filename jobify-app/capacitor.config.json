@@ -3,7 +3,7 @@
   "appName": "JobifyPL",
   "webDir": "www",
   "server": {
-    "url": "https://ccccccc.pythonanywhere.com/app.html",
+    "url": "https://jobifypl.pl/app.html",
     "cleartext": false,
     "androidScheme": "https"
   }

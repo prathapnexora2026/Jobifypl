@@ -286,6 +286,8 @@
   .chat-item{display:flex;padding:14px 20px;border-bottom:1px solid #F8FAFC;cursor:pointer;align-items:center;-webkit-user-select:none;user-select:none;}
   .chat-item.sel{background:rgba(37,99,235,.12);}
   #s-messages #msg-list{padding-bottom:76px;}
+  .selbox{width:24px;height:24px;border-radius:50%;border:2px solid #CBD5E1;margin-right:12px;flex-shrink:0;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;}
+  .selbox.on{background:#2563EB;border-color:#2563EB;}
   .chat-item .avc{position:relative;margin-right:16px;flex-shrink:0;}
   .chat-item .avc img{width:56px;height:56px;border-radius:50%;object-fit:cover;background:#EDF0F5;}
   .chat-item .online{position:absolute;bottom:0;right:0;width:14px;height:14px;background:var(--green);border-radius:50%;border:3px solid #fff;}
@@ -537,7 +539,11 @@
 
   <!-- MESSAGES LIST -->
   <div class="screen hasnav" id="s-messages">
-    <div class="topbar center"><button class="back" onclick="go('s-home')" data-ic="back"></button><h1>Messages</h1><div class="r"><div class="ic" onclick="openSidebar()" data-ic="menu"></div></div></div>
+    <div class="topbar center"><button class="back" onclick="go('s-home')" data-ic="back"></button><h1>Messages</h1>
+      <div class="r" style="display:flex;gap:8px;">
+        <div class="ic" id="conv-select-btn" onclick="toggleConvSelectMode()" title="Select">☑</div>
+        <div class="ic" onclick="openSidebar()" data-ic="menu"></div>
+      </div></div>
     <div id="msg-list"><div class="loading">Loading conversations…</div></div>
   </div>
 
@@ -547,7 +553,7 @@
       <div class="back" onclick="chatBack()" data-ic="back"></div>
       <div class="avc" onclick="viewChatPhoto()" style="cursor:pointer;"><img id="chat-av" src="/assets/avt/avt-4.jpg"><div class="online"></div></div>
       <div style="flex:1;"><div class="nm" id="chat-name">Chat</div><div class="st">Online</div></div>
-      <div class="back" data-ic="dots"></div>
+      <div class="back" id="msg-select-btn" onclick="toggleMsgSelectMode()" title="Select messages">☑</div>
     </div>
     <div class="chat-scroll" id="chat-scroll"></div>
     <div class="chat-input">
@@ -633,7 +639,12 @@
 
   <!-- NOTIFICATIONS -->
   <div class="screen" id="s-notif">
-    <div class="topbar center"><button class="back" onclick="go('s-home')" data-ic="back"></button><h1>Notification</h1><div class="r"><div class="ic" data-ic="search"></div></div></div>
+    <div class="topbar center"><button class="back" onclick="go('s-home')" data-ic="back"></button><h1>Notifications</h1>
+      <div class="r" style="display:flex;gap:8px;">
+        <div class="ic" id="notif-search-btn" onclick="toggleNotifSearch()" data-ic="search"></div>
+        <div class="ic" id="notif-select-btn" onclick="toggleNotifSelectMode()" title="Select">☑</div>
+      </div></div>
+    <div id="notif-search-wrap" style="display:none;padding:0 20px 8px;"><input id="notif-search" placeholder="Search notifications…" oninput="filterNotifs(this.value)" style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:10px;font-size:15px;"></div>
     <div id="notif-list"><div class="loading">Loading…</div></div>
   </div>
 
@@ -1401,47 +1412,54 @@ function fmtTime(iso){ if(!iso)return""; const d=new Date(iso); if(isNaN(d))retu
 }
 const AVTS=["/assets/avt/avt-1.jpg","/assets/avt/avt-2.jpg","/assets/avt/avt-3.jpg","/assets/avt/avt-4.jpg"];
 function avatarFor(id){ return AVTS[Math.abs(id||0)%AVTS.length]; }
+let _convSelectMode=false;
 async function loadConversations(){
   const box=document.getElementById("msg-list"); box.innerHTML=`<div class="loading">Loading conversations…</div>`;
   try{ const d=await api("/chat/conversations"); const convs=d.conversations||[];
-    if(!convs.length){ box.innerHTML=`<div class="empty"><div class="ei">${svg("chat")}</div><div>No conversations yet</div><p style="color:var(--muted);font-weight:400;margin-top:6px;">Start a chat from a job or Contact Us.</p></div>`; return; }
+    if(!convs.length){ box.innerHTML=`<div class="empty"><div class="ei">${svg("chat")}</div><div>No conversations yet</div><p style="color:var(--muted);font-weight:400;margin-top:6px;">Start a chat from a job or Contact Us.</p></div>`; _convSelectMode=false; updateConvSelBar(); return; }
     _convs=convs; _selConvs.clear();
-    box.innerHTML=convs.map(c=>{
-      const ph=avatarSrc(c.photo)||avatarFor(c.other_id);   // real photo, else a stable default
-      return `<div class="chat-item ${c.unread?'unread':''}" data-cid="${c.conversation_id}" data-cname="${esc((c.name||'Chat').replace(/"/g,''))}">
+    renderConvList();
+    updateConvSelBar();
+  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+// ---- Conversations: checkbox select mode + delete whole chat (WhatsApp-style) ----
+let _convs=[], _selConvs=new Set();
+function renderConvList(){
+  const box=document.getElementById("msg-list");
+  box.innerHTML=_convs.map(c=>{
+    const ph=avatarSrc(c.photo)||avatarFor(c.other_id);
+    const cid=c.conversation_id, checked=_selConvs.has(cid);
+    const cb=_convSelectMode?`<div class="selbox ${checked?'on':''}">${checked?'✓':''}</div>`:'';
+    return `<div class="chat-item ${c.unread?'unread':''} ${checked?'sel':''}" data-cid="${cid}" data-cname="${esc((c.name||'Chat').replace(/"/g,''))}" onclick="convItemClick(${cid},'${esc((c.name||'Chat').replace(/'/g,"\\'"))}')">
+      ${cb}
       <div class="avc"><img src="${esc(ph)}" onerror="this.src='${avatarFor(c.other_id)}'"><div class="online"></div></div>
       <div class="cc"><div class="nm">${esc(c.name||'Chat')}</div><div class="lm">${esc(c.last_message||'')}</div></div>
       <div class="rc"><div class="tm">${fmtTime(c.time)}</div>${c.unread?`<div class="ub">${c.unread}</div>`:''}</div>
     </div>`;}).join("");
-    // long-press a conversation → select (to delete the whole chat); tap → open it
-    bindLongPress(box, ".chat-item", "cid", toggleConvSel, (id,el)=>{
-      openChat(id, el.dataset.cname||"Chat");
-    }, ()=>_selConvs.size>0);
-    updateConvSelBar();
-  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
-// ---- Conversation multi-select + delete whole chat (like WhatsApp) ----
-let _convs=[], _selConvs=new Set();
-function toggleConvSel(id){
-  if(_selConvs.has(id))_selConvs.delete(id); else _selConvs.add(id);
-  document.querySelectorAll("#msg-list .chat-item").forEach(el=>el.classList.toggle("sel",_selConvs.has(parseInt(el.dataset.cid))));
-  updateConvSelBar();
+function toggleConvSelectMode(){
+  _convSelectMode=!_convSelectMode; _selConvs.clear();
+  document.getElementById("conv-select-btn").style.color=_convSelectMode?"var(--yellow-d)":"";
+  renderConvList(); updateConvSelBar();
+}
+function convItemClick(id,name){
+  if(_convSelectMode){ if(_selConvs.has(id))_selConvs.delete(id); else _selConvs.add(id); renderConvList(); updateConvSelBar(); }
+  else { openChat(id,name); }
 }
 function updateConvSelBar(){
   let bar=document.getElementById("conv-selbar");
-  if(!_selConvs.size){ if(bar) bar.remove(); return; }
+  if(!_convSelectMode){ if(bar) bar.remove(); return; }
   if(!bar){ bar=document.createElement("div"); bar.id="conv-selbar"; document.getElementById("s-messages").appendChild(bar);
     bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;display:flex;gap:10px;align-items:center;z-index:60;box-shadow:0 -4px 16px rgba(0,0,0,.08);"; }
-  bar.innerHTML=`<div style="flex:1;font-weight:700;">${_selConvs.size} chat${_selConvs.size>1?'s':''} selected</div>
-    <button onclick="deleteSelConvs()" style="background:#FDEBEC;color:#D6455D;border:none;border-radius:9px;padding:9px 16px;font-weight:700;">Delete chat</button>
-    <button onclick="clearConvSel()" style="background:none;border:none;color:#64748B;">Cancel</button>`;
+  bar.innerHTML=`<div style="flex:1;font-weight:700;">${_selConvs.size} selected</div>
+    <button onclick="deleteSelConvs()" ${_selConvs.size?'':'disabled'} style="background:${_selConvs.size?'#FDEBEC':'#F1F5F9'};color:${_selConvs.size?'#D6455D':'#94A3B8'};border:none;border-radius:9px;padding:9px 16px;font-weight:700;">Delete chat</button>
+    <button onclick="toggleConvSelectMode()" style="background:none;border:none;color:#64748B;">Cancel</button>`;
 }
-function clearConvSel(){ _selConvs.clear(); document.querySelectorAll("#msg-list .chat-item.sel").forEach(el=>el.classList.remove("sel")); updateConvSelBar(); }
 async function deleteSelConvs(){
   const ids=[..._selConvs]; if(!ids.length) return;
   if(!confirm(`Delete ${ids.length} chat${ids.length>1?'s':''}? This clears the conversation for you.`)) return;
   try{ for(const id of ids){ await api("/chat/"+id+"/delete",{method:"POST"}); }
-    _selConvs.clear(); loadConversations();
+    _selConvs.clear(); _convSelectMode=false; document.getElementById("conv-select-btn").style.color=""; loadConversations();
   }catch(e){ toast(e.message); }
 }
 
@@ -1477,27 +1495,31 @@ function viewChatPhoto(){
   document.getElementById("photo-viewer").style.display="flex";
 }
 function closePhotoViewer(){ document.getElementById("photo-viewer").style.display="none"; }
+let _msgSelectMode=false;
 function paintChat(otherPh){
   let html=`<div class="date-sep"><div class="line"></div><div class="dt">Today</div><div class="line"></div></div>`;
   html+=_chatMsgs.map(m=>{
     const avatar = m.mine ? "" :
       `<img class="msg-av" src="${esc(otherPh||'/assets/avt/avt-4.jpg')}" onerror="this.src='/assets/avt/avt-4.jpg'">`;
     const sel=_selMsgs.has(m.id);
+    const cb=_msgSelectMode?`<div class="selbox ${sel?'on':''}" style="margin:0 8px 0 0;align-self:center;">${sel?'✓':''}</div>`:'';
     const body = m.deleted ? `<i style="opacity:.6;">${esc(m.body)}</i>` : esc(m.body);
-    return `<div class="mrow ${m.mine?'sent':'recv'} ${sel?'sel':''}" data-mid="${m.id}">
-      ${avatar}<div class="bubble">${body}<div class="tt">${fmtTime(m.time)}${m.mine&&!m.deleted?`<span class="tick ${m.read?'read':''}">${svg("check-done")}</span>`:''}</div></div></div>`;
+    return `<div class="mrow ${m.mine?'sent':'recv'} ${sel?'sel':''}" data-mid="${m.id}" onclick="msgRowClick(${m.id})">
+      ${cb}${avatar}<div class="bubble">${body}<div class="tt">${fmtTime(m.time)}${m.mine&&!m.deleted?`<span class="tick ${m.read?'read':''}">${svg("check-done")}</span>`:''}</div></div></div>`;
   }).join("");
   const sc=document.getElementById("chat-scroll"); sc.innerHTML=html;
   if(!_selMsgs.size) sc.scrollTop=sc.scrollHeight;
-  bindLongPress(sc, ".mrow", "mid", toggleMsgSel, null, ()=>_selMsgs.size>0);
   updateChatSelBar();
 }
-function toggleMsgSel(id){ if(_selMsgs.has(id))_selMsgs.delete(id); else _selMsgs.add(id); paintChatSelOnly(); }
-function paintChatSelOnly(){
-  document.querySelectorAll("#chat-scroll .mrow").forEach(el=>{
-    el.classList.toggle("sel", _selMsgs.has(parseInt(el.dataset.mid)));
-  });
-  updateChatSelBar();
+function toggleMsgSelectMode(){
+  _msgSelectMode=!_msgSelectMode; _selMsgs.clear();
+  document.getElementById("msg-select-btn").style.color=_msgSelectMode?"var(--yellow-d)":"";
+  paintChat(_chatOtherPhoto||"/assets/avt/avt-4.jpg"); updateChatSelBar();
+}
+function msgRowClick(id){
+  if(!_msgSelectMode) return;   // outside select mode, tapping a message does nothing
+  if(_selMsgs.has(id))_selMsgs.delete(id); else _selMsgs.add(id);
+  paintChat(_chatOtherPhoto||"/assets/avt/avt-4.jpg"); updateChatSelBar();
 }
 
 /* Robust long-press + tap binding for a list of items.
@@ -1530,22 +1552,22 @@ function bindLongPress(container, itemSel, dataKey, onSelect, onTap, inSelectMod
 }
 function updateChatSelBar(){
   let bar=document.getElementById("chat-selbar");
-  if(!_selMsgs.size){ if(bar) bar.remove(); return; }
+  if(!_msgSelectMode){ if(bar) bar.remove(); return; }
   // do all selected belong to me? (delete-for-everyone only allowed on own msgs)
-  const allMine=[..._selMsgs].every(id=>{ const m=_chatMsgs.find(x=>x.id===id); return m&&m.mine&&!m.deleted; });
+  const allMine=_selMsgs.size>0 && [..._selMsgs].every(id=>{ const m=_chatMsgs.find(x=>x.id===id); return m&&m.mine&&!m.deleted; });
   if(!bar){ bar=document.createElement("div"); bar.id="chat-selbar"; document.getElementById("s-chat").appendChild(bar);
-    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;display:flex;gap:10px;align-items:center;z-index:60;box-shadow:0 -4px 16px rgba(0,0,0,.08);"; }
-  bar.innerHTML=`<div style="flex:1;font-weight:700;">${_selMsgs.size} selected</div>
-    <button onclick="deleteChatSel('me')" style="background:#F1F5F9;border:none;border-radius:9px;padding:9px 14px;font-weight:700;">Delete for me</button>
+    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;display:flex;gap:8px;align-items:center;z-index:60;box-shadow:0 -4px 16px rgba(0,0,0,.08);flex-wrap:wrap;"; }
+  const dis=_selMsgs.size?'':'disabled', op=_selMsgs.size?'':'opacity:.5;';
+  bar.innerHTML=`<div style="flex:1;font-weight:700;min-width:80px;">${_selMsgs.size} selected</div>
+    <button ${dis} onclick="deleteChatSel('me')" style="background:#F1F5F9;border:none;border-radius:9px;padding:9px 14px;font-weight:700;${op}">Delete for me</button>
     ${allMine?`<button onclick="deleteChatSel('everyone')" style="background:#FDEBEC;color:#D6455D;border:none;border-radius:9px;padding:9px 14px;font-weight:700;">Delete for everyone</button>`:''}
-    <button onclick="clearChatSel()" style="background:none;border:none;color:#64748B;">Cancel</button>`;
+    <button onclick="toggleMsgSelectMode()" style="background:none;border:none;color:#64748B;">Cancel</button>`;
 }
-function clearChatSel(){ _selMsgs.clear(); paintChatSelOnly(); }
 async function deleteChatSel(scope){
   const ids=[..._selMsgs]; if(!ids.length) return;
   if(scope==="everyone" && !confirm("Delete for everyone? This can't be undone.")) return;
   try{ await api("/chat/"+curConv+"/delete-messages",{method:"POST",body:{message_ids:ids,scope}});
-    _selMsgs.clear(); await renderChat();
+    _selMsgs.clear(); _msgSelectMode=false; document.getElementById("msg-select-btn").style.color=""; await renderChat();
   }catch(e){ toast(e.message); }
 }
 async function sendChat(){
@@ -1761,36 +1783,54 @@ async function submitContact(){
 }
 
 /* ============ NOTIFICATIONS ============ */
+let _notifSelectMode=false, _notifQuery="";
 async function loadNotifications(){
   const box=document.getElementById("notif-list"); box.innerHTML=`<div class="loading">Loading…</div>`;
-  try{ const d=await api("/notifications"); const list=d.notifications||[];
-    if(!list.length){ box.innerHTML=`<div class="empty"><div class="ei">${svg("bell")}</div><div>No notifications</div></div>`; return; }
-    _notifs=list; _selNotifs.clear();
-    box.innerHTML=list.map(n=>{ const letter=(n.company||n.title||'J').charAt(0).toUpperCase();
-      return `<div class="noti-item ${n.is_read?'':'unread'}" data-nid="${n.id}">
-        <div class="nl" style="background:#2869FE;">${esc(letter)}</div>
-        <div class="nc"><div class="trow"><div class="jt">${esc(n.title||'')}</div><div class="cdot"></div><div class="cmp">${esc(n.company||'JobifyPL')}</div></div>
-          <div class="nm">${esc(n.body||'')}</div><div class="ntime">${esc(fmtTime(n.created_at)||'')}</div></div>
-        <div class="noti-dots" data-nodot="1" style="color:var(--slate);" data-ic="dots"></div></div>`;
-    }).join("");
-    // robust long-press (select) + tap (open) binding
-    bindLongPress(box, ".noti-item", "nid", toggleNotifSel, (id,el)=>{
-      const n=_notifs.find(x=>x.id===id); if(!n) return;
-      tapNotif(id, n.job_id!=null?n.job_id:null, el, n.title||"");
-    }, ()=>_selNotifs.size>0);
-    // 3-dot delete (separate click, stop it bubbling to the row)
-    box.querySelectorAll("[data-nodot]").forEach(dot=>{
-      dot.addEventListener("click",e=>{ e.stopPropagation(); const row=dot.closest(".noti-item"); notifMenu(parseInt(row.dataset.nid)); });
-    });
-    updateNotifSelBar();
-    paintIcons(box);
+  try{ const d=await api("/notifications"); _notifs=d.notifications||[]; _selNotifs.clear();
+    renderNotifList();
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
+function renderNotifList(){
+  const box=document.getElementById("notif-list");
+  let list=_notifs;
+  if(_notifQuery){ const q=_notifQuery.toLowerCase();
+    list=_notifs.filter(n=>((n.title||'')+' '+(n.body||'')+' '+(n.company||'')).toLowerCase().includes(q)); }
+  if(!list.length){ box.innerHTML=`<div class="empty"><div class="ei">${svg("bell")}</div><div>${_notifQuery?'No matches':'No notifications'}</div></div>`; updateNotifSelBar(); return; }
+  box.innerHTML=list.map(n=>{ const letter=(n.company||n.title||'J').charAt(0).toUpperCase();
+    const checked=_selNotifs.has(n.id);
+    const cb=_notifSelectMode?`<div class="selbox ${checked?'on':''}">${checked?'✓':''}</div>`:'';
+    return `<div class="noti-item ${n.is_read?'':'unread'} ${checked?'sel':''}" data-nid="${n.id}" onclick="notifItemClick(${n.id})">
+      ${cb}
+      <div class="nl" style="background:#2869FE;">${esc(letter)}</div>
+      <div class="nc"><div class="trow"><div class="jt">${esc(n.title||'')}</div><div class="cdot"></div><div class="cmp">${esc(n.company||'JobifyPL')}</div></div>
+        <div class="nm">${esc(n.body||'')}</div><div class="ntime">${esc(fmtTime(n.created_at)||'')}</div></div>
+      ${_notifSelectMode?'':`<div class="noti-dots" data-nodot="${n.id}" style="color:var(--slate);" data-ic="dots"></div>`}</div>`;
+  }).join("");
+  box.querySelectorAll("[data-nodot]").forEach(dot=>{
+    dot.addEventListener("click",e=>{ e.stopPropagation(); notifMenu(parseInt(dot.dataset.nodot)); });
+  });
+  updateNotifSelBar();
+  paintIcons(box);
+}
+function notifItemClick(id){
+  if(_notifSelectMode){ if(_selNotifs.has(id))_selNotifs.delete(id); else _selNotifs.add(id); renderNotifList(); return; }
+  const n=_notifs.find(x=>x.id===id); if(!n) return;
+  tapNotif(id, n.job_id!=null?n.job_id:null, null, n.title||"");
+}
+function toggleNotifSelectMode(){
+  _notifSelectMode=!_notifSelectMode; _selNotifs.clear();
+  document.getElementById("notif-select-btn").style.color=_notifSelectMode?"var(--yellow-d)":"";
+  renderNotifList();
+}
+function toggleNotifSearch(){
+  const w=document.getElementById("notif-search-wrap");
+  const show=w.style.display==="none"; w.style.display=show?"block":"none";
+  if(show){ document.getElementById("notif-search").focus(); } else { _notifQuery=""; document.getElementById("notif-search").value=""; renderNotifList(); }
+}
+function filterNotifs(q){ _notifQuery=q||""; renderNotifList(); }
 // Tapping a notification: mark it read, then (if it carries a job_id) open Job Details
 // so the candidate can Apply straight from there. No job_id → just marks read (keeps 3-dot behavior).
 async function tapNotif(id,jobId,el,title){
-  // If we're in notification select mode, tap toggles selection instead.
-  if(_selNotifs.size){ toggleNotifSel(id); return; }
   readNotif(id,el);
   const t=(title||"").toLowerCase();
   // Route to the RIGHT place based on the notification type.
@@ -1819,32 +1859,23 @@ async function deleteNotif(id){
   catch(e){ toast(e.message); }
 }
 
-// ---- Notification multi-select (long-press to select one/many, delete from bottom bar) ----
-let _notifs=[], _selNotifs=new Set(), _notifLp=null;
-function notifTouchStart(id){ _notifLp=setTimeout(()=>{ toggleNotifSel(id); if(navigator.vibrate)navigator.vibrate(30); },450); }
-function notifTouchEnd(){ if(_notifLp){ clearTimeout(_notifLp); _notifLp=null; } }
-function toggleNotifSel(id){
-  if(_selNotifs.has(id))_selNotifs.delete(id); else _selNotifs.add(id);
-  document.querySelectorAll("#notif-list .noti-item").forEach(el=>{
-    el.classList.toggle("sel", _selNotifs.has(parseInt(el.dataset.nid)));
-  });
-  updateNotifSelBar();
-}
+// ---- Notification select mode (checkbox) + delete ----
+let _notifs=[], _selNotifs=new Set();
 function updateNotifSelBar(){
   let bar=document.getElementById("notif-selbar");
-  if(!_selNotifs.size){ if(bar) bar.remove(); return; }
+  if(!_notifSelectMode){ if(bar) bar.remove(); return; }
   if(!bar){ bar=document.createElement("div"); bar.id="notif-selbar"; document.getElementById("s-notif").appendChild(bar);
     bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;display:flex;gap:10px;align-items:center;z-index:60;box-shadow:0 -4px 16px rgba(0,0,0,.08);"; }
+  const dis=_selNotifs.size?'':'disabled', op=_selNotifs.size?'':'opacity:.5;';
   bar.innerHTML=`<div style="flex:1;font-weight:700;">${_selNotifs.size} selected</div>
-    <button onclick="deleteSelNotifs()" style="background:#FDEBEC;color:#D6455D;border:none;border-radius:9px;padding:9px 16px;font-weight:700;">Delete</button>
-    <button onclick="clearNotifSel()" style="background:none;border:none;color:#64748B;">Cancel</button>`;
+    <button ${dis} onclick="deleteSelNotifs()" style="background:#FDEBEC;color:#D6455D;border:none;border-radius:9px;padding:9px 16px;font-weight:700;${op}">Delete</button>
+    <button onclick="toggleNotifSelectMode()" style="background:none;border:none;color:#64748B;">Cancel</button>`;
 }
-function clearNotifSel(){ _selNotifs.clear(); document.querySelectorAll("#notif-list .noti-item.sel").forEach(el=>el.classList.remove("sel")); updateNotifSelBar(); }
 async function deleteSelNotifs(){
   const ids=[..._selNotifs]; if(!ids.length) return;
   if(!confirm(`Delete ${ids.length} notification${ids.length>1?'s':''}?`)) return;
   try{ for(const id of ids){ await api("/notifications/"+id,{method:"DELETE"}); }
-    _selNotifs.clear(); loadNotifications();
+    _selNotifs.clear(); _notifSelectMode=false; document.getElementById("notif-select-btn").style.color=""; loadNotifications();
   }catch(e){ toast(e.message); }
 }
 

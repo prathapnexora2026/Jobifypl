@@ -100,16 +100,62 @@ def messages(conversation_id: int, user: User = Depends(get_current_user), db: S
     rows = db.query(Message).filter(Message.conversation_id == conversation_id)\
         .order_by(Message.created_at).all()
     other = db.query(User).filter(User.id == other_party_id(c, user.id)).first()
+
+    def _visible(m):
+        # Hidden entirely if THIS user deleted it just for themselves.
+        deleted_for = (m.deleted_for or "")
+        mine_deleted = str(user.id) in [x for x in deleted_for.split(",") if x]
+        return not mine_deleted
+
+    out = []
+    for m in rows:
+        if not _visible(m):
+            continue
+        if getattr(m, "deleted_for_all", False):
+            out.append({"id": m.id, "body": "This message was deleted", "mine": m.sender_id == user.id,
+                        "deleted": True, "read": bool(m.is_read),
+                        "time": m.created_at.isoformat() if m.created_at else ""})
+        else:
+            out.append({"id": m.id, "body": m.body, "mine": m.sender_id == user.id,
+                        "deleted": False, "read": bool(m.is_read),
+                        "time": m.created_at.isoformat() if m.created_at else ""})
     return {
         "status": "success",
         "other_name": display_name(other),
         "other_photo": display_photo(other),
-        "messages": [
-            {"id": m.id, "body": m.body, "mine": m.sender_id == user.id,
-             "read": bool(m.is_read),  # for my sent messages: has the other person read it?
-             "time": m.created_at.isoformat() if m.created_at else ""} for m in rows
-        ],
+        "messages": out,
     }
+
+
+class DeleteMsgIn(BaseModel):
+    message_ids: list[int]
+    scope: str = "me"   # "me" or "everyone"
+
+
+@chat_router.post("/{conversation_id}/delete-messages")
+def delete_messages(conversation_id: int, body: DeleteMsgIn,
+                    user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete messages. scope='me' hides them for the caller only (any message);
+    scope='everyone' marks them deleted for both — allowed ONLY on the caller's
+    own sent messages (like WhatsApp)."""
+    c = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    if not c or user.id not in (c.candidate_id, c.recruiter_id):
+        raise HTTPException(404, "Conversation not found")
+    msgs = db.query(Message).filter(
+        Message.conversation_id == conversation_id,
+        Message.id.in_(body.message_ids or [])).all()
+    for m in msgs:
+        if body.scope == "everyone":
+            # only your own messages can be deleted for everyone
+            if m.sender_id == user.id:
+                m.deleted_for_all = True
+        else:  # "me"
+            ids = [x for x in (m.deleted_for or "").split(",") if x]
+            if str(user.id) not in ids:
+                ids.append(str(user.id))
+            m.deleted_for = ",".join(ids)
+    db.commit()
+    return {"status": "success"}
 
 
 class StartChatIn(BaseModel):

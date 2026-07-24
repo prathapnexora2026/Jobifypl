@@ -313,6 +313,8 @@
   .bubble .tick svg{width:15px;height:15px;stroke:#8a8f98;} .bubble .tick.read svg{stroke:#2563EB;}
   .mrow.sent .bubble{background:var(--yellow);color:#000;border-bottom-right-radius:4px;}
   .mrow.recv .bubble{background:#fff;color:var(--ink);border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+  .mrow{-webkit-user-select:none;user-select:none;} .mrow.sel{background:rgba(37,99,235,.12);border-radius:12px;}
+  #s-chat #chat-scroll{padding-bottom:76px;}
   .chat-input{display:flex;align-items:center;gap:10px;background:#fff;padding:12px 16px;border-top:1px solid #F1F5F9;}
   .chat-input input{flex:1;background:#F1F5F9;border:none;border-radius:24px;padding:12px 16px;font-size:15px;outline:none;color:var(--ink);}
   .chat-input .send{width:44px;height:44px;border-radius:50%;background:var(--yellow);border:none;display:grid;place-items:center;cursor:pointer;color:#fff;flex-shrink:0;}
@@ -370,6 +372,8 @@
   .noti-item .nc{flex:1;min-width:0;} .noti-item .trow{display:flex;align-items:center;gap:8px;margin-bottom:6px;} .noti-item .jt{font-size:16px;font-weight:600;color:#121927;} .noti-item .cdot{width:4px;height:4px;border-radius:50%;background:var(--slate);} .noti-item .cmp{font-size:14px;color:var(--muted);}
   .noti-item .nm{font-size:14px;color:var(--muted);line-height:1.4;margin-bottom:8px;} .noti-item .ntime{font-size:13px;color:var(--slate);}
   .noti-item.unread{background:#FFFBEB;border:1px solid var(--yellow);}
+  .noti-item{-webkit-user-select:none;user-select:none;} .noti-item.sel{background:rgba(37,99,235,.12);border:1px solid #2563EB;}
+  #s-notif #notif-list{padding-bottom:76px;}
 </style>
 </head>
 <body>
@@ -531,7 +535,7 @@
 
   <!-- MESSAGES LIST -->
   <div class="screen hasnav" id="s-messages">
-    <div class="topbar center"><button class="back" onclick="go('s-home')" data-ic="back"></button><h1>Messages</h1><div class="r" style="display:flex;gap:8px;"><div class="ic" onclick="openSupportChat()" data-ic="headset"></div><div class="ic" onclick="openSidebar()" data-ic="menu"></div></div></div>
+    <div class="topbar center"><button class="back" onclick="go('s-home')" data-ic="back"></button><h1>Messages</h1><div class="r"><div class="ic" onclick="openSidebar()" data-ic="menu"></div></div></div>
     <div id="msg-list"><div class="loading">Loading conversations…</div></div>
   </div>
 
@@ -1024,11 +1028,8 @@ async function renderMyDocs(){
       const label=DOC_TYPE_LABELS[x.doc_type]||x.original_name||x.doc_type||"Document";
       const isImg=/\.(png|jpe?g|gif|webp|bmp)$/i.test(x.file_path||"");
       const isPdf=/\.pdf$/i.test(x.file_path||"");
-      const url=fileUrl(x.file_path);
-      // Images preview inside the app; PDFs/others open via a real link (reliable in WebView).
-      const viewBtn = isImg
-        ? `<button onclick="viewDoc('${esc(x.file_path)}','${esc(label)}')">View</button>`
-        : `<a class="mydoc-viewbtn" href="${esc(url)}" target="_blank" rel="noopener">View</a>`;
+      // Images preview inside the app; PDFs/others open in the device browser.
+      const viewBtn = `<button onclick="viewDoc('${esc(x.file_path)}','${esc(label)}')">View</button>`;
       return `<div class="mydoc-card">
         <div class="mydoc-top">
           <div class="mydoc-ic">${isPdf?"📄":(isImg?"🖼️":"📎")}</div>
@@ -1045,19 +1046,28 @@ async function renderMyDocs(){
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
 
-/* Open a document. Images preview inline (works in WebView); PDFs/other open
-   in the device browser — the same reliable approach the admin panel uses
-   (iframe PDFs render blank inside the Android WebView). */
+/* Absolute URL to an uploaded file. In the Capacitor app the page origin is
+   jobifypl.pl, but relative /uploads links can misbehave in the WebView — so we
+   force the full https origin for documents. */
+function absDocUrl(path){
+  let u=fileUrl(path);
+  if(u && u.startsWith("/")) u="https://jobifypl.pl"+u;
+  return u;
+}
+/* Open a document. Images preview inline; PDFs/others open in the device
+   browser via a system-browser open (reliable in the Android WebView). */
 function openDocExternal(url){
   try{
     if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Browser){
       window.Capacitor.Plugins.Browser.open({url}); return;
     }
   }catch(e){}
-  window.open(url,"_blank","noopener");
+  // Fallback: try a new window, then same-window navigation.
+  const w=window.open(url,"_blank");
+  if(!w){ window.location.href=url; }
 }
 function viewDoc(path, title){
-  const url=fileUrl(path);
+  const url=absDocUrl(path);
   const isImg=/\.(png|jpe?g|gif|webp|bmp)$/i.test(path||"");
   if(isImg){
     // Image: preview inside the app.
@@ -1402,6 +1412,7 @@ async function openChat(convId,name){
   await renderChat();
 }
 function chatBack(){ go(chatBackScreen||"s-messages"); }
+let _chatMsgs=[], _selMsgs=new Set();
 async function renderChat(){
   try{ const d=await api("/chat/"+curConv+"/messages");
     if(d.other_name) document.getElementById("chat-name").textContent=d.other_name;
@@ -1409,16 +1420,57 @@ async function renderChat(){
     const otherPh=avatarSrc(d.other_photo)||"/assets/avt/avt-4.jpg";   // the other person's photo (recruiter/admin)
     cav.src = otherPh;
     cav.onerror=function(){ this.src="/assets/avt/avt-4.jpg"; };
-    const msgs=d.messages||[];
-    let html=`<div class="date-sep"><div class="line"></div><div class="dt">Today</div><div class="line"></div></div>`;
-    // Received messages show the sender's (other person's) photo next to the bubble.
-    html+=msgs.map(m=>{
-      const avatar = m.mine ? "" :
-        `<img class="msg-av" src="${esc(otherPh)}" onerror="this.src='/assets/avt/avt-4.jpg'">`;
-      return `<div class="mrow ${m.mine?'sent':'recv'}">${avatar}<div class="bubble">${esc(m.body)}<div class="tt">${fmtTime(m.time)}${m.mine?`<span class="tick ${m.read?'read':''}">${svg("check-done")}</span>`:''}</div></div></div>`;
-    }).join("");
-    const sc=document.getElementById("chat-scroll"); sc.innerHTML=html; sc.scrollTop=sc.scrollHeight;
+    _chatMsgs=d.messages||[]; _selMsgs.clear();
+    paintChat(otherPh);
   }catch(e){ document.getElementById("chat-scroll").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+function paintChat(otherPh){
+  let html=`<div class="date-sep"><div class="line"></div><div class="dt">Today</div><div class="line"></div></div>`;
+  html+=_chatMsgs.map(m=>{
+    const avatar = m.mine ? "" :
+      `<img class="msg-av" src="${esc(otherPh||'/assets/avt/avt-4.jpg')}" onerror="this.src='/assets/avt/avt-4.jpg'">`;
+    const sel=_selMsgs.has(m.id);
+    const body = m.deleted ? `<i style="opacity:.6;">${esc(m.body)}</i>` : esc(m.body);
+    // long-press (touch) or right-click (desktop) selects; tap toggles when in select mode
+    return `<div class="mrow ${m.mine?'sent':'recv'} ${sel?'sel':''}" data-mid="${m.id}"
+        oncontextmenu="event.preventDefault();toggleMsgSel(${m.id})"
+        ontouchstart="msgTouchStart(${m.id})" ontouchend="msgTouchEnd()"
+        onclick="if(_selMsgs.size)toggleMsgSel(${m.id})">
+      ${avatar}<div class="bubble">${body}<div class="tt">${fmtTime(m.time)}${m.mine&&!m.deleted?`<span class="tick ${m.read?'read':''}">${svg("check-done")}</span>`:''}</div></div></div>`;
+  }).join("");
+  const sc=document.getElementById("chat-scroll"); sc.innerHTML=html;
+  if(!_selMsgs.size) sc.scrollTop=sc.scrollHeight;
+  updateChatSelBar();
+}
+let _lpTimer=null;
+function msgTouchStart(id){ _lpTimer=setTimeout(()=>{ toggleMsgSel(id); if(navigator.vibrate)navigator.vibrate(30); },450); }
+function msgTouchEnd(){ if(_lpTimer){ clearTimeout(_lpTimer); _lpTimer=null; } }
+function toggleMsgSel(id){ if(_selMsgs.has(id))_selMsgs.delete(id); else _selMsgs.add(id); paintChatSelOnly(); }
+function paintChatSelOnly(){
+  document.querySelectorAll("#chat-scroll .mrow").forEach(el=>{
+    el.classList.toggle("sel", _selMsgs.has(parseInt(el.dataset.mid)));
+  });
+  updateChatSelBar();
+}
+function updateChatSelBar(){
+  let bar=document.getElementById("chat-selbar");
+  if(!_selMsgs.size){ if(bar) bar.remove(); return; }
+  // do all selected belong to me? (delete-for-everyone only allowed on own msgs)
+  const allMine=[..._selMsgs].every(id=>{ const m=_chatMsgs.find(x=>x.id===id); return m&&m.mine&&!m.deleted; });
+  if(!bar){ bar=document.createElement("div"); bar.id="chat-selbar"; document.getElementById("s-chat").appendChild(bar);
+    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;display:flex;gap:10px;align-items:center;z-index:60;box-shadow:0 -4px 16px rgba(0,0,0,.08);"; }
+  bar.innerHTML=`<div style="flex:1;font-weight:700;">${_selMsgs.size} selected</div>
+    <button onclick="deleteChatSel('me')" style="background:#F1F5F9;border:none;border-radius:9px;padding:9px 14px;font-weight:700;">Delete for me</button>
+    ${allMine?`<button onclick="deleteChatSel('everyone')" style="background:#FDEBEC;color:#D6455D;border:none;border-radius:9px;padding:9px 14px;font-weight:700;">Delete for everyone</button>`:''}
+    <button onclick="clearChatSel()" style="background:none;border:none;color:#64748B;">Cancel</button>`;
+}
+function clearChatSel(){ _selMsgs.clear(); paintChatSelOnly(); }
+async function deleteChatSel(scope){
+  const ids=[..._selMsgs]; if(!ids.length) return;
+  if(scope==="everyone" && !confirm("Delete for everyone? This can't be undone.")) return;
+  try{ await api("/chat/"+curConv+"/delete-messages",{method:"POST",body:{message_ids:ids,scope}});
+    _selMsgs.clear(); await renderChat();
+  }catch(e){ toast(e.message); }
 }
 async function sendChat(){
   const inp=document.getElementById("chat-text"); const body=inp.value.trim(); if(!body||!curConv)return;
@@ -1637,25 +1689,39 @@ async function loadNotifications(){
   const box=document.getElementById("notif-list"); box.innerHTML=`<div class="loading">Loading…</div>`;
   try{ const d=await api("/notifications"); const list=d.notifications||[];
     if(!list.length){ box.innerHTML=`<div class="empty"><div class="ei">${svg("bell")}</div><div>No notifications</div></div>`; return; }
+    _notifs=list; _selNotifs.clear();
     box.innerHTML=list.map(n=>{ const letter=(n.company||n.title||'J').charAt(0).toUpperCase();
       const jid=(n.job_id!=null)?n.job_id:'null';
-      return `<div class="noti-item ${n.is_read?'':'unread'}" onclick="tapNotif(${n.id},${jid},this)">
+      const t=(n.title||'').replace(/'/g,"\\'");
+      return `<div class="noti-item ${n.is_read?'':'unread'}" data-nid="${n.id}"
+          oncontextmenu="event.preventDefault();toggleNotifSel(${n.id})"
+          ontouchstart="notifTouchStart(${n.id})" ontouchend="notifTouchEnd()"
+          onclick="tapNotif(${n.id},${jid},this,'${t}')">
         <div class="nl" style="background:#2869FE;">${esc(letter)}</div>
         <div class="nc"><div class="trow"><div class="jt">${esc(n.title||'')}</div><div class="cdot"></div><div class="cmp">${esc(n.company||'JobifyPL')}</div></div>
           <div class="nm">${esc(n.body||'')}</div><div class="ntime">${esc(fmtTime(n.created_at)||'')}</div></div>
         <div class="noti-dots" style="color:var(--slate);" data-ic="dots" onclick="event.stopPropagation();notifMenu(${n.id},this)"></div></div>`;
     }).join("");
+    updateNotifSelBar();
     paintIcons(box);
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
 // Tapping a notification: mark it read, then (if it carries a job_id) open Job Details
 // so the candidate can Apply straight from there. No job_id → just marks read (keeps 3-dot behavior).
-async function tapNotif(id,jobId,el){
+async function tapNotif(id,jobId,el,title){
+  // If we're in notification select mode, tap toggles selection instead.
+  if(_selNotifs.size){ toggleNotifSel(id); return; }
   readNotif(id,el);
+  const t=(title||"").toLowerCase();
+  // Route to the RIGHT place based on the notification type.
+  if(/wallet|topped up|credited/.test(t)){ go("s-wallet"); return; }
+  if(/plan activated|plan/.test(t)){ go("s-plans"); return; }
+  if(/contacted you|message/.test(t)){ go("s-messages"); return; }
+  if(/application update|application/.test(t)){ go("s-apps"); return; }
+  // Job-related (new job posted etc.) → open the job details.
   if(jobId==null) return;
   try{ const d=await api("/jobs/"+jobId);           // increments the job's view count
     const j=d.job||d; if(!j||!j.id){ toast("Job not found"); return; }
-    // keep local caches in sync so Apply / applied-state works from details
     if(!allJobs.find(x=>x.id===j.id)) allJobs.push(j);
     if(j.applied) appliedIds.add(j.id);
     jdBack="s-notif"; jdShow(j);
@@ -1664,13 +1730,42 @@ async function tapNotif(id,jobId,el){
 async function readNotif(id,el){ try{ await api("/notifications/"+id+"/read",{method:"POST"}); if(el)el.classList.remove("unread");
   const unread=[...document.querySelectorAll("#notif-list .noti-item.unread")].length>0; document.getElementById("notif-badge").style.display=unread?"block":"none"; }catch(e){} }
 
-// 3-dot menu on a notification → delete.
+// 3-dot menu on a notification → delete just that one.
 function notifMenu(id, dotsEl){
   if(confirm("Delete this notification?")) deleteNotif(id);
 }
 async function deleteNotif(id){
   try{ await api("/notifications/"+id,{method:"DELETE"}); loadNotifications(); }
   catch(e){ toast(e.message); }
+}
+
+// ---- Notification multi-select (long-press to select one/many, delete from bottom bar) ----
+let _notifs=[], _selNotifs=new Set(), _notifLp=null;
+function notifTouchStart(id){ _notifLp=setTimeout(()=>{ toggleNotifSel(id); if(navigator.vibrate)navigator.vibrate(30); },450); }
+function notifTouchEnd(){ if(_notifLp){ clearTimeout(_notifLp); _notifLp=null; } }
+function toggleNotifSel(id){
+  if(_selNotifs.has(id))_selNotifs.delete(id); else _selNotifs.add(id);
+  document.querySelectorAll("#notif-list .noti-item").forEach(el=>{
+    el.classList.toggle("sel", _selNotifs.has(parseInt(el.dataset.nid)));
+  });
+  updateNotifSelBar();
+}
+function updateNotifSelBar(){
+  let bar=document.getElementById("notif-selbar");
+  if(!_selNotifs.size){ if(bar) bar.remove(); return; }
+  if(!bar){ bar=document.createElement("div"); bar.id="notif-selbar"; document.getElementById("s-notif").appendChild(bar);
+    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;display:flex;gap:10px;align-items:center;z-index:60;box-shadow:0 -4px 16px rgba(0,0,0,.08);"; }
+  bar.innerHTML=`<div style="flex:1;font-weight:700;">${_selNotifs.size} selected</div>
+    <button onclick="deleteSelNotifs()" style="background:#FDEBEC;color:#D6455D;border:none;border-radius:9px;padding:9px 16px;font-weight:700;">Delete</button>
+    <button onclick="clearNotifSel()" style="background:none;border:none;color:#64748B;">Cancel</button>`;
+}
+function clearNotifSel(){ _selNotifs.clear(); document.querySelectorAll("#notif-list .noti-item.sel").forEach(el=>el.classList.remove("sel")); updateNotifSelBar(); }
+async function deleteSelNotifs(){
+  const ids=[..._selNotifs]; if(!ids.length) return;
+  if(!confirm(`Delete ${ids.length} notification${ids.length>1?'s':''}?`)) return;
+  try{ for(const id of ids){ await api("/notifications/"+id,{method:"DELETE"}); }
+    _selNotifs.clear(); loadNotifications();
+  }catch(e){ toast(e.message); }
 }
 
 /* ============ POPUPS ============ */

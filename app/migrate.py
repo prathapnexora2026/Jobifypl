@@ -36,5 +36,8 @@ def run_migrations():
             _add_column(conn, "wallet_transactions", "ref", "VARCHAR(40)")
             _add_column(conn, "wallet_transactions", "method", "VARCHAR(20)")
             _add_column(conn, "wallet_transactions", "payu_ref", "VARCHAR(64)")
+            # messages: WhatsApp-style deletion flags
+            _add_column(conn, "messages", "deleted_for_all", "BOOLEAN DEFAULT FALSE")
+            _add_column(conn, "messages", "deleted_for", "TEXT")
     except Exception as e:
         print(f"[migrate] skipped: {e}")

@@ -269,6 +269,11 @@ class Message(Base):
     sender_id = Column(Integer, ForeignKey("users.id"))
     body = Column(Text)
     is_read = Column(Boolean, default=False)
+    # WhatsApp-style deletion:
+    #  deleted_for_all=True → shown as "This message was deleted" to everyone.
+    #  deleted_for → comma-separated user ids who deleted it just for themselves.
+    deleted_for_all = Column(Boolean, default=False)
+    deleted_for = Column(Text, nullable=True)
     created_at = Column(DateTime, default=now)
 
 

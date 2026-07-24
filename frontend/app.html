@@ -296,7 +296,8 @@
   .chat-head .nm{font-size:16px;font-weight:600;color:var(--ink);} .chat-head .st{font-size:12px;color:var(--green);margin-top:2px;}
   .chat-scroll{flex:1;overflow-y:auto;padding:16px;}
   .date-sep{display:flex;align-items:center;margin:6px 0 16px;} .date-sep .line{flex:1;height:1px;background:#E2E8F0;} .date-sep .dt{margin:0 16px;font-size:13px;color:var(--muted);}
-  .mrow{display:flex;margin:6px 0;} .mrow.sent{justify-content:flex-end;} .mrow.recv{justify-content:flex-start;}
+  .mrow{display:flex;margin:6px 0;align-items:flex-end;gap:6px;} .mrow.sent{justify-content:flex-end;} .mrow.recv{justify-content:flex-start;}
+  .msg-av{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:0 0 28px;background:#EDF0F5;}
   .bubble{max-width:78%;padding:10px 16px;border-radius:20px;font-size:15px;line-height:1.35;}
   .bubble .tt{font-size:11px;opacity:.7;margin-top:4px;text-align:right;display:flex;align-items:center;gap:4px;justify-content:flex-end;}
   .bubble .tick svg{width:15px;height:15px;stroke:#8a8f98;} .bubble .tick.read svg{stroke:#2563EB;}
@@ -898,7 +899,7 @@ function openSidebar(){ document.getElementById("sidebar-bg").classList.add("sho
   paintIcons(document.getElementById("sidebar"));
   api("/candidate/profile").then(r=>{ const p=r.profile||{};
     document.getElementById("sb-name").textContent=[p.first_name,p.middle_name,p.last_name].filter(Boolean).join(" ")||"—";
-    if(p.profile_photo) document.getElementById("sb-avatar").src="/uploads/"+p.profile_photo;
+    if(p.profile_photo) document.getElementById("sb-avatar").src=fileUrl(p.profile_photo);
   }).catch(()=>{});
 }
 function closeSidebar(){ document.getElementById("sidebar-bg").classList.remove("show"); document.getElementById("sidebar").classList.remove("show"); }
@@ -974,7 +975,7 @@ async function loadCvIfAny(){
     if(p.qualification){ cvQual=p.qualification; document.getElementById("cv-qual-txt").textContent=p.qualification; document.getElementById("cv-qual").classList.add("filled"); }
     if(p.is_student){ cvStudent=true; document.getElementById("cv-student").classList.add("on"); document.getElementById("cv-student").innerHTML=svg("check"); }
     if(p.languages){ cvLangs=new Set(); p.languages.split(",").map(x=>x.trim()).filter(Boolean).forEach(l=>cvLangs.add(l)); renderLangChips(); }
-    if(p.profile_photo) document.getElementById("cv-photo").innerHTML=`<img src="/uploads/${esc(p.profile_photo)}"><div class="cam" onclick="pickPhoto()">${svg("camera")}</div>`;
+    if(p.profile_photo) document.getElementById("cv-photo").innerHTML=`<img src="${esc(fileUrl(p.profile_photo))}"><div class="cam" onclick="pickPhoto()">${svg("camera")}</div>`;
   }catch(e){}
 }
 async function saveCv(){
@@ -1044,7 +1045,7 @@ let jdBack="s-home";
 async function loadHome(){
   try{ const p=(await api("/candidate/profile")).profile;
     document.getElementById("home-name").textContent=p.first_name||"Job Seeker";
-    if(p.profile_photo) document.getElementById("home-av").innerHTML=`<img src="/uploads/${esc(p.profile_photo)}">`;
+    if(p.profile_photo) document.getElementById("home-av").innerHTML=`<img src="${esc(fileUrl(p.profile_photo))}">`;
   }catch(e){}
   try{ const w=await api("/wallet"); document.getElementById("home-wal").innerHTML=`${svg("wallet-sm")} ${Math.round(w.balance||0)} ${w.currency||'PLN'}`; }catch(e){}
   try{ const n=await api("/notifications"); const unread=(n.notifications||[]).some(x=>!x.is_read); document.getElementById("notif-badge").style.display=unread?"block":"none"; }catch(e){}
@@ -1220,11 +1221,13 @@ async function loadConversations(){
   const box=document.getElementById("msg-list"); box.innerHTML=`<div class="loading">Loading conversations…</div>`;
   try{ const d=await api("/chat/conversations"); const convs=d.conversations||[];
     if(!convs.length){ box.innerHTML=`<div class="empty"><div class="ei">${svg("chat")}</div><div>No conversations yet</div><p style="color:var(--muted);font-weight:400;margin-top:6px;">Start a chat from a job or Contact Us.</p></div>`; return; }
-    box.innerHTML=convs.map(c=>`<div class="chat-item ${c.unread?'unread':''}" onclick="openChat(${c.conversation_id},'${esc((c.name||'Chat').replace(/'/g,''))}')">
-      <div class="avc"><img src="${avatarFor(c.other_id)}"><div class="online"></div></div>
+    box.innerHTML=convs.map(c=>{
+      const ph=avatarSrc(c.photo)||avatarFor(c.other_id);   // real photo, else a stable default
+      return `<div class="chat-item ${c.unread?'unread':''}" onclick="openChat(${c.conversation_id},'${esc((c.name||'Chat').replace(/'/g,''))}')">
+      <div class="avc"><img src="${esc(ph)}" onerror="this.src='${avatarFor(c.other_id)}'"><div class="online"></div></div>
       <div class="cc"><div class="nm">${esc(c.name||'Chat')}</div><div class="lm">${esc(c.last_message||'')}</div></div>
       <div class="rc"><div class="tm">${fmtTime(c.time)}</div>${c.unread?`<div class="ub">${c.unread}</div>`:''}</div>
-    </div>`).join("");
+    </div>`;}).join("");
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
 let curConv=null, chatBackScreen="s-messages";
@@ -1240,11 +1243,18 @@ function chatBack(){ go(chatBackScreen||"s-messages"); }
 async function renderChat(){
   try{ const d=await api("/chat/"+curConv+"/messages");
     if(d.other_name) document.getElementById("chat-name").textContent=d.other_name;
-    const cav=document.getElementById("chat-av"); const ph=avatarSrc(d.other_photo);
-    cav.src = ph || "/assets/avt/avt-4.jpg";   // real recruiter photo if uploaded, else default avatar
+    const cav=document.getElementById("chat-av");
+    const otherPh=avatarSrc(d.other_photo)||"/assets/avt/avt-4.jpg";   // the other person's photo (recruiter/admin)
+    cav.src = otherPh;
+    cav.onerror=function(){ this.src="/assets/avt/avt-4.jpg"; };
     const msgs=d.messages||[];
     let html=`<div class="date-sep"><div class="line"></div><div class="dt">Today</div><div class="line"></div></div>`;
-    html+=msgs.map(m=>`<div class="mrow ${m.mine?'sent':'recv'}"><div class="bubble">${esc(m.body)}<div class="tt">${fmtTime(m.time)}${m.mine?`<span class="tick ${m.read?'read':''}">${svg("check-done")}</span>`:''}</div></div></div>`).join("");
+    // Received messages show the sender's (other person's) photo next to the bubble.
+    html+=msgs.map(m=>{
+      const avatar = m.mine ? "" :
+        `<img class="msg-av" src="${esc(otherPh)}" onerror="this.src='/assets/avt/avt-4.jpg'">`;
+      return `<div class="mrow ${m.mine?'sent':'recv'}">${avatar}<div class="bubble">${esc(m.body)}<div class="tt">${fmtTime(m.time)}${m.mine?`<span class="tick ${m.read?'read':''}">${svg("check-done")}</span>`:''}</div></div></div>`;
+    }).join("");
     const sc=document.getElementById("chat-scroll"); sc.innerHTML=html; sc.scrollTop=sc.scrollHeight;
   }catch(e){ document.getElementById("chat-scroll").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }

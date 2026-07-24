@@ -545,10 +545,8 @@
       <div class="sp" id="wl-spent">Total Spent: 0 PLN</div>
       <button class="add" onclick="openTopup()"><span data-ic="plus-circle"></span> Add Money</button>
     </div>
-    <div class="wl-sec">
-      <div class="sh"><h3>Saved Cards (1)</h3><span class="addlink" onclick="toast('Add a card in a real payment flow')">+ Add New</span></div>
-      <div class="saved-card"><div class="ci" data-ic="card"></div><div class="cd"><div class="cb">Visa</div><div class="cn">•••• •••• •••• 4242</div></div><div style="color:var(--slate);" data-ic="chevron"></div></div>
-    </div>
+    <!-- No saved-cards list: card details are entered securely on PayU's page
+         during "Add Money", so we don't store or fake any cards here. -->
     <div class="wl-sec">
       <div class="sh"><h3>Purchase History</h3></div>
       <div id="wl-history"><div class="loading">Loading…</div></div>

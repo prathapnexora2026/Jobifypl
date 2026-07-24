@@ -774,8 +774,17 @@ function svg(name){ const p=ICONS[name]; if(!p)return ""; return `<svg class="ic
 function paintIcons(root){ (root||document).querySelectorAll("[data-ic]").forEach(el=>{ if(el.dataset.painted)return; el.innerHTML=svg(el.dataset.ic)+(el.innerHTML||""); el.dataset.painted="1"; }); }
 
 /* ============ NAV ============ */
+// Home-level screens: back from any of these goes to home; back from home
+// asks to exit. Everything else pops to the previously-visited screen.
+const HOME_SCREENS=["s-home","s-apps","s-messages","s-profile"];
+let _navStack=[];   // in-memory screen history (NOT browser history — this is a
+                    // native app; navigation is driven by the Capacitor back
+                    // button event, not the browser URL/history stack).
+
 function go(id){
   if(!document.getElementById(id)){ toast("Coming soon"); return; }
+  // record navigation (avoid duplicate consecutive entries)
+  if(_navStack[_navStack.length-1]!==id) _navStack.push(id);
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
   const navScreens={"s-home":"s-home","s-apps":"s-apps","s-messages":"s-messages","s-profile":"s-profile","s-wallet":"s-profile","s-plans":"s-profile","s-contact":"s-profile"};
@@ -794,6 +803,50 @@ function go(id){
   if(id==="s-contact") prefillContact();
   if(id==="s-notif") loadNotifications();
 }
+
+/* ---- Native hardware/gesture back handling (Capacitor App plugin) ----
+   This is the proper app-store-safe way: we listen to the NATIVE backButton
+   event, NOT the browser history. Decides: close popup -> go back a screen ->
+   go home -> (press twice) exit. No browser URL tricks. */
+let _lastBackTs=0;
+function handleBack(){
+  // 1) A popup/modal open? Just close it.
+  const openPop=document.querySelector(".pop-bg.show");
+  if(openPop){ openPop.classList.remove("show"); return; }
+
+  const current=_navStack[_navStack.length-1];
+
+  // 2) Not on a home screen -> pop to the previous screen (or home).
+  if(current && !HOME_SCREENS.includes(current)){
+    _navStack.pop();
+    const prev=_navStack.pop() || "s-home";   // pop prev too; go() re-pushes it
+    go(prev);
+    return;
+  }
+
+  // 3) On a home screen but not the main home -> go to main home.
+  if(current && current!=="s-home"){
+    _navStack=[]; go("s-home"); return;
+  }
+
+  // 4) On main home -> press back twice within 2s to exit.
+  const now=Date.now();
+  if(now-_lastBackTs < 2000){
+    if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
+      window.Capacitor.Plugins.App.exitApp();
+    }
+    return;
+  }
+  _lastBackTs=now;
+  toast("Press back again to exit");
+}
+
+// Wire the native back button when Capacitor is ready.
+document.addEventListener("DOMContentLoaded",function(){
+  if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
+    window.Capacitor.Plugins.App.addListener("backButton", handleBack);
+  }
+});
 
 /* ============ ROLE + AUTH ============ */
 let role="candidate", authPhone="";

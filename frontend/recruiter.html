@@ -1497,6 +1497,44 @@ async function boot(){
   }catch(e){ enterDash(); }   // if profile fetch fails, fall back to dashboard
 }
 boot();
+
+/* ---- Native hardware/gesture back button (Capacitor App plugin) ----
+   App-store-safe: listens to the NATIVE back event, no browser history tricks.
+   Closes menus/popups, else goes back a page, else (on home) press-twice-to-exit. */
+let _recLastBack=0;
+function recHandleBack(){
+  // close any open menu / language menu / popup first
+  const menu=document.getElementById("menu");
+  if(menu&&menu.classList.contains("show")){ toggleMenu(false); return; }
+  const langMenu=document.getElementById("lang-menu");
+  if(langMenu&&langMenu.classList.contains("show")){ langMenu.classList.remove("show"); return; }
+  const pop=document.querySelector(".pop-bg.show, .modal.show, .sheet.show");
+  if(pop){ pop.classList.remove("show"); return; }
+
+  // in a chat -> back to conversation list
+  if(typeof inChatView==="function" && inChatView()){ closeRecChat(); return; }
+
+  // not on home, or have nav history -> go back one page
+  if((typeof curPage!=="undefined" && curPage!=="home") || (typeof navStack!=="undefined" && navStack.length)){
+    goBack(); return;
+  }
+
+  // on home -> press back twice within 2s to exit
+  const now=Date.now();
+  if(now-_recLastBack < 2000){
+    if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
+      window.Capacitor.Plugins.App.exitApp();
+    }
+    return;
+  }
+  _recLastBack=now;
+  if(typeof toast==="function") toast("Press back again to exit");
+}
+document.addEventListener("DOMContentLoaded",function(){
+  if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
+    window.Capacitor.Plugins.App.addListener("backButton", recHandleBack);
+  }
+});
 </script>
 </body>
 </html>

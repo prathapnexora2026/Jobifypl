@@ -543,7 +543,7 @@
   <div class="screen" id="s-chat">
     <div class="chat-head">
       <div class="back" onclick="chatBack()" data-ic="back"></div>
-      <div class="avc"><img id="chat-av" src="/assets/avt/avt-4.jpg"><div class="online"></div></div>
+      <div class="avc" onclick="viewChatPhoto()" style="cursor:pointer;"><img id="chat-av" src="/assets/avt/avt-4.jpg"><div class="online"></div></div>
       <div style="flex:1;"><div class="nm" id="chat-name">Chat</div><div class="st">Online</div></div>
       <div class="back" data-ic="dots"></div>
     </div>
@@ -738,6 +738,13 @@
       <button class="btn" id="pr-primary" onclick="closePayResult()">Done</button>
       <button class="later" id="pr-secondary" style="display:none;" onclick="closePayResult()">Close</button>
     </div>
+  </div>
+
+  <!-- full-screen profile photo viewer (WhatsApp/Insta style) -->
+  <div id="photo-viewer" onclick="closePhotoViewer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;align-items:center;justify-content:center;flex-direction:column;">
+    <div id="pv-name" style="color:#fff;font-weight:700;font-size:17px;margin-bottom:14px;"></div>
+    <img id="pv-img" src="" style="max-width:92%;max-height:76%;border-radius:12px;object-fit:contain;">
+    <div style="color:#cbd5e1;font-size:13px;margin-top:16px;">Tap anywhere to close</div>
   </div>
 
   <div id="toast"></div>
@@ -1417,18 +1424,28 @@ async function renderChat(){
   try{ const d=await api("/chat/"+curConv+"/messages");
     if(d.other_name) document.getElementById("chat-name").textContent=d.other_name;
     const cav=document.getElementById("chat-av");
-    const otherPh=avatarSrc(d.other_photo)||"/assets/avt/avt-4.jpg";   // the other person's photo (recruiter/admin)
+    const realPh=avatarSrc(d.other_photo);   // real photo if uploaded, else ""
+    const otherPh=realPh||"/assets/avt/avt-4.jpg";
+    _chatOtherPhoto=realPh; _chatOtherName=d.other_name||"Chat";
     cav.src = otherPh;
     cav.onerror=function(){ this.src="/assets/avt/avt-4.jpg"; };
     _chatMsgs=d.messages||[]; _selMsgs.clear();
     paintChat(otherPh);
   }catch(e){ document.getElementById("chat-scroll").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
+let _chatOtherPhoto="", _chatOtherName="";
+function viewChatPhoto(){
+  if(!_chatOtherPhoto){ toast("No profile photo"); return; }
+  document.getElementById("pv-name").textContent=_chatOtherName||"";
+  document.getElementById("pv-img").src=_chatOtherPhoto;
+  document.getElementById("photo-viewer").style.display="flex";
+}
+function closePhotoViewer(){ document.getElementById("photo-viewer").style.display="none"; }
 function paintChat(otherPh){
   let html=`<div class="date-sep"><div class="line"></div><div class="dt">Today</div><div class="line"></div></div>`;
   html+=_chatMsgs.map(m=>{
     const avatar = m.mine ? "" :
-      `<img class="msg-av" src="${esc(otherPh||'/assets/avt/avt-4.jpg')}" onerror="this.src='/assets/avt/avt-4.jpg'">`;
+      `<img class="msg-av" src="${esc(otherPh||'/assets/avt/avt-4.jpg')}" onclick="event.stopPropagation();viewChatPhoto()" onerror="this.src='/assets/avt/avt-4.jpg'">`;
     const sel=_selMsgs.has(m.id);
     const body = m.deleted ? `<i style="opacity:.6;">${esc(m.body)}</i>` : esc(m.body);
     // long-press (touch) or right-click (desktop) selects; tap toggles when in select mode

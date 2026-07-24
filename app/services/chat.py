@@ -36,6 +36,8 @@ def display_photo(user: User):
         return user.recruiter_profile.profile_pic or None
     if user.role == Role.candidate and user.candidate_profile:
         return user.candidate_profile.profile_photo or None
+    if user.role == Role.admin:
+        return getattr(user, "photo", None) or None
     return None
 
 

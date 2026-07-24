@@ -1055,13 +1055,28 @@ async function openRecChat(cid){
   updateBackBtn();
   try{ const d=await api("/chat/"+cid+"/messages");
     document.getElementById("chat-name").textContent=d.other_name||nm;
-    _recChatMsgs=d.messages||[]; _recOtherName=d.other_name||nm; _recSelMsgs.clear();
+    // show the other person's real photo in the header if they have one
+    const ph=fileUrl(d.other_photo); const av2=document.getElementById("chat-av2");
+    _recChatPhoto=ph||""; _recOtherName=d.other_name||nm;
+    if(ph){ av2.style.backgroundImage=`url(${ph})`; av2.style.backgroundSize="cover"; av2.style.backgroundPosition="center"; av2.textContent=""; av2.style.cursor="pointer"; av2.onclick=recViewChatPhoto; }
+    _recChatMsgs=d.messages||[]; _recSelMsgs.clear();
     recPaintChat();
     // refresh list unread counts in the background (without leaving the chat)
     api("/chat/conversations").then(r=>{recConvs=r.conversations||[];}).catch(()=>{});
   }catch(e){ document.getElementById("chat-body").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
-let _recChatMsgs=[], _recSelMsgs=new Set(), _recOtherName="", _recLp=null;
+let _recChatMsgs=[], _recSelMsgs=new Set(), _recOtherName="", _recLp=null, _recChatPhoto="";
+function recViewChatPhoto(){
+  if(!_recChatPhoto) return;
+  let v=document.getElementById("rec-photo-viewer");
+  if(!v){ v=document.createElement("div"); v.id="rec-photo-viewer"; document.body.appendChild(v);
+    v.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;";
+    v.onclick=()=>v.style.display="none"; }
+  v.innerHTML=`<div style="color:#fff;font-weight:700;margin-bottom:14px;">${esc(_recOtherName||'')}</div>
+    <img src="${esc(_recChatPhoto)}" style="max-width:92%;max-height:76%;border-radius:12px;object-fit:contain;">
+    <div style="color:#cbd5e1;font-size:13px;margin-top:16px;">Tap anywhere to close</div>`;
+  v.style.display="flex";
+}
 function recPaintChat(){
   const b=document.getElementById("chat-body");
   b.innerHTML=_recChatMsgs.length?_recChatMsgs.map(m=>{

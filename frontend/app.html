@@ -150,7 +150,8 @@
   .mydoc-actions{display:flex;gap:8px;margin-top:12px;}
   .mydoc-actions button{flex:1;padding:9px;border:1px solid #E2E8F0;background:#fff;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);}
   .mydoc-actions button.danger{color:var(--red);border-color:#FCE0E0;}
-  #s-docview{display:flex;flex-direction:column;} #s-docview #dv-body{position:relative;}
+  /* display MUST only be set on .active, or it beats .screen{display:none} and stacks. */
+  #s-docview.active{display:flex;flex-direction:column;} #s-docview #dv-body{position:relative;}
   /* documents upload */
   .doc-block{margin-top:8px;}
   .doc-block .dt{font-size:15px;font-weight:800;margin:20px 0 8px;} .doc-block .dt .req{color:var(--red);}

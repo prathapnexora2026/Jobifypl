@@ -194,6 +194,34 @@ class UserSubscription(Base):
     posts_used = Column(Integer, default=0)        # postings consumed so far
 
 
+class Payment(Base):
+    """A real-money payment attempt through PayU. One row per checkout.
+
+    We create it as 'pending' BEFORE redirecting to PayU, then PayU's notify
+    webhook (verified by signature) flips it to 'paid' — and only THEN do we
+    credit the wallet or activate the plan. This is what stops a payment being
+    faked: nothing is granted until PayU confirms the money server-to-server.
+    """
+    __tablename__ = "payments"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    # Our own reference we send to PayU (extOrderId) — unique per attempt.
+    ext_order_id = Column(String(64), unique=True, index=True)
+    # PayU's own order id, filled in once PayU responds.
+    payu_order_id = Column(String(64), nullable=True, index=True)
+    amount = Column(Float)                     # PLN, human units (e.g. 100.00)
+    currency = Column(String(8), default="PLN")
+    # "wallet_topup" or "plan"
+    purpose = Column(String(20))
+    plan_id = Column(Integer, ForeignKey("subscription_plans.id"), nullable=True)
+    # pending / paid / failed / canceled
+    status = Column(String(20), default="pending", index=True)
+    # Guard so the notify webhook can't credit the same payment twice.
+    fulfilled = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=now)
+    updated_at = Column(DateTime, default=now, onupdate=now)
+
+
 class Notification(Base):
     __tablename__ = "notifications"
     id = Column(Integer, primary_key=True, index=True)

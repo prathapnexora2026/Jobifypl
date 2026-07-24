@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.database import Base, engine
 from app import models  # noqa: F401 - ensure models are registered
-from app.routers import auth, candidate, jobs, recruiter, wallet, misc, admin
+from app.routers import auth, candidate, jobs, recruiter, wallet, misc, admin, payu_router
 
 # Create tables (dev convenience; production uses Alembic migrations later).
 Base.metadata.create_all(bind=engine)
@@ -51,11 +51,12 @@ app.include_router(misc.chat_router)
 app.include_router(misc.contact_router)
 app.include_router(misc.testotp_router)   # test-only OTP viewer (auto-disabled when SMS goes live)
 app.include_router(admin.router)
+app.include_router(payu_router.router)    # PayU notify webhook + return page
 
-# Serve uploaded files (dev). Production will use object storage instead.
-UPLOADS = Path(__file__).resolve().parent.parent / "uploads"
-UPLOADS.mkdir(exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=UPLOADS), name="uploads")
+# Serve uploaded files. On Render these live on the persistent disk (DATA_DIR)
+# so they survive deploys — see app/paths.py.
+from app.paths import UPLOADS_DIR, DOWNLOADS_DIR
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 @app.get("/health")
 def health():
@@ -64,8 +65,7 @@ def health():
 
 # APK download for testers. Serves the latest Android build as a file download
 # so testers can install it directly from the site (no Play Store needed yet).
-DOWNLOADS = Path(__file__).resolve().parent.parent / "downloads"
-APK_FILE = DOWNLOADS / "JobifyPL.apk"
+APK_FILE = DOWNLOADS_DIR / "JobifyPL.apk"
 
 
 @app.get("/download/app")

@@ -953,8 +953,18 @@ function renderRecTab(d,tab){
       ["Contact Position",d.contact_position],["Hiring Authority",d.hiring_authority],
       ["Current Plan",d.current_plan?d.current_plan.name:"—"],["Verified Since",fmtDate(d.created_at)],
     ];
+    const bal = (d.wallet_balance!=null? Math.round(d.wallet_balance):0);
+    const cur = d.wallet_currency||"PLN";
     return `<h4>About the Recruiter</h4>
-      <div class="kv">${rows.map(([k,v])=>`<div><div class="k">${k}</div><div class="v">${esc(v||"—")}</div></div>`).join("")}</div>`;
+      <div class="kv">${rows.map(([k,v])=>`<div><div class="k">${k}</div><div class="v">${esc(v||"—")}</div></div>`).join("")}</div>
+      <!-- TEST-ONLY: manually top up a recruiter's wallet. Remove before public launch. -->
+      <h4 style="margin-top:32px;">Wallet <span style="font-size:12px;font-weight:600;color:#e67e22;">(test tool)</span></h4>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div style="font-size:22px;font-weight:800;">${bal} ${esc(cur)}</div>
+        <input id="adm-wal-amt" type="number" min="1" placeholder="Amount (${esc(cur)})"
+          style="padding:10px 12px;border:1px solid #d5d9e0;border-radius:8px;width:150px;">
+        <button class="msg-btn solid" onclick="adminAddWallet(${d.id})">+ Add wallet amount</button>
+      </div>`;
   }
   if(tab==="jobs"){
     const jobs=d.jobs||[];
@@ -985,6 +995,18 @@ function renderPlanTab(d,cls,badge){
       ${plan.end_date?`<div><small>Plan Ends</small><span style="font-weight:700;color:#FFC107;">${esc(fmtDate(plan.end_date))}</span></div>`:""}
     </div>`:""}
   </div>`;
+}
+
+// TEST-ONLY: admin manually credits a recruiter's wallet. Remove before launch.
+async function adminAddWallet(userId){
+  const el=document.getElementById("adm-wal-amt");
+  const amt=parseFloat(el&&el.value);
+  if(!amt||amt<=0){ alert("Enter a valid amount"); return; }
+  try{
+    await api("/admin/recruiter/"+userId+"/add-wallet",{method:"POST",body:{amount:amt}});
+    alert("Added "+amt+" to wallet.");
+    openDetail("Recruiter",userId);   // reload to show new balance
+  }catch(e){ alert(e.message); }
 }
 
 // ---------- JOBS ----------

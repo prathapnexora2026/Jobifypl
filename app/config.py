@@ -32,6 +32,26 @@ class Settings(BaseSettings):
     # admin — so a single test number can walk every flow. MUST be False in prod.
     DEV_ROLE_OVERRIDE: bool = True
 
+    # --- Public base URL of the deployed site (used for PayU redirect/notify URLs) ---
+    # Local dev: http://localhost:8000 ; Production: https://jobify.pl
+    BASE_URL: str = "http://localhost:8000"
+
+    # --- Where uploaded files & the APK live on disk. ---
+    # Local dev: the project folder. On Render: the persistent disk mount "/data"
+    # so files survive every deploy / GitHub push. Set DATA_DIR=/data on Render.
+    DATA_DIR: str = ""
+
+    # --- PayU (Poland) — real payments. LIVE keys go in env vars on Render, ---
+    # never in git. While PAYU_ENABLED is False the app falls back to the old
+    # instant wallet top-up so testing isn't blocked if keys are missing.
+    PAYU_ENABLED: bool = False
+    PAYU_POS_ID: str = ""          # "pos_id" / merchant POS id
+    PAYU_MD5_KEY: str = ""         # "second key (MD5)" — used to sign/verify
+    PAYU_CLIENT_ID: str = ""       # OAuth client_id
+    PAYU_CLIENT_SECRET: str = ""   # OAuth client_secret
+    # Sandbox host for tests, live host for production. Default = LIVE (secure.payu.com).
+    PAYU_BASE: str = "https://secure.payu.com"
+
     @property
     def admin_phone_list(self) -> list[str]:
         return [p.strip() for p in self.ADMIN_PHONES.split(",") if p.strip()]

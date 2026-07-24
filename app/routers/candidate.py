@@ -16,9 +16,8 @@ from app.security import get_current_user
 
 router = APIRouter(prefix="/candidate", tags=["candidate"])
 
-# Where uploaded files go (local dev). In production this becomes object storage (S3/R2).
-UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
-UPLOAD_DIR.mkdir(exist_ok=True)
+# Where uploaded files go. On Render this is the persistent disk (see app/paths.py).
+from app.paths import UPLOADS_DIR as UPLOAD_DIR
 
 ALLOWED_DOC_TYPES = {
     "resume", "passport", "trc_card", "pesel", "driving_license",

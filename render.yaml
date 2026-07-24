@@ -1,15 +1,82 @@
-# Render deployment config for JobifyPL.
+# Render Blueprint for JobifyPL.
+# Creates: 1 web service + 1 Postgres database + 1 persistent disk (for uploads).
+#
+# After Render imports this, set the "sync: false" secrets (PayU keys, Twilio,
+# admin phone) in the dashboard — they are NEVER stored in git.
 services:
   - type: web
     name: jobifypl
     runtime: python
-    plan: starter          # paid plan; use "free" to test
+    plan: starter                 # $7/mo; bump to standard later if traffic grows
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+
+    # Persistent disk — uploaded photos, CVs and the APK live here and SURVIVE
+    # every deploy / GitHub push. Mounted at /data; DATA_DIR points the app to it.
+    disk:
+      name: jobify-data
+      mountPath: /data
+      sizeGB: 5
+
     envVars:
-      - key: JWT_SECRET
-        generateValue: true
-      - key: SMS_DEV_MODE
-        value: "true"       # switch to false + add Twilio keys for real SMS
+      # --- Database: auto-filled from the Postgres service below ---
       - key: DATABASE_URL
-        sync: false         # set to your Render Postgres URL
+        fromDatabase:
+          name: jobifypl-db
+          property: connectionString
+
+      # --- Storage: use the mounted disk ---
+      - key: DATA_DIR
+        value: /data
+
+      # --- Public URL (PayU redirect/notify + APK point here) ---
+      - key: BASE_URL
+        value: https://jobify.pl
+
+      # --- Auth ---
+      - key: JWT_SECRET
+        generateValue: true       # Render generates a strong random secret
+      - key: JWT_EXPIRE_MINUTES
+        value: "43200"
+
+      # --- SMS: TEST MODE for now (OTP shown in test viewer, no real texts) ---
+      - key: SMS_DEV_MODE
+        value: "true"
+      - key: TWILIO_ACCOUNT_SID
+        sync: false               # set later when flipping to real SMS
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM_NUMBER
+        sync: false
+
+      # --- OTP ---
+      - key: OTP_EXPIRE_MINUTES
+        value: "10"
+      - key: OTP_LENGTH
+        value: "6"
+
+      # --- Admin ---
+      - key: ADMIN_PHONES
+        sync: false               # set your admin number in the dashboard
+      - key: DEV_ROLE_OVERRIDE
+        value: "false"            # production: each role uses its own number
+
+      # --- PayU (Poland) LIVE keys — set ALL of these in the dashboard, never git ---
+      - key: PAYU_ENABLED
+        value: "true"
+      - key: PAYU_BASE
+        value: https://secure.payu.com
+      - key: PAYU_POS_ID
+        sync: false
+      - key: PAYU_MD5_KEY
+        sync: false
+      - key: PAYU_CLIENT_ID
+        sync: false
+      - key: PAYU_CLIENT_SECRET
+        sync: false
+
+databases:
+  - name: jobifypl-db
+    plan: basic-1gb               # Postgres; pick a bigger tier in the dashboard if you want 5GB
+    databaseName: jobifypl
+    user: jobifypl

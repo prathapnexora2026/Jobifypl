@@ -1,15 +1,26 @@
-"""Wallet & subscription plans — candidate-facing (PLN)."""
+"""Wallet & subscription plans (PLN).
+
+Payments can flow two ways:
+  * from wallet balance (instant, no gateway) — the original flow, and
+  * via PayU real-money checkout — /wallet/topup-checkout and
+    /plans/checkout create a PENDING Payment and return a PayU redirect URL.
+    The wallet is only credited / the plan only activated after PayU's notify
+    webhook confirms the money (see app/routers/payu_router.py).
+"""
 import datetime as dt
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.models import (
-    User, Wallet, WalletTransaction, SubscriptionPlan, UserSubscription
+    User, Wallet, WalletTransaction, SubscriptionPlan, UserSubscription,
+    Payment, Notification,
 )
 from app.security import get_current_user
+from app.services import payu
 
 router = APIRouter(prefix="/wallet", tags=["wallet"])
 
@@ -20,6 +31,32 @@ def _get_wallet(db, user_id):
         w = Wallet(user_id=user_id, balance=0.0, currency="PLN")
         db.add(w); db.commit(); db.refresh(w)
     return w
+
+
+# ---------------------------------------------------------------------------
+# Shared fulfilment helpers — called BOTH by the pay-from-wallet path and by
+# the PayU notify webhook once a real payment is confirmed. Keeping them here
+# (one place) means "what a successful payment does" can never drift apart.
+# ---------------------------------------------------------------------------
+def credit_wallet(db: Session, user_id: int, amount: float, reason: str):
+    w = _get_wallet(db, user_id)
+    w.balance += amount
+    db.add(WalletTransaction(user_id=user_id, amount=amount, type="credit", reason=reason))
+    db.add(Notification(user_id=user_id, title="Wallet topped up",
+                        body=f"{amount:.2f} PLN added to your wallet."))
+    return w
+
+
+def activate_plan(db: Session, user_id: int, plan: SubscriptionPlan, paid_reason: str):
+    """Activate `plan` for a user and record the spend. Does NOT touch wallet
+    balance (caller decides whether it was paid from wallet or via PayU)."""
+    start = dt.datetime.utcnow()
+    end = start + dt.timedelta(days=plan.duration_days or 0)
+    db.add(UserSubscription(
+        user_id=user_id, plan_id=plan.id, start_date=start, end_date=end,
+        status="active", posts_total=plan.postings or 0, posts_used=0))
+    db.add(Notification(user_id=user_id, title="Plan activated",
+                        body=f"{plan.name} is now active until {end.date().isoformat()}."))
 
 
 @router.get("")
@@ -45,14 +82,49 @@ class TopupIn(BaseModel):
 
 @router.post("/topup")
 def topup(body: TopupIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Placeholder top-up. Real money will flow through PayU (added when merchant keys arrive)."""
+    """Instant wallet credit WITHOUT a gateway.
+
+    Used only when PayU is disabled (PAYU_ENABLED=false) so testing is never
+    blocked. When PayU is live, the frontend calls /wallet/topup-checkout
+    instead and money really moves.
+    """
     if body.amount <= 0:
         raise HTTPException(400, "Invalid amount")
-    w = _get_wallet(db, user.id)
-    w.balance += body.amount
-    db.add(WalletTransaction(user_id=user.id, amount=body.amount, type="credit", reason="Wallet top-up"))
+    if settings.PAYU_ENABLED:
+        raise HTTPException(400, "Use PayU checkout to add funds.")
+    w = credit_wallet(db, user.id, body.amount, "Wallet top-up (test mode)")
     db.commit()
     return {"status": "success", "balance": w.balance}
+
+
+@router.post("/topup-checkout")
+def topup_checkout(body: TopupIn, request: Request,
+                   user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Start a real PayU payment to add funds. Returns a redirect URL the app
+    opens; wallet is credited later by the verified notify webhook."""
+    if body.amount <= 0:
+        raise HTTPException(400, "Invalid amount")
+    if not settings.PAYU_ENABLED:
+        # graceful fallback so the same button works before keys are set
+        w = credit_wallet(db, user.id, body.amount, "Wallet top-up (test mode)")
+        db.commit()
+        return {"status": "success", "paid": True, "balance": w.balance}
+
+    ext = payu.new_ext_order_id("wallet", user.id)
+    pay = Payment(user_id=user.id, ext_order_id=ext, amount=body.amount,
+                  currency="PLN", purpose="wallet_topup", status="pending")
+    db.add(pay); db.commit()
+    try:
+        res = payu.create_order(
+            ext_order_id=ext, amount_pln=body.amount,
+            description=f"JobifyPL wallet top-up ({body.amount:.2f} PLN)",
+            buyer_email=user.email or "", buyer_phone=user.phone or "",
+            customer_ip=(request.client.host if request.client else "127.0.0.1"))
+    except Exception as e:
+        pay.status = "failed"; db.commit()
+        raise HTTPException(502, f"Payment gateway error: {e}")
+    pay.payu_order_id = res.get("payu_order_id"); db.commit()
+    return {"status": "success", "paid": False, "redirect_url": res["redirect_uri"], "ext_order_id": ext}
 
 
 # ----- Plans -----
@@ -89,6 +161,7 @@ class PurchaseIn(BaseModel):
 
 @plans_router.post("/purchase")
 def purchase(body: PurchaseIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Buy a plan using WALLET balance (option 1: pay from wallet)."""
     plan = db.query(SubscriptionPlan).filter(
         SubscriptionPlan.id == body.plan_id, SubscriptionPlan.is_active == True).first()
     if not plan:
@@ -100,8 +173,56 @@ def purchase(body: PurchaseIn, user: User = Depends(get_current_user), db: Sessi
     w.total_spent += plan.price
     db.add(WalletTransaction(user_id=user.id, amount=plan.price, type="debit",
                             reason=f"Subscription: {plan.name}"))
-    start = dt.datetime.utcnow()
-    end = start + dt.timedelta(days=plan.duration_days)
-    db.add(UserSubscription(user_id=user.id, plan_id=plan.id, start_date=start, end_date=end, status="active"))
+    activate_plan(db, user.id, plan, "wallet")
     db.commit()
     return {"status": "success", "msg": f"{plan.name} activated", "balance": w.balance}
+
+
+@plans_router.post("/checkout")
+def plan_checkout(body: PurchaseIn, request: Request,
+                  user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Buy a plan by paying DIRECTLY via PayU (option 2: pay direct).
+
+    Returns a PayU redirect URL; the plan is activated later by the verified
+    notify webhook. Falls back to instant activation if PayU is disabled."""
+    plan = db.query(SubscriptionPlan).filter(
+        SubscriptionPlan.id == body.plan_id, SubscriptionPlan.is_active == True).first()
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+
+    if not settings.PAYU_ENABLED:
+        w = _get_wallet(db, user.id)
+        w.total_spent += plan.price
+        db.add(WalletTransaction(user_id=user.id, amount=plan.price, type="debit",
+                                reason=f"Subscription (test): {plan.name}"))
+        activate_plan(db, user.id, plan, "test")
+        db.commit()
+        return {"status": "success", "paid": True, "msg": f"{plan.name} activated"}
+
+    ext = payu.new_ext_order_id("plan", user.id)
+    pay = Payment(user_id=user.id, ext_order_id=ext, amount=plan.price,
+                  currency=plan.currency or "PLN", purpose="plan", plan_id=plan.id,
+                  status="pending")
+    db.add(pay); db.commit()
+    try:
+        res = payu.create_order(
+            ext_order_id=ext, amount_pln=plan.price,
+            description=f"JobifyPL plan: {plan.name}",
+            buyer_email=user.email or "", buyer_phone=user.phone or "",
+            customer_ip=(request.client.host if request.client else "127.0.0.1"))
+    except Exception as e:
+        pay.status = "failed"; db.commit()
+        raise HTTPException(502, f"Payment gateway error: {e}")
+    pay.payu_order_id = res.get("payu_order_id"); db.commit()
+    return {"status": "success", "paid": False, "redirect_url": res["redirect_uri"], "ext_order_id": ext}
+
+
+@plans_router.get("/payment-status/{ext_order_id}")
+def payment_status(ext_order_id: str, user: User = Depends(get_current_user),
+                   db: Session = Depends(get_db)):
+    """The app polls this after returning from PayU to know if it's done."""
+    pay = db.query(Payment).filter(
+        Payment.ext_order_id == ext_order_id, Payment.user_id == user.id).first()
+    if not pay:
+        raise HTTPException(404, "Payment not found")
+    return {"status": "success", "payment_status": pay.status, "fulfilled": pay.fulfilled}

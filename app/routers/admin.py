@@ -14,7 +14,7 @@ from app.database import get_db
 from app.models import (
     User, Role, CandidateProfile, RecruiterProfile, CandidateDocument,
     Job, JobApplication, SubscriptionPlan, UserSubscription,
-    WalletTransaction, ContactMessage,
+    WalletTransaction, ContactMessage, Wallet, Notification,
 )
 from app.security import require_admin
 
@@ -226,6 +226,7 @@ def recruiter_detail(user_id: int, db: Session = Depends(get_db), admin: User = 
             "start_date": us.start_date.isoformat() if us.start_date else None,
             "end_date": us.end_date.isoformat() if us.end_date else None,
         }
+    wal = db.query(Wallet).filter(Wallet.user_id == user_id).first()
     return {
         "status": "success",
         "data": {
@@ -235,12 +236,45 @@ def recruiter_detail(user_id: int, db: Session = Depends(get_db), admin: User = 
             "company_name": rp.company_name if rp else "", "contact_position": rp.contact_position if rp else "",
             "company_email": rp.company_email if rp else u.email, "profile_pic": rp.profile_pic if rp else "",
             "verified": rp.verified if rp else False, "hiring_authority": rp.hiring_authority if rp else "",
+            "wallet_balance": wal.balance if wal else 0.0,
+            "wallet_currency": wal.currency if wal else "PLN",
             "jobs": [{"id": j.id, "category": j.category, "position": j.position,
                       "job_type": j.job_type, "work_type": j.work_type, "status": j.status,
                       "created_at": j.created_at.isoformat() if j.created_at else None} for j in jobs],
             "current_plan": plan_out,
         },
     }
+
+
+class AddWalletIn(BaseModel):
+    amount: float
+
+
+@router.post("/recruiter/{user_id}/add-wallet")
+def admin_add_wallet(user_id: int, body: AddWalletIn,
+                     db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    """TEST-ONLY: manually credit a recruiter's wallet from the admin panel so
+    they can try paid features without real money. Remove before public launch.
+
+    (Removing = delete this endpoint + the "Add wallet amount" button in the
+    admin frontend. Nothing else depends on it.)
+    """
+    u = db.query(User).filter(User.id == user_id, User.role == Role.recruiter).first()
+    if not u:
+        raise HTTPException(404, "Recruiter not found")
+    if body.amount <= 0:
+        raise HTTPException(400, "Amount must be positive")
+    w = db.query(Wallet).filter(Wallet.user_id == user_id).first()
+    if not w:
+        w = Wallet(user_id=user_id, balance=0.0, currency="PLN")
+        db.add(w); db.flush()
+    w.balance += body.amount
+    db.add(WalletTransaction(user_id=user_id, amount=body.amount, type="credit",
+                            reason="Admin credit (test)"))
+    db.add(Notification(user_id=user_id, title="Wallet credited",
+                        body=f"Admin added {body.amount:.2f} PLN to your wallet."))
+    db.commit()
+    return {"status": "success", "balance": w.balance}
 
 
 @router.delete("/user/{user_id}")

@@ -1,0 +1,95 @@
+"""PayU webhook + return handling.
+
+/payu/notify  — server-to-server call from PayU. We VERIFY the signature, then
+                (and only then) mark the Payment paid and grant what was bought.
+/payu/return  — where the browser lands after paying; just a friendly page that
+                tells the app to re-check status. No trust is placed in it.
+"""
+from fastapi import APIRouter, Depends, Request, Header
+from fastapi.responses import HTMLResponse, JSONResponse
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.models import Payment, SubscriptionPlan, Wallet, WalletTransaction
+from app.services import payu
+from app.routers.wallet import credit_wallet, activate_plan
+
+router = APIRouter(prefix="/payu", tags=["payu"])
+
+# PayU statuses that mean the money is actually captured.
+_PAID = {"COMPLETED"}
+
+
+@router.post("/notify")
+async def payu_notify(request: Request,
+                      openpayu_signature: str = Header(default="", alias="OpenPayU-Signature"),
+                      db: Session = Depends(get_db)):
+    """PayU calls this after every status change. Verify, then fulfil once."""
+    raw = await request.body()
+
+    # 1) Reject anything not genuinely signed by PayU with our secret key.
+    if not payu.verify_notify_signature(raw, openpayu_signature):
+        return JSONResponse({"error": "bad signature"}, status_code=400)
+
+    try:
+        payload = await request.json()
+    except Exception:
+        return JSONResponse({"error": "bad json"}, status_code=400)
+
+    order = payload.get("order") or {}
+    ext_order_id = order.get("extOrderId")
+    status = (order.get("status") or "").upper()
+    if not ext_order_id:
+        # Always 200 so PayU stops retrying a call we can't map.
+        return {"status": "ignored"}
+
+    pay = db.query(Payment).filter(Payment.ext_order_id == ext_order_id).first()
+    if not pay:
+        return {"status": "unknown-order"}
+
+    # Record the latest status.
+    if status and status not in _PAID:
+        if status in ("CANCELED", "REJECTED"):
+            pay.status = "failed"
+            db.commit()
+        return {"status": "ok"}
+
+    # 2) Money captured. Fulfil exactly once (idempotent — PayU may retry).
+    if status in _PAID and not pay.fulfilled:
+        pay.status = "paid"
+        pay.fulfilled = True
+        if pay.purpose == "wallet_topup":
+            credit_wallet(db, pay.user_id, pay.amount, "Wallet top-up (PayU)")
+        elif pay.purpose == "plan" and pay.plan_id:
+            plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == pay.plan_id).first()
+            if plan:
+                wal = db.query(Wallet).filter(Wallet.user_id == pay.user_id).first()
+                if wal:
+                    wal.total_spent += plan.price
+                db.add(WalletTransaction(user_id=pay.user_id, amount=plan.price,
+                                        type="debit", reason=f"Subscription (PayU): {plan.name}"))
+                activate_plan(db, pay.user_id, plan, "payu")
+        db.commit()
+
+    return {"status": "ok"}
+
+
+@router.get("/return", response_class=HTMLResponse)
+def payu_return(ext: str = ""):
+    """Landing page after PayU checkout. The app reads window.name/URL and
+    re-checks /plans/payment-status to confirm. Kept minimal + self-closing."""
+    return f"""<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Payment complete — JobifyPL</title>
+<style>body{{font-family:system-ui,Arial;text-align:center;padding:48px 20px;color:#12305a}}
+.b{{background:#0b63c5;color:#fff;border:none;border-radius:10px;padding:14px 22px;font-size:16px}}</style>
+</head><body>
+<h2>Payment received</h2>
+<p>You can return to the JobifyPL app now.</p>
+<button class="b" onclick="try{{window.close()}}catch(e){{}};location.href='/app.html'">Back to app</button>
+<script>
+// If opened inside the app's in-app browser, signal the opener and close.
+try{{ if(window.opener){{ window.opener.postMessage({{payu:'done',ext:'{ext}'}}, '*'); }} }}catch(e){{}}
+setTimeout(function(){{ try{{window.close()}}catch(e){{}} }}, 1500);
+</script>
+</body></html>"""

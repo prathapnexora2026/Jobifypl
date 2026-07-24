@@ -29,8 +29,8 @@ from app.security import get_current_user
 
 router = APIRouter(prefix="/recruiter", tags=["recruiter"])
 
-UPLOAD_DIR = Path(__file__).resolve().parent.parent.parent / "uploads"
-UPLOAD_DIR.mkdir(exist_ok=True)
+# Uploads live on the persistent disk in production (see app/paths.py).
+from app.paths import UPLOADS_DIR as UPLOAD_DIR
 
 
 def require_recruiter(user: User = Depends(get_current_user)) -> User:

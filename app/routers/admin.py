@@ -486,18 +486,24 @@ def admin_payments(db: Session = Depends(get_db), admin: User = Depends(require_
     )
     history = [{
         "id": t.id, "name": u.full_name or u.phone, "reason": t.reason,
-        "amount": t.amount, "type": t.type,
+        "amount": t.amount, "type": t.type, "method": t.method,
         "date": t.created_at.isoformat() if t.created_at else None,
     } for t, u in rows]
 
-    # Monthly totals for the chart (last 12 months, credit vs debit).
+    # Monthly totals for the chart. We separate:
+    #   revenue = money users actually SPENT on plans (debits)  → real income
+    #   topups  = REAL money added via PayU (method='payu' credits)
+    # Admin test credits (method='admin') are EXCLUDED — they aren't real money.
     monthly = {}
     for t, _ in rows:
         if not t.created_at:
             continue
         key = t.created_at.strftime("%b")
         monthly.setdefault(key, {"credit": 0.0, "debit": 0.0})
-        monthly[key][t.type if t.type in ("credit", "debit") else "debit"] += (t.amount or 0)
+        if t.type == "debit":
+            monthly[key]["debit"] += (t.amount or 0)          # revenue (plans)
+        elif t.type == "credit" and t.method == "payu":
+            monthly[key]["credit"] += (t.amount or 0)         # real PayU top-ups only
 
     return {"status": "success", "history": history, "monthly": monthly}
 

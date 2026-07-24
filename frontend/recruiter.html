@@ -1077,22 +1077,41 @@ function recViewChatPhoto(){
     <div style="color:#cbd5e1;font-size:13px;margin-top:16px;">Tap anywhere to close</div>`;
   v.style.display="flex";
 }
+// Robust long-press + tap (shared) — suppresses the click that follows a
+// long-press (fixes the "blink and comes back" bug).
+function recBindLongPress(container, itemSel, dataKey, onSelect, onTap, inSelectMode){
+  container.querySelectorAll(itemSel).forEach(el=>{
+    const id=parseInt(el.dataset[dataKey]);
+    let timer=null, longFired=false, sx=0, sy=0;
+    const start=(x,y)=>{ longFired=false; sx=x; sy=y; timer=setTimeout(()=>{ longFired=true; if(navigator.vibrate)navigator.vibrate(25); onSelect(id); },500); };
+    const move=(x,y)=>{ if(timer&&(Math.abs(x-sx)>10||Math.abs(y-sy)>10)){ clearTimeout(timer); timer=null; } };
+    const end=()=>{ if(timer){ clearTimeout(timer); timer=null; } };
+    el.addEventListener("touchstart",e=>{ const t=e.touches[0]; start(t.clientX,t.clientY); },{passive:true});
+    el.addEventListener("touchmove",e=>{ const t=e.touches[0]; move(t.clientX,t.clientY); },{passive:true});
+    el.addEventListener("touchend",end);
+    el.addEventListener("mousedown",e=>start(e.clientX,e.clientY));
+    el.addEventListener("mousemove",e=>move(e.clientX,e.clientY));
+    el.addEventListener("mouseup",end); el.addEventListener("mouseleave",end);
+    el.addEventListener("contextmenu",e=>{ e.preventDefault(); onSelect(id); });
+    el.addEventListener("click",e=>{
+      if(longFired){ e.preventDefault(); e.stopPropagation(); longFired=false; return; }
+      if(inSelectMode&&inSelectMode()){ onSelect(id); return; }
+      if(onTap) onTap(id, el);
+    });
+  });
+}
 function recPaintChat(){
   const b=document.getElementById("chat-body");
   b.innerHTML=_recChatMsgs.length?_recChatMsgs.map(m=>{
     const sel=_recSelMsgs.has(m.id);
     const body=m.deleted?`<i style="opacity:.6;">${esc(m.body)}</i>`:esc(m.body);
-    return `<div class="bubble ${m.mine?'me':'them'} ${sel?'sel':''}" data-mid="${m.id}"
-      oncontextmenu="event.preventDefault();recToggleMsgSel(${m.id})"
-      ontouchstart="recMsgTouchStart(${m.id})" ontouchend="recMsgTouchEnd()"
-      onclick="if(_recSelMsgs.size)recToggleMsgSel(${m.id})">
+    return `<div class="bubble ${m.mine?'me':'them'} ${sel?'sel':''}" data-mid="${m.id}">
       ${!m.mine?`<div class="who">${esc(_recOtherName)}</div>`:""}${body}<span class="bt">${esc(fmtT(m.time))}${m.mine&&!m.deleted?tick(m.read):""}</span></div>`;
   }).join(""):`<div class="empty" style="margin:auto;">No messages yet — say hello 👋</div>`;
   if(!_recSelMsgs.size) b.scrollTop=1e9;
+  recBindLongPress(b, ".bubble", "mid", recToggleMsgSel, null, ()=>_recSelMsgs.size>0);
   recUpdateSelBar();
 }
-function recMsgTouchStart(id){ _recLp=setTimeout(()=>{ recToggleMsgSel(id); if(navigator.vibrate)navigator.vibrate(30); },450); }
-function recMsgTouchEnd(){ if(_recLp){ clearTimeout(_recLp); _recLp=null; } }
 function recToggleMsgSel(id){ if(_recSelMsgs.has(id))_recSelMsgs.delete(id); else _recSelMsgs.add(id);
   document.querySelectorAll("#chat-body .bubble").forEach(el=>el.classList.toggle("sel",_recSelMsgs.has(parseInt(el.dataset.mid)))); recUpdateSelBar(); }
 function recUpdateSelBar(){

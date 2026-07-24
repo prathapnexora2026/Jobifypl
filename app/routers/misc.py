@@ -54,17 +54,26 @@ def conversations(user: User = Depends(get_current_user), db: Session = Depends(
     rows = db.query(Conversation).filter(
         (Conversation.candidate_id == user.id) | (Conversation.recruiter_id == user.id)
     ).all()
+    uid = str(user.id)
+
+    def _hidden_for_me(m):
+        return uid in [x for x in (m.deleted_for or "").split(",") if x]
+
     out = []
     for c in rows:
         other = db.query(User).filter(User.id == other_party_id(c, user.id)).first()
-        last = db.query(Message).filter(Message.conversation_id == c.id)\
-            .order_by(Message.created_at.desc()).first()
-        unread = db.query(Message).filter(
-            Message.conversation_id == c.id,
-            Message.sender_id != user.id,
-            Message.is_read == False,
-        ).count()
-        # null-safe timestamp: prefer last message time, fall back to conversation
+        all_msgs = db.query(Message).filter(Message.conversation_id == c.id)\
+            .order_by(Message.created_at.desc()).all()
+        # messages still visible to THIS user (not deleted-for-me)
+        visible = [m for m in all_msgs if not _hidden_for_me(m)]
+        # If the user deleted the whole chat and nothing new arrived, hide the thread.
+        if all_msgs and not visible:
+            continue
+        last = visible[0] if visible else None
+        unread = sum(1 for m in visible
+                     if m.sender_id != user.id and not m.is_read)
+        last_body = ("This message was deleted" if (last and last.deleted_for_all)
+                     else (last.body if last else ""))
         ts = None
         if last is not None and last.created_at is not None:
             ts = last.created_at
@@ -76,7 +85,7 @@ def conversations(user: User = Depends(get_current_user), db: Session = Depends(
             "name": display_name(other),
             "photo": display_photo(other),
             "role": other.role.value if other else "",
-            "last_message": last.body if last else "",
+            "last_message": last_body,
             "time": ts.isoformat() if ts else "",
             "unread": unread,
         })
@@ -154,6 +163,25 @@ def delete_messages(conversation_id: int, body: DeleteMsgIn,
             if str(user.id) not in ids:
                 ids.append(str(user.id))
             m.deleted_for = ",".join(ids)
+    db.commit()
+    return {"status": "success"}
+
+
+@chat_router.post("/{conversation_id}/delete")
+def delete_conversation(conversation_id: int, user: User = Depends(get_current_user),
+                        db: Session = Depends(get_db)):
+    """Delete a whole conversation FOR THE CALLER (like WhatsApp 'Delete chat').
+    Every message is hidden for this user; the thread disappears from their list.
+    If the other person messages again, a fresh thread shows for the caller."""
+    c = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    if not c or user.id not in (c.candidate_id, c.recruiter_id):
+        raise HTTPException(404, "Conversation not found")
+    msgs = db.query(Message).filter(Message.conversation_id == conversation_id).all()
+    for m in msgs:
+        ids = [x for x in (m.deleted_for or "").split(",") if x]
+        if str(user.id) not in ids:
+            ids.append(str(user.id))
+        m.deleted_for = ",".join(ids)
     db.commit()
     return {"status": "success"}
 

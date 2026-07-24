@@ -148,7 +148,7 @@
   .mydoc-ic{width:44px;height:44px;border-radius:10px;background:#F1F5F9;display:grid;place-items:center;font-size:22px;flex-shrink:0;}
   .mydoc-info{flex:1;min-width:0;} .mydoc-name{font-weight:800;font-size:15px;} .mydoc-file{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .mydoc-actions{display:flex;gap:8px;margin-top:12px;}
-  .mydoc-actions button{flex:1;padding:9px;border:1px solid #E2E8F0;background:#fff;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);}
+  .mydoc-actions button,.mydoc-actions .mydoc-viewbtn{flex:1;padding:9px;border:1px solid #E2E8F0;background:#fff;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);text-align:center;text-decoration:none;display:inline-block;}
   .mydoc-actions button.danger{color:var(--red);border-color:#FCE0E0;}
   /* display MUST only be set on .active, or it beats .screen{display:none} and stacks. */
   #s-docview.active{display:flex;flex-direction:column;} #s-docview #dv-body{position:relative;}
@@ -1008,15 +1008,21 @@ async function renderMyDocs(){
     if(!docs.length){ box.innerHTML=`<div class="empty"><div class="ei">${svg("doc")}</div><div>No documents uploaded yet</div><p style="color:var(--muted);font-weight:400;margin-top:6px;">Upload your CV, passport, TRC card and more.</p></div>`; return; }
     box.innerHTML=docs.map(x=>{
       const label=DOC_TYPE_LABELS[x.doc_type]||x.original_name||x.doc_type||"Document";
+      const isImg=/\.(png|jpe?g|gif|webp|bmp)$/i.test(x.file_path||"");
       const isPdf=/\.pdf$/i.test(x.file_path||"");
+      const url=fileUrl(x.file_path);
+      // Images preview inside the app; PDFs/others open via a real link (reliable in WebView).
+      const viewBtn = isImg
+        ? `<button onclick="viewDoc('${esc(x.file_path)}','${esc(label)}')">View</button>`
+        : `<a class="mydoc-viewbtn" href="${esc(url)}" target="_blank" rel="noopener">View</a>`;
       return `<div class="mydoc-card">
         <div class="mydoc-top">
-          <div class="mydoc-ic">${isPdf?"📄":"🖼️"}</div>
+          <div class="mydoc-ic">${isPdf?"📄":(isImg?"🖼️":"📎")}</div>
           <div class="mydoc-info"><div class="mydoc-name">${esc(label)}</div>
             <div class="mydoc-file">${esc(x.original_name||"")}</div></div>
         </div>
         <div class="mydoc-actions">
-          <button onclick="viewDoc('${esc(x.file_path)}','${esc(label)}')">View</button>
+          ${viewBtn}
           <button onclick="replaceDoc(${x.id},'${esc(x.doc_type)}')">Replace</button>
           <button class="danger" onclick="deleteDoc(${x.id},'${esc(label)}')">Delete</button>
         </div>
@@ -1025,23 +1031,31 @@ async function renderMyDocs(){
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
 
+/* Open a document. Images preview inline (works in WebView); PDFs/other open
+   in the device browser — the same reliable approach the admin panel uses
+   (iframe PDFs render blank inside the Android WebView). */
+function openDocExternal(url){
+  try{
+    if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Browser){
+      window.Capacitor.Plugins.Browser.open({url}); return;
+    }
+  }catch(e){}
+  window.open(url,"_blank","noopener");
+}
 function viewDoc(path, title){
   const url=fileUrl(path);
-  document.getElementById("dv-title").textContent=title||"Document";
-  const body=document.getElementById("dv-body");
-  const isPdf=/\.pdf$/i.test(path||"");
   const isImg=/\.(png|jpe?g|gif|webp|bmp)$/i.test(path||"");
   if(isImg){
-    body.innerHTML=`<div style="height:100%;overflow:auto;display:flex;align-items:center;justify-content:center;padding:12px;"><img src="${esc(url)}" style="max-width:100%;height:auto;border-radius:8px;"></div>`;
-  } else if(isPdf){
-    // In-app PDF: use an object/iframe. Works in Android WebView.
-    body.innerHTML=`<iframe src="${esc(url)}" style="width:100%;height:100%;border:none;"></iframe>
-      <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;">
-        <a href="${esc(url)}" target="_blank" style="background:var(--yellow);color:#111;padding:10px 18px;border-radius:20px;font-weight:700;text-decoration:none;">Open full screen</a></div>`;
-  } else {
-    body.innerHTML=`<div style="padding:24px;text-align:center;">Preview not available. <a href="${esc(url)}" target="_blank" style="color:var(--blue);">Open document</a></div>`;
+    // Image: preview inside the app.
+    document.getElementById("dv-title").textContent=title||"Document";
+    document.getElementById("dv-body").innerHTML=
+      `<div style="height:100%;overflow:auto;display:flex;align-items:center;justify-content:center;padding:12px;background:#f1f2f5;">
+        <img src="${esc(url)}" style="max-width:100%;height:auto;border-radius:8px;"></div>`;
+    go("s-docview");
+    return;
   }
-  go("s-docview");
+  // PDF / doc / anything else → open in the device browser (reliable).
+  openDocExternal(url);
 }
 
 async function deleteDoc(id, label){

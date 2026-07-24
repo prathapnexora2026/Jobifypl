@@ -335,6 +335,8 @@
   .read-tick svg{width:16px;height:16px;stroke:#4B5563;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
   .read-tick.read svg{stroke:#2563EB;}
   .bubble.me .bt{opacity:.7;}
+  .bubble{-webkit-user-select:none;user-select:none;} .bubble.sel{outline:2px solid #2563EB;outline-offset:2px;}
+  .rnoti{-webkit-user-select:none;user-select:none;} .rnoti.sel{background:rgba(37,99,235,.12);border:1px solid #2563EB;}
 
   /* centered popup modal */
   .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(2px);z-index:160;display:none;align-items:center;justify-content:center;padding:24px;}
@@ -1053,13 +1055,49 @@ async function openRecChat(cid){
   updateBackBtn();
   try{ const d=await api("/chat/"+cid+"/messages");
     document.getElementById("chat-name").textContent=d.other_name||nm;
-    const b=document.getElementById("chat-body");
-    b.innerHTML=d.messages.length?d.messages.map(m=>`
-      <div class="bubble ${m.mine?'me':'them'}">${!m.mine?`<div class="who">${esc(d.other_name)}</div>`:""}${esc(m.body)}<span class="bt">${esc(fmtT(m.time))}${m.mine?tick(m.read):""}</span></div>`).join(""):`<div class="empty" style="margin:auto;">No messages yet — say hello 👋</div>`;
-    b.scrollTop=1e9;
+    _recChatMsgs=d.messages||[]; _recOtherName=d.other_name||nm; _recSelMsgs.clear();
+    recPaintChat();
     // refresh list unread counts in the background (without leaving the chat)
     api("/chat/conversations").then(r=>{recConvs=r.conversations||[];}).catch(()=>{});
   }catch(e){ document.getElementById("chat-body").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
+let _recChatMsgs=[], _recSelMsgs=new Set(), _recOtherName="", _recLp=null;
+function recPaintChat(){
+  const b=document.getElementById("chat-body");
+  b.innerHTML=_recChatMsgs.length?_recChatMsgs.map(m=>{
+    const sel=_recSelMsgs.has(m.id);
+    const body=m.deleted?`<i style="opacity:.6;">${esc(m.body)}</i>`:esc(m.body);
+    return `<div class="bubble ${m.mine?'me':'them'} ${sel?'sel':''}" data-mid="${m.id}"
+      oncontextmenu="event.preventDefault();recToggleMsgSel(${m.id})"
+      ontouchstart="recMsgTouchStart(${m.id})" ontouchend="recMsgTouchEnd()"
+      onclick="if(_recSelMsgs.size)recToggleMsgSel(${m.id})">
+      ${!m.mine?`<div class="who">${esc(_recOtherName)}</div>`:""}${body}<span class="bt">${esc(fmtT(m.time))}${m.mine&&!m.deleted?tick(m.read):""}</span></div>`;
+  }).join(""):`<div class="empty" style="margin:auto;">No messages yet — say hello 👋</div>`;
+  if(!_recSelMsgs.size) b.scrollTop=1e9;
+  recUpdateSelBar();
+}
+function recMsgTouchStart(id){ _recLp=setTimeout(()=>{ recToggleMsgSel(id); if(navigator.vibrate)navigator.vibrate(30); },450); }
+function recMsgTouchEnd(){ if(_recLp){ clearTimeout(_recLp); _recLp=null; } }
+function recToggleMsgSel(id){ if(_recSelMsgs.has(id))_recSelMsgs.delete(id); else _recSelMsgs.add(id);
+  document.querySelectorAll("#chat-body .bubble").forEach(el=>el.classList.toggle("sel",_recSelMsgs.has(parseInt(el.dataset.mid)))); recUpdateSelBar(); }
+function recUpdateSelBar(){
+  let bar=document.getElementById("rec-chat-selbar");
+  if(!_recSelMsgs.size){ if(bar) bar.remove(); return; }
+  const allMine=[..._recSelMsgs].every(id=>{ const m=_recChatMsgs.find(x=>x.id===id); return m&&m.mine&&!m.deleted; });
+  if(!bar){ bar=document.createElement("div"); bar.id="rec-chat-selbar"; document.getElementById("msg-chat-view").appendChild(bar);
+    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;display:flex;gap:10px;align-items:center;z-index:120;box-shadow:0 -4px 16px rgba(0,0,0,.08);"; }
+  bar.innerHTML=`<div style="flex:1;font-weight:700;">${_recSelMsgs.size} selected</div>
+    <button onclick="recDeleteChatSel('me')" style="background:#F1F5F9;border:none;border-radius:9px;padding:9px 14px;font-weight:700;">Delete for me</button>
+    ${allMine?`<button onclick="recDeleteChatSel('everyone')" style="background:#FDEBEC;color:#D6455D;border:none;border-radius:9px;padding:9px 14px;font-weight:700;">Delete for everyone</button>`:''}
+    <button onclick="recClearChatSel()" style="background:none;border:none;color:#64748B;">Cancel</button>`;
+}
+function recClearChatSel(){ _recSelMsgs.clear(); document.querySelectorAll("#chat-body .bubble.sel").forEach(el=>el.classList.remove("sel")); recUpdateSelBar(); }
+async function recDeleteChatSel(scope){
+  const ids=[..._recSelMsgs]; if(!ids.length) return;
+  if(scope==="everyone" && !confirm("Delete for everyone? This can't be undone.")) return;
+  try{ await api("/chat/"+recCurConv+"/delete-messages",{method:"POST",body:{message_ids:ids,scope}});
+    _recSelMsgs.clear(); openRecChat(recCurConv);
+  }catch(e){ alert(e.message); }
 }
 function closeRecChat(){ loadConvs(); }
 function fmtT(iso){ if(!iso)return""; const d=new Date(iso); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }

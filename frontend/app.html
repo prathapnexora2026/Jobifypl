@@ -683,6 +683,19 @@
     </div>
   </div>
 
+  <!-- payment result: success / pending / failed -->
+  <div class="pop-bg" id="pop-payresult">
+    <div class="pop" style="text-align:center;">
+      <div id="pr-icon" style="width:72px;height:72px;border-radius:50%;margin:4px auto 14px;display:flex;align-items:center;justify-content:center;font-size:38px;"></div>
+      <h3 id="pr-title" style="margin:0 0 6px;">Payment</h3>
+      <p id="pr-msg" style="margin:0 0 6px;"></p>
+      <div id="pr-amount" style="font-size:26px;font-weight:800;margin:8px 0;"></div>
+      <div id="pr-sub" style="color:var(--slate);font-size:13px;margin-bottom:14px;"></div>
+      <button class="btn" id="pr-primary" onclick="closePayResult()">Done</button>
+      <button class="later" id="pr-secondary" style="display:none;" onclick="closePayResult()">Close</button>
+    </div>
+  </div>
+
   <div id="toast"></div>
 </div>
 
@@ -1269,50 +1282,87 @@ async function doTopup(){
   try{
     const r=await api("/wallet/topup-checkout",{method:"POST",body:{amount:amt}});
     document.getElementById("pop-topup").classList.remove("show");
-    if(r.paid){ toast(`Added ${amt} PLN`); loadWallet(); return; }          // test-mode instant
-    // Real PayU: open checkout, then poll for completion.
-    await runPayuCheckout(r.redirect_url, r.ext_order_id, ()=>{ toast("Wallet topped up"); loadWallet(); });
+    if(r.paid){ showPayResult("success",{amount:amt, kind:"wallet"}); loadWallet(); return; }  // test-mode instant
+    // Real PayU: remember what we're paying for, then open checkout.
+    startPayuCheckout(r.redirect_url, r.ext_order_id, {amount:amt, kind:"wallet"});
   }catch(e){ toast(e.message); }
 }
 
-/* Open PayU hosted checkout and wait for the payment to complete.
-
-   The app is a webview loading the site, so we remember which payment is in
-   flight (sessionStorage) and navigate the SAME window to PayU. After paying,
-   PayU's continueUrl returns the user to the app; on load we detect the pending
-   payment and poll /plans/payment-status until the verified webhook confirms it.
-   A same-session poll also runs in case the window stays open (web/new tab). */
-function runPayuCheckout(url, ext, onSuccess){
-  if(!url){ toast("Could not start payment"); return; }
-  try{ sessionStorage.setItem("payu_pending", JSON.stringify({ext, ts:Date.now()})); }catch(e){}
-  _payuSuccessCb = onSuccess || null;
-  // Navigate this window to PayU's secure checkout.
-  window.location.href = url;
+/* ---- Payment result popup (branded) ---- */
+function closePayResult(){ document.getElementById("pop-payresult").classList.remove("show"); }
+function showPayResult(state, info){
+  info=info||{};
+  const bg=document.getElementById("pop-payresult");
+  const icon=document.getElementById("pr-icon"), title=document.getElementById("pr-title");
+  const msg=document.getElementById("pr-msg"), amt=document.getElementById("pr-amount");
+  const sub=document.getElementById("pr-sub"), prim=document.getElementById("pr-primary");
+  const label = info.kind==="plan" ? "Plan" : "Wallet top-up";
+  if(state==="pending"){
+    icon.style.background="#FFF6E5"; icon.textContent="⏳";
+    title.textContent="Confirming payment…";
+    msg.textContent="Please wait while we confirm your payment.";
+    amt.textContent=""; sub.textContent="This can take a few seconds.";
+    prim.textContent="Please wait"; prim.disabled=true;
+  } else if(state==="success"){
+    icon.style.background="#E6F7EC"; icon.textContent="✅";
+    title.textContent="Payment successful";
+    msg.textContent = info.kind==="plan" ? "Your plan is now active." : "Amount added to your wallet.";
+    amt.textContent = info.amount!=null ? ("+ "+Math.round(info.amount)+" PLN") : "";
+    amt.style.color="var(--green)";
+    sub.textContent="A receipt is saved in your transactions.";
+    prim.textContent="Done"; prim.disabled=false;
+  } else if(state==="failed"){
+    icon.style.background="#FDEBEC"; icon.textContent="❌";
+    title.textContent="Payment not completed";
+    msg.textContent="Your payment was cancelled or failed. No amount was deducted.";
+    amt.textContent=""; sub.textContent="You can try again anytime.";
+    prim.textContent="Close"; prim.disabled=false;
+  }
+  bg.classList.add("show");
 }
 
-let _payuSuccessCb=null;
-/* Poll the backend until a pending payment is confirmed, then run the callback
-   (or just refresh wallet/plans). Called on app load and after checkout. */
+/* Open PayU hosted checkout. The app is a webview, so we remember the pending
+   payment (localStorage) and navigate the same window to PayU. On return,
+   resumePendingPayu() polls /plans/payment-status and shows the result popup. */
+function startPayuCheckout(url, ext, info){
+  if(!url){ toast("Could not start payment"); return; }
+  try{ localStorage.setItem("payu_pending", JSON.stringify({ext, info, ts:Date.now()})); }catch(e){}
+  window.location.href = url;   // go to PayU secure checkout
+}
+
+/* On app (re)load, if a payment was in flight, show the pending popup and poll
+   until the verified webhook marks it paid/failed — then show success/failed. */
 async function resumePendingPayu(){
   let pend=null;
-  try{ pend=JSON.parse(sessionStorage.getItem("payu_pending")||"null"); }catch(e){}
+  try{ pend=JSON.parse(localStorage.getItem("payu_pending")||"null"); }catch(e){}
   if(!pend||!pend.ext) return;
-  // Give up on payments older than 30 min.
-  if(Date.now()-(pend.ts||0) > 30*60*1000){ sessionStorage.removeItem("payu_pending"); return; }
+  if(Date.now()-(pend.ts||0) > 30*60*1000){ localStorage.removeItem("payu_pending"); return; }
+  const info=pend.info||{};
+  showPayResult("pending", info);
   const started=Date.now();
   const iv=setInterval(async()=>{
     try{
       const s=await api("/plans/payment-status/"+encodeURIComponent(pend.ext));
       if(s.payment_status==="paid"||s.fulfilled){
-        clearInterval(iv); sessionStorage.removeItem("payu_pending");
-        toast("Payment successful");
-        if(_payuSuccessCb){ _payuSuccessCb(); _payuSuccessCb=null; }
-        loadWallet&&loadWallet(); (typeof loadPlans==="function")&&loadPlans();
+        clearInterval(iv); localStorage.removeItem("payu_pending");
+        showPayResult("success", info);
+        loadWallet&&loadWallet();
+        (typeof loadPlans==="function")&&loadPlans();
+        (typeof loadWalletTransactions==="function")&&loadWalletTransactions();
       } else if(s.payment_status==="failed"){
-        clearInterval(iv); sessionStorage.removeItem("payu_pending"); toast("Payment was not completed");
+        clearInterval(iv); localStorage.removeItem("payu_pending");
+        showPayResult("failed", info);
       }
     }catch(e){}
-    if(Date.now()-started > 3*60*1000) clearInterval(iv);   // stop polling after 3 min
+    // After 3 min with no confirmation, stop and tell the user to check history.
+    if(Date.now()-started > 3*60*1000){
+      clearInterval(iv); localStorage.removeItem("payu_pending");
+      const sub=document.getElementById("pr-sub");
+      showPayResult("pending", info);
+      document.getElementById("pr-title").textContent="Still processing";
+      document.getElementById("pr-msg").textContent="If money was deducted, it will reflect shortly. Check your transactions.";
+      const prim=document.getElementById("pr-primary"); prim.textContent="OK"; prim.disabled=false;
+    }
   },2500);
 }
 // Resume any payment that was in flight when the app (re)loads.
@@ -1349,7 +1399,11 @@ function closePayChoice(){ document.getElementById("pop-paychoice").classList.re
 
 async function payFromWallet(){
   const id=_payPlanId; closePayChoice();
-  try{ await api("/plans/purchase",{method:"POST",body:{plan_id:id}}); toast("Plan activated"); loadPlans(); loadWallet&&loadWallet(); }
+  try{
+    await api("/plans/purchase",{method:"POST",body:{plan_id:id}});
+    showPayResult("success",{kind:"plan"});
+    loadPlans(); loadWallet&&loadWallet();
+  }
   catch(e){ if(/balance|insufficient|fund/i.test(e.message)){ toast("Insufficient balance. Please top up."); } else { toast(e.message); } }
 }
 
@@ -1357,8 +1411,8 @@ async function payDirect(){
   const id=_payPlanId; closePayChoice();
   try{
     const r=await api("/plans/checkout",{method:"POST",body:{plan_id:id}});
-    if(r.paid){ toast("Plan activated"); loadPlans(); return; }             // test-mode instant
-    await runPayuCheckout(r.redirect_url, r.ext_order_id, ()=>{ toast("Plan activated"); loadPlans(); });
+    if(r.paid){ showPayResult("success",{kind:"plan"}); loadPlans(); return; }   // test-mode instant
+    startPayuCheckout(r.redirect_url, r.ext_order_id, {kind:"plan"});
   }catch(e){ toast(e.message); }
 }
 

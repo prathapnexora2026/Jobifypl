@@ -65,18 +65,24 @@ def health():
 
 # APK download for testers. Serves the latest Android build as a file download
 # so testers can install it directly from the site (no Play Store needed yet).
-APK_FILE = DOWNLOADS_DIR / "JobifyPL.apk"
+#
+# The APK ships WITH the code (committed to the repo's downloads/ folder), so it
+# is served from there — not the persistent disk. We still fall back to the disk
+# copy (/data/downloads) in case an APK is uploaded there manually.
+REPO_DOWNLOADS = Path(__file__).resolve().parent.parent / "downloads"
+APK_CANDIDATES = [REPO_DOWNLOADS / "JobifyPL.apk", DOWNLOADS_DIR / "JobifyPL.apk"]
 
 
 @app.get("/download/app")
 def download_apk():
-    if not APK_FILE.exists():
-        raise HTTPException(status_code=404, detail="APK not available yet")
-    return FileResponse(
-        APK_FILE,
-        media_type="application/vnd.android.package-archive",
-        filename="JobifyPL.apk",
-    )
+    for apk in APK_CANDIDATES:
+        if apk.exists():
+            return FileResponse(
+                apk,
+                media_type="application/vnd.android.package-archive",
+                filename="JobifyPL.apk",
+            )
+    raise HTTPException(status_code=404, detail="APK not available yet")
 
 
 # Serve the frontend directory (index.html, recruiter.html, assets).

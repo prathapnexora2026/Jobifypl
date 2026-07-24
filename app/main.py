@@ -17,6 +17,11 @@ from app.routers import auth, candidate, jobs, recruiter, wallet, misc, admin, p
 # Create tables (dev convenience; production uses Alembic migrations later).
 Base.metadata.create_all(bind=engine)
 
+# Apply tiny column migrations that create_all can't (e.g. new columns on
+# existing tables). Safe + idempotent — see app/migrate.py.
+from app.migrate import run_migrations
+run_migrations()
+
 # Seed the default subscription plans on first boot (only if the table is empty),
 # so the admin and users see the standard plans immediately on a fresh database.
 from app.seed_plans import seed_default_plans

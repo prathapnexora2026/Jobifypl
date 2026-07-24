@@ -536,6 +536,14 @@
       <button class="back" onclick="go('home')">← Back to Dashboard</button>
       <h2 class="page-title">Edit Admin Profile</h2>
       <div class="card" style="max-width:640px;">
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px;">
+          <div id="p-photo" style="width:88px;height:88px;border-radius:50%;background:#E2E8F0;display:grid;place-items:center;font-size:40px;overflow:hidden;">👤</div>
+          <div>
+            <button class="btn-sm btn-dark" onclick="document.getElementById('p-photo-input').click()">Change Photo</button>
+            <div style="font-size:12px;color:#94A3B8;margin-top:6px;">JPG / PNG, up to a few MB.</div>
+          </div>
+          <input type="file" id="p-photo-input" accept="image/*" style="display:none;" onchange="uploadAdminPhoto(this)">
+        </div>
         <label>Full name</label><input id="p-name" />
         <label>Email address</label><input id="p-email" type="email" />
         <label>Phone number</label><input id="p-phone" disabled />
@@ -1245,7 +1253,19 @@ async function loadProfile(){
   try{ const d=(await api("/admin/profile")).data;
     document.getElementById("p-name").value=d.full_name||""; document.getElementById("p-email").value=d.email||"";
     document.getElementById("p-phone").value=d.phone||"";
+    const ph=document.getElementById("p-photo");
+    ph.innerHTML = d.photo ? `<img src="${imgUrl(d.photo)}" style="width:100%;height:100%;object-fit:cover;">` : "👤";
   }catch(e){}
+}
+async function uploadAdminPhoto(inp){
+  if(!inp.files||!inp.files[0]) return;
+  const fd=new FormData(); fd.append("file",inp.files[0]);
+  try{
+    const r=await api("/admin/profile/photo",{method:"POST",body:fd});
+    document.getElementById("p-photo").innerHTML=`<img src="${imgUrl(r.photo)}" style="width:100%;height:100%;object-fit:cover;">`;
+    // also update the top-right avatar
+    const ta=document.getElementById("topAvatar"); if(ta) ta.innerHTML=`<img src="${imgUrl(r.photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+  }catch(e){ alert(e.message); }
 }
 async function saveProfile(){
   try{ await api("/admin/profile",{method:"PUT",body:{full_name:document.getElementById("p-name").value,email:document.getElementById("p-email").value}});

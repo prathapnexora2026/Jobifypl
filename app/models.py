@@ -36,6 +36,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=now)
     last_login_at = Column(DateTime, nullable=True)
+    photo = Column(String(255), nullable=True)   # admin profile photo (path)
 
     candidate_profile = relationship("CandidateProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     recruiter_profile = relationship("RecruiterProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")

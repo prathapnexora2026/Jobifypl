@@ -5,7 +5,9 @@ admin panel: dashboard stats, users, jobs, applications, plans, payments, logs.
 """
 import datetime as dt
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+
+from app.paths import UPLOADS_DIR
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -519,8 +521,26 @@ def admin_profile(db: Session = Depends(get_db), admin: User = Depends(require_a
         "data": {
             "id": admin.id, "full_name": admin.full_name or "",
             "email": admin.email or "", "phone": admin.phone,
+            "photo": getattr(admin, "photo", None) or "",
         },
     }
+
+
+@router.post("/profile/photo")
+def admin_upload_photo(file: UploadFile = File(...),
+                       db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    """Upload/replace the admin's profile photo. Saved to the uploads disk."""
+    import uuid, os
+    ext = os.path.splitext(file.filename or "")[1].lower() or ".jpg"
+    if ext not in (".jpg", ".jpeg", ".png", ".webp", ".gif"):
+        raise HTTPException(400, "Image files only")
+    safe = f"admin_{admin.id}_{uuid.uuid4().hex}{ext}"
+    dest = UPLOADS_DIR / safe
+    with dest.open("wb") as out:
+        out.write(file.file.read())
+    admin.photo = f"/uploads/{safe}"
+    db.commit()
+    return {"status": "success", "photo": admin.photo}
 
 
 class AdminProfileIn(BaseModel):

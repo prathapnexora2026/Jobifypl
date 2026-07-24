@@ -17,6 +17,11 @@ from app.routers import auth, candidate, jobs, recruiter, wallet, misc, admin, p
 # Create tables (dev convenience; production uses Alembic migrations later).
 Base.metadata.create_all(bind=engine)
 
+# Seed the default subscription plans on first boot (only if the table is empty),
+# so the admin and users see the standard plans immediately on a fresh database.
+from app.seed_plans import seed_default_plans
+seed_default_plans()
+
 app = FastAPI(title="JobifyPL API")
 
 # CORS — allow the website + Capacitor app origins (learned this the hard way!).

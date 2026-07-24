@@ -926,8 +926,17 @@ function renderCandTab(d,tab){
       ["Languages Known",d.languages],["Applications",d.applications_count],
     ];
     const docs=d.documents||[];
+    const cbal=(d.wallet_balance!=null?Math.round(d.wallet_balance):0), ccur=d.wallet_currency||"PLN";
     return `<h4>Candidate Overview</h4>
       <div class="kv">${rows.map(([k,v])=>`<div><div class="k">${k}</div><div class="v">${esc(v||"—")}</div></div>`).join("")}</div>
+      <!-- Admin manual wallet credit (real admin-issued credit, no PayU). -->
+      <h4 style="margin-top:32px;">Wallet</h4>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <div style="font-size:22px;font-weight:800;">${cbal} ${esc(ccur)}</div>
+        <input id="adm-cwal-amt" type="number" min="1" placeholder="Amount (${esc(ccur)})"
+          style="padding:10px 12px;border:1px solid #d5d9e0;border-radius:8px;width:150px;">
+        <button class="msg-btn indigo solid" onclick="adminAddWalletCandidate(${d.id})">+ Add wallet amount</button>
+      </div>
       <h4 style="margin-top:36px;">Documents (${docs.length})</h4>
       <div class="grid2">${docs.length?docs.map(x=>`
         <div class="doc-row"><div class="dl"><span class="fi">📄</span>${esc(x.name||x.type)}</div>
@@ -997,7 +1006,7 @@ function renderPlanTab(d,cls,badge){
   </div>`;
 }
 
-// TEST-ONLY: admin manually credits a recruiter's wallet. Remove before launch.
+// Admin manually credits a recruiter's wallet (real admin-issued credit).
 async function adminAddWallet(userId){
   const el=document.getElementById("adm-wal-amt");
   const amt=parseFloat(el&&el.value);
@@ -1006,6 +1015,18 @@ async function adminAddWallet(userId){
     await api("/admin/recruiter/"+userId+"/add-wallet",{method:"POST",body:{amount:amt}});
     alert("Added "+amt+" to wallet.");
     openDetail("Recruiter",userId);   // reload to show new balance
+  }catch(e){ alert(e.message); }
+}
+
+// Admin manually credits a candidate's wallet (real admin-issued credit).
+async function adminAddWalletCandidate(userId){
+  const el=document.getElementById("adm-cwal-amt");
+  const amt=parseFloat(el&&el.value);
+  if(!amt||amt<=0){ alert("Enter a valid amount"); return; }
+  try{
+    await api("/admin/candidate/"+userId+"/add-wallet",{method:"POST",body:{amount:amt}});
+    alert("Added "+amt+" to wallet.");
+    openDetail("Candidate",userId);   // reload to show new balance
   }catch(e){ alert(e.message); }
 }
 

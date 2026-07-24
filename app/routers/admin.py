@@ -186,6 +186,7 @@ def candidate_detail(user_id: int, db: Session = Depends(get_db), admin: User = 
             "start_date": us.start_date.isoformat() if us.start_date else None,
             "end_date": us.end_date.isoformat() if us.end_date else None,
         }
+    cwal = db.query(Wallet).filter(Wallet.user_id == user_id).first()
     return {
         "status": "success",
         "data": {
@@ -196,6 +197,8 @@ def candidate_detail(user_id: int, db: Session = Depends(get_db), admin: User = 
             "nationality": cp.nationality if cp else "", "qualification": cp.qualification if cp else "",
             "is_student": cp.is_student if cp else False, "languages": cp.languages if cp else "",
             "profile_photo": cp.profile_photo if cp else "",
+            "wallet_balance": cwal.balance if cwal else 0.0,
+            "wallet_currency": cwal.currency if cwal else "PLN",
             "documents": [{"type": d.doc_type, "file": d.file_path, "name": d.original_name} for d in docs],
             "applications_count": len(applied_jobs),
             "applied_jobs": applied_jobs,
@@ -271,6 +274,29 @@ def admin_add_wallet(user_id: int, body: AddWalletIn,
     w.balance += body.amount
     db.add(WalletTransaction(user_id=user_id, amount=body.amount, type="credit",
                             reason="Admin credit (test)"))
+    db.add(Notification(user_id=user_id, title="Wallet credited",
+                        body=f"Admin added {body.amount:.2f} PLN to your wallet."))
+    db.commit()
+    return {"status": "success", "balance": w.balance}
+
+
+@router.post("/candidate/{user_id}/add-wallet")
+def admin_add_wallet_candidate(user_id: int, body: AddWalletIn,
+                               db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    """Admin manually credits a CANDIDATE's wallet (no PayU — a real admin-issued
+    credit). Same behaviour as the recruiter version. Removable before launch."""
+    u = db.query(User).filter(User.id == user_id, User.role == Role.candidate).first()
+    if not u:
+        raise HTTPException(404, "Candidate not found")
+    if body.amount <= 0:
+        raise HTTPException(400, "Amount must be positive")
+    w = db.query(Wallet).filter(Wallet.user_id == user_id).first()
+    if not w:
+        w = Wallet(user_id=user_id, balance=0.0, currency="PLN")
+        db.add(w); db.flush()
+    w.balance += body.amount
+    db.add(WalletTransaction(user_id=user_id, amount=body.amount, type="credit",
+                            reason="Admin credit"))
     db.add(Notification(user_id=user_id, title="Wallet credited",
                         body=f"Admin added {body.amount:.2f} PLN to your wallet."))
     db.commit()

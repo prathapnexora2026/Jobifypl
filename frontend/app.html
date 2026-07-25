@@ -49,6 +49,12 @@
   .fakeinp .ico{color:#9AA1AC;display:flex;} .fakeinp .cav{margin-left:auto;color:#9AA1AC;display:flex;}
   .field-ico{position:relative;}
   .field-ico .inp{padding-left:46px;} .field-ico .lead{position:absolute;left:14px;top:14px;color:#9AA1AC;display:flex;}
+  /* country-code phone input */
+  .phone-row{display:flex;gap:8px;align-items:stretch;}
+  .ccpick{display:flex;align-items:center;gap:6px;padding:0 12px;border:1px solid #E2E8F0;border-radius:12px;background:#fff;cursor:pointer;white-space:nowrap;}
+  .ccpick .ccflag{font-size:20px;} .ccpick .ccdial{font-weight:700;color:var(--ink);} .ccpick .ccarrow{color:#9AA1AC;display:flex;}
+  .cc-item{display:flex;align-items:center;gap:12px;padding:12px 18px;cursor:pointer;}
+  .cc-item:hover{background:#F1F5F9;} .cc-item .f{font-size:22px;} .cc-item .n{flex:1;font-weight:600;color:var(--ink);} .cc-item .d{color:var(--muted);font-weight:700;}
 
   .cv-photo{width:120px;height:120px;border-radius:50%;background:#EDF0F5;margin:6px auto 0;display:grid;place-items:center;color:#9AA1AC;position:relative;}
   .cv-photo .cam{position:absolute;bottom:2px;right:6px;width:38px;height:38px;border-radius:50%;background:var(--yellow);display:grid;place-items:center;border:3px solid #fff;cursor:pointer;color:#111;}
@@ -407,7 +413,14 @@
     <div class="signin-card">
       <div id="si-phone">
         <h2>Sign in to your account</h2><div class="subt">Enter your mobile number to continue</div>
-        <label>Mobile Number</label><input class="inp" id="si-num" type="tel" placeholder="+48 512 345 678">
+        <label>Mobile Number</label>
+        <div class="phone-row">
+          <div class="ccpick" id="si-cc" onclick="openCCPicker('si')">
+            <span class="ccflag" id="si-cc-flag">🇵🇱</span><span class="ccdial" id="si-cc-dial">+48</span>
+            <span class="ccarrow" data-ic="chevron-down"></span>
+          </div>
+          <input class="inp" id="si-num" type="tel" inputmode="numeric" placeholder="512 345 678" style="flex:1;margin:0;">
+        </div>
         <button class="btn" style="margin-top:18px;" id="si-send" onclick="siSend()">Send OTP</button>
         <button class="linkbtn" onclick="go('s-role')">Change role</button>
       </div>
@@ -753,6 +766,17 @@
     </div>
   </div>
 
+  <!-- country code picker -->
+  <div class="pop-bg" id="pop-ccpick">
+    <div class="pop" style="max-width:420px;height:70vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
+      <div style="padding:16px 16px 10px;border-bottom:1px solid #EEF0F3;">
+        <h3 style="margin:0 0 10px;">Select country</h3>
+        <input id="cc-search" placeholder="Search country or code…" oninput="renderCCList(this.value)" style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:10px;font-size:15px;">
+      </div>
+      <div id="cc-list" style="flex:1;overflow-y:auto;padding:6px 0;"></div>
+    </div>
+  </div>
+
   <!-- full-screen profile photo viewer (WhatsApp/Insta style) -->
   <div id="photo-viewer" onclick="closePhotoViewer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;align-items:center;justify-content:center;flex-direction:column;">
     <div id="pv-name" style="color:#fff;font-weight:700;font-size:17px;margin-bottom:14px;"></div>
@@ -925,6 +949,50 @@ document.addEventListener("DOMContentLoaded",function(){
   }
 });
 
+/* ============ COUNTRY CODE PICKER ============ */
+// Client's target countries (Europe live now; Asian ones deliver once registered later).
+const COUNTRIES=[
+  {n:"Poland",d:"+48",f:"🇵🇱"},{n:"Germany",d:"+49",f:"🇩🇪"},{n:"United Kingdom",d:"+44",f:"🇬🇧"},
+  {n:"Netherlands",d:"+31",f:"🇳🇱"},{n:"Spain",d:"+34",f:"🇪🇸"},{n:"Italy",d:"+39",f:"🇮🇹"},
+  {n:"Portugal",d:"+351",f:"🇵🇹"},{n:"France",d:"+33",f:"🇫🇷"},{n:"Belgium",d:"+32",f:"🇧🇪"},
+  {n:"Austria",d:"+43",f:"🇦🇹"},{n:"Sweden",d:"+46",f:"🇸🇪"},{n:"Denmark",d:"+45",f:"🇩🇰"},
+  {n:"Finland",d:"+358",f:"🇫🇮"},{n:"Norway",d:"+47",f:"🇳🇴"},{n:"Ireland",d:"+353",f:"🇮🇪"},
+  {n:"Czechia",d:"+420",f:"🇨🇿"},{n:"Slovakia",d:"+421",f:"🇸🇰"},{n:"Slovenia",d:"+386",f:"🇸🇮"},
+  {n:"Croatia",d:"+385",f:"🇭🇷"},{n:"Hungary",d:"+36",f:"🇭🇺"},{n:"Romania",d:"+40",f:"🇷🇴"},
+  {n:"Bulgaria",d:"+359",f:"🇧🇬"},{n:"Serbia",d:"+381",f:"🇷🇸"},{n:"Lithuania",d:"+370",f:"🇱🇹"},
+  {n:"Latvia",d:"+371",f:"🇱🇻"},{n:"Estonia",d:"+372",f:"🇪🇪"},{n:"Malta",d:"+356",f:"🇲🇹"},
+  {n:"Albania",d:"+355",f:"🇦🇱"},{n:"Ukraine",d:"+380",f:"🇺🇦"},{n:"Turkey",d:"+90",f:"🇹🇷"},
+  {n:"Russia",d:"+7",f:"🇷🇺"},{n:"Greece",d:"+30",f:"🇬🇷"},{n:"Switzerland",d:"+41",f:"🇨🇭"},
+  {n:"India",d:"+91",f:"🇮🇳"},{n:"Nepal",d:"+977",f:"🇳🇵"},{n:"Sri Lanka",d:"+94",f:"🇱🇰"},
+  {n:"Philippines",d:"+63",f:"🇵🇭"},{n:"Indonesia",d:"+62",f:"🇮🇩"},{n:"Bangladesh",d:"+880",f:"🇧🇩"},
+  {n:"United States",d:"+1",f:"🇺🇸"},{n:"United Arab Emirates",d:"+971",f:"🇦🇪"},
+];
+let _ccTarget="si", _ccSel={si:{d:"+48",f:"🇵🇱"}, rec:{d:"+48",f:"🇵🇱"}};
+function openCCPicker(which){ _ccTarget=which; document.getElementById("cc-search").value=""; renderCCList(""); document.getElementById("pop-ccpick").classList.add("show"); }
+function closeCCPicker(){ document.getElementById("pop-ccpick").classList.remove("show"); }
+function renderCCList(q){
+  const ql=(q||"").toLowerCase().trim();
+  const list=COUNTRIES.filter(c=>c.n.toLowerCase().includes(ql)||c.d.includes(ql));
+  document.getElementById("cc-list").innerHTML=list.map(c=>
+    `<div class="cc-item" onclick="pickCC('${c.d}','${c.f}')"><span class="f">${c.f}</span><span class="n">${esc(c.n)}</span><span class="d">${c.d}</span></div>`
+  ).join("")||`<div style="padding:20px;text-align:center;color:#94A3B8;">No match</div>`;
+}
+function pickCC(dial,flag){
+  _ccSel[_ccTarget]={d:dial,f:flag};
+  const pre=_ccTarget; // "si" or "rec"
+  const fEl=document.getElementById(pre+"-cc-flag"), dEl=document.getElementById(pre+"-cc-dial");
+  if(fEl) fEl.textContent=flag; if(dEl) dEl.textContent=dial;
+  closeCCPicker();
+}
+// Combine selected country code + typed number into full E.164 (+CCNUMBER).
+function fullPhone(which){
+  const dial=(_ccSel[which]&&_ccSel[which].d)||"+48";
+  const numEl=document.getElementById(which+"-num");
+  let num=(numEl?numEl.value:"").replace(/[^0-9]/g,"");   // digits only
+  num=num.replace(/^0+/,"");                               // drop leading 0 (local format)
+  return dial+num;
+}
+
 /* ============ ROLE + AUTH ============ */
 let role="candidate", authPhone="";
 function chooseRole(r){ role=r; if(r==="recruiter"){ window.location.href="recruiter.html"; return; } go("s-signin"); }
@@ -937,8 +1005,8 @@ function siMsg(t,k){ const m=document.getElementById("si-msg"); m.textContent=t;
 function siClear(){ document.getElementById("si-msg").className="msg"; }
 function siBack(){ document.getElementById("si-otp").style.display="none"; document.getElementById("si-phone").style.display="block"; siClear(); [...otpBox.children].forEach(x=>x.value=""); }
 async function siSend(){
-  siClear(); authPhone=document.getElementById("si-num").value.replace(/\s/g,"");
-  if(!authPhone.startsWith("+")||authPhone.length<8) return siMsg("Enter a valid phone with country code (+48…)","err");
+  siClear(); authPhone=fullPhone("si");   // country code (picker) + typed number
+  if(!authPhone.startsWith("+")||authPhone.replace(/\D/g,"").length<8) return siMsg("Enter a valid mobile number","err");
   const b=document.getElementById("si-send"); b.disabled=true; b.textContent="Sending…";
   try{ await api("/auth/send-otp",{method:"POST",body:{phone:authPhone,role:"candidate"}});
     document.getElementById("si-phone").style.display="none"; document.getElementById("si-otp").style.display="block";

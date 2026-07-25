@@ -48,6 +48,7 @@
   .ccpick .ccflag{font-size:20px;} .ccpick .ccdial{font-weight:700;} .ccpick .ccarrow{color:#9AA1AC;}
   .cc-item{display:flex;align-items:center;gap:12px;padding:12px 18px;cursor:pointer;}
   .cc-item:hover{background:#F1F5F9;} .cc-item .f{font-size:22px;} .cc-item .n{flex:1;font-weight:600;} .cc-item .d{color:#64748B;font-weight:700;}
+  .cc-item.cc-off{cursor:not-allowed;} .cc-item.cc-off:hover{background:#FEF2F2;}
   input::placeholder,textarea::placeholder{color:#9AA1AC;}
 
   /* fake-select (opens bottom sheet) */
@@ -738,20 +739,21 @@ function rMsg(t,k){ const m=document.getElementById("r-msg"); m.textContent=t; m
 function rClear(){ document.getElementById("r-msg").className="toast-msg"; }
 /* ===== Country-code picker (recruiter) ===== */
 const REC_COUNTRIES=[
-  {n:"Poland",d:"+48",f:"🇵🇱"},{n:"Germany",d:"+49",f:"🇩🇪"},{n:"United Kingdom",d:"+44",f:"🇬🇧"},
-  {n:"Netherlands",d:"+31",f:"🇳🇱"},{n:"Spain",d:"+34",f:"🇪🇸"},{n:"Italy",d:"+39",f:"🇮🇹"},
-  {n:"Portugal",d:"+351",f:"🇵🇹"},{n:"France",d:"+33",f:"🇫🇷"},{n:"Belgium",d:"+32",f:"🇧🇪"},
-  {n:"Austria",d:"+43",f:"🇦🇹"},{n:"Sweden",d:"+46",f:"🇸🇪"},{n:"Denmark",d:"+45",f:"🇩🇰"},
-  {n:"Finland",d:"+358",f:"🇫🇮"},{n:"Norway",d:"+47",f:"🇳🇴"},{n:"Ireland",d:"+353",f:"🇮🇪"},
-  {n:"Czechia",d:"+420",f:"🇨🇿"},{n:"Slovakia",d:"+421",f:"🇸🇰"},{n:"Slovenia",d:"+386",f:"🇸🇮"},
-  {n:"Croatia",d:"+385",f:"🇭🇷"},{n:"Hungary",d:"+36",f:"🇭🇺"},{n:"Romania",d:"+40",f:"🇷🇴"},
-  {n:"Bulgaria",d:"+359",f:"🇧🇬"},{n:"Serbia",d:"+381",f:"🇷🇸"},{n:"Lithuania",d:"+370",f:"🇱🇹"},
-  {n:"Latvia",d:"+371",f:"🇱🇻"},{n:"Estonia",d:"+372",f:"🇪🇪"},{n:"Malta",d:"+356",f:"🇲🇹"},
-  {n:"Albania",d:"+355",f:"🇦🇱"},{n:"Ukraine",d:"+380",f:"🇺🇦"},{n:"Turkey",d:"+90",f:"🇹🇷"},
-  {n:"Russia",d:"+7",f:"🇷🇺"},{n:"Greece",d:"+30",f:"🇬🇷"},{n:"Switzerland",d:"+41",f:"🇨🇭"},
-  {n:"India",d:"+91",f:"🇮🇳"},{n:"Nepal",d:"+977",f:"🇳🇵"},{n:"Sri Lanka",d:"+94",f:"🇱🇰"},
-  {n:"Philippines",d:"+63",f:"🇵🇭"},{n:"Indonesia",d:"+62",f:"🇮🇩"},{n:"Bangladesh",d:"+880",f:"🇧🇩"},
-  {n:"United States",d:"+1",f:"🇺🇸"},{n:"United Arab Emirates",d:"+971",f:"🇦🇪"},
+  {n:"Poland",d:"+48",f:"🇵🇱",a:true},{n:"Germany",d:"+49",f:"🇩🇪",a:true},{n:"United Kingdom",d:"+44",f:"🇬🇧",a:true},
+  {n:"Netherlands",d:"+31",f:"🇳🇱",a:true},{n:"Spain",d:"+34",f:"🇪🇸",a:true},{n:"Italy",d:"+39",f:"🇮🇹",a:true},
+  {n:"Portugal",d:"+351",f:"🇵🇹",a:true},{n:"France",d:"+33",f:"🇫🇷",a:true},{n:"Belgium",d:"+32",f:"🇧🇪",a:true},
+  {n:"Austria",d:"+43",f:"🇦🇹",a:true},{n:"Sweden",d:"+46",f:"🇸🇪",a:true},{n:"Denmark",d:"+45",f:"🇩🇰",a:true},
+  {n:"Finland",d:"+358",f:"🇫🇮",a:true},{n:"Norway",d:"+47",f:"🇳🇴",a:true},{n:"Ireland",d:"+353",f:"🇮🇪",a:true},
+  {n:"Czechia",d:"+420",f:"🇨🇿",a:true},{n:"Slovakia",d:"+421",f:"🇸🇰",a:true},{n:"Slovenia",d:"+386",f:"🇸🇮",a:true},
+  {n:"Croatia",d:"+385",f:"🇭🇷",a:true},{n:"Hungary",d:"+36",f:"🇭🇺",a:true},{n:"Romania",d:"+40",f:"🇷🇴",a:true},
+  {n:"Bulgaria",d:"+359",f:"🇧🇬",a:true},{n:"Serbia",d:"+381",f:"🇷🇸",a:true},{n:"Lithuania",d:"+370",f:"🇱🇹",a:true},
+  {n:"Latvia",d:"+371",f:"🇱🇻",a:true},{n:"Estonia",d:"+372",f:"🇪🇪",a:true},{n:"Malta",d:"+356",f:"🇲🇹",a:true},
+  {n:"Albania",d:"+355",f:"🇦🇱",a:true},{n:"Ukraine",d:"+380",f:"🇺🇦",a:true},{n:"Greece",d:"+30",f:"🇬🇷",a:true},
+  {n:"Switzerland",d:"+41",f:"🇨🇭",a:true},
+  {n:"Turkey",d:"+90",f:"🇹🇷",a:false},{n:"Russia",d:"+7",f:"🇷🇺",a:false},
+  {n:"India",d:"+91",f:"🇮🇳",a:false},{n:"Nepal",d:"+977",f:"🇳🇵",a:false},{n:"Sri Lanka",d:"+94",f:"🇱🇰",a:false},
+  {n:"Philippines",d:"+63",f:"🇵🇭",a:false},{n:"Indonesia",d:"+62",f:"🇮🇩",a:false},{n:"Bangladesh",d:"+880",f:"🇧🇩",a:false},
+  {n:"United States",d:"+1",f:"🇺🇸",a:false},{n:"United Arab Emirates",d:"+971",f:"🇦🇪",a:false},
 ];
 let _recCC={d:"+48",f:"🇵🇱"};
 function openCCPicker(){ document.getElementById("cc-search").value=""; renderCCList(""); document.getElementById("pop-ccpick").classList.add("show"); }
@@ -759,9 +761,15 @@ function closeCCPicker(){ document.getElementById("pop-ccpick").classList.remove
 function renderCCList(q){
   const ql=(q||"").toLowerCase().trim();
   const list=REC_COUNTRIES.filter(c=>c.n.toLowerCase().includes(ql)||c.d.includes(ql));
-  document.getElementById("cc-list").innerHTML=list.map(c=>
-    `<div class="cc-item" onclick="pickCC('${c.d}','${c.f}')"><span class="f">${c.f}</span><span class="n">${esc(c.n)}</span><span class="d">${c.d}</span></div>`
-  ).join("")||`<div style="padding:20px;text-align:center;color:#94A3B8;">No match</div>`;
+  document.getElementById("cc-list").innerHTML=list.map(c=>{
+    if(c.a){
+      return `<div class="cc-item" onclick="pickCC('${c.d}','${c.f}')"><span class="f">${c.f}</span><span class="n">${esc(c.n)}</span><span class="d">${c.d}</span></div>`;
+    }
+    return `<div class="cc-item cc-off" onclick="alert('${esc(c.n)} is temporarily unavailable. Coming soon.')">
+      <span class="f" style="filter:grayscale(1);opacity:.6;">${c.f}</span>
+      <span class="n" style="color:#94A3B8;">${esc(c.n)} <span style="font-size:11px;color:#EF4444;font-weight:600;">· Coming soon</span></span>
+      <span class="d" style="color:#CBD5E1;">${c.d}</span></div>`;
+  }).join("")||`<div style="padding:20px;text-align:center;color:#94A3B8;">No match</div>`;
 }
 function pickCC(dial,flag){
   _recCC={d:dial,f:flag};
@@ -776,6 +784,8 @@ function recFullPhone(){
 
 async function recSendOtp(){
   rClear();
+  const ctry=REC_COUNTRIES.find(c=>c.d===_recCC.d);
+  if(ctry && !ctry.a) return rMsg(ctry.n+" is temporarily unavailable. Please try again soon.","err");
   recPhone=recFullPhone();
   if(!recPhone.startsWith("+")||recPhone.replace(/\D/g,"").length<8) return rMsg("Enter a valid mobile number","err");
   const b=document.getElementById("r-send"); b.disabled=true; b.textContent="Sending…";

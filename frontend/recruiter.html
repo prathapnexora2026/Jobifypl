@@ -336,6 +336,8 @@
   .read-tick.read svg{stroke:#2563EB;}
   .bubble.me .bt{opacity:.7;}
   .bubble{-webkit-user-select:none;user-select:none;} .bubble.sel{outline:2px solid #2563EB;outline-offset:2px;}
+  .rec-selbox{width:22px;height:22px;border-radius:50%;border:2px solid #CBD5E1;flex-shrink:0;display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px;}
+  .rec-selbox.on{background:#2563EB;border-color:#2563EB;}
   .rnoti{-webkit-user-select:none;user-select:none;} .rnoti.sel{background:rgba(37,99,235,.12);border:1px solid #2563EB;}
 
   /* centered popup modal */
@@ -503,6 +505,7 @@
             <div class="ctn" id="chat-name">—</div>
             <div class="cst"><span style="color:var(--green);">●</span> Active</div>
           </div>
+          <div id="rec-msg-select-btn" onclick="recToggleMsgSelectMode()" title="Select messages" style="cursor:pointer;font-size:20px;padding:6px;">☑</div>
         </div>
         <div class="chat-scroll" id="chat-body"></div>
         <div class="compose">
@@ -1100,37 +1103,51 @@ function recBindLongPress(container, itemSel, dataKey, onSelect, onTap, inSelect
     });
   });
 }
+let _recMsgSelectMode=false;
 function recPaintChat(){
   const b=document.getElementById("chat-body");
   b.innerHTML=_recChatMsgs.length?_recChatMsgs.map(m=>{
     const sel=_recSelMsgs.has(m.id);
+    const cb=_recMsgSelectMode?`<div class="rec-selbox ${sel?'on':''}">${sel?'✓':''}</div>`:'';
     const body=m.deleted?`<i style="opacity:.6;">${esc(m.body)}</i>`:esc(m.body);
-    return `<div class="bubble ${m.mine?'me':'them'} ${sel?'sel':''}" data-mid="${m.id}">
-      ${!m.mine?`<div class="who">${esc(_recOtherName)}</div>`:""}${body}<span class="bt">${esc(fmtT(m.time))}${m.mine&&!m.deleted?tick(m.read):""}</span></div>`;
+    return `<div class="bubble-wrap ${m.mine?'me':'them'}" data-mid="${m.id}" onclick="recMsgRowClick(${m.id})" style="display:flex;align-items:center;gap:8px;${m.mine?'flex-direction:row-reverse;':''}">
+      ${cb}<div class="bubble ${m.mine?'me':'them'} ${sel?'sel':''}" style="margin-bottom:0;">
+      ${!m.mine?`<div class="who">${esc(_recOtherName)}</div>`:""}${body}<span class="bt">${esc(fmtT(m.time))}${m.mine&&!m.deleted?tick(m.read):""}</span></div></div>`;
   }).join(""):`<div class="empty" style="margin:auto;">No messages yet — say hello 👋</div>`;
   if(!_recSelMsgs.size) b.scrollTop=1e9;
-  recBindLongPress(b, ".bubble", "mid", recToggleMsgSel, null, ()=>_recSelMsgs.size>0);
   recUpdateSelBar();
+}
+function recToggleMsgSelectMode(){
+  _recMsgSelectMode=!_recMsgSelectMode; _recSelMsgs.clear();
+  const btn=document.getElementById("rec-msg-select-btn"); if(btn) btn.style.color=_recMsgSelectMode?"var(--blue)":"";
+  recPaintChat();
+}
+function recMsgRowClick(id){
+  if(!_recMsgSelectMode) return;
+  if(_recSelMsgs.has(id))_recSelMsgs.delete(id); else _recSelMsgs.add(id);
+  recPaintChat();
 }
 function recToggleMsgSel(id){ if(_recSelMsgs.has(id))_recSelMsgs.delete(id); else _recSelMsgs.add(id);
   document.querySelectorAll("#chat-body .bubble").forEach(el=>el.classList.toggle("sel",_recSelMsgs.has(parseInt(el.dataset.mid)))); recUpdateSelBar(); }
 function recUpdateSelBar(){
   let bar=document.getElementById("rec-chat-selbar");
-  if(!_recSelMsgs.size){ if(bar) bar.remove(); return; }
-  const allMine=[..._recSelMsgs].every(id=>{ const m=_recChatMsgs.find(x=>x.id===id); return m&&m.mine&&!m.deleted; });
+  if(!_recMsgSelectMode){ if(bar) bar.remove(); return; }
+  const allMine=_recSelMsgs.size>0 && [..._recSelMsgs].every(id=>{ const m=_recChatMsgs.find(x=>x.id===id); return m&&m.mine&&!m.deleted; });
   if(!bar){ bar=document.createElement("div"); bar.id="rec-chat-selbar"; document.getElementById("msg-chat-view").appendChild(bar);
-    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;display:flex;gap:10px;align-items:center;z-index:120;box-shadow:0 -4px 16px rgba(0,0,0,.08);"; }
-  bar.innerHTML=`<div style="flex:1;font-weight:700;">${_recSelMsgs.size} selected</div>
-    <button onclick="recDeleteChatSel('me')" style="background:#F1F5F9;border:none;border-radius:9px;padding:9px 14px;font-weight:700;">Delete for me</button>
+    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;display:flex;gap:8px;align-items:center;z-index:120;box-shadow:0 -4px 16px rgba(0,0,0,.08);flex-wrap:wrap;"; }
+  const dis=_recSelMsgs.size?'':'disabled', op=_recSelMsgs.size?'':'opacity:.5;';
+  bar.innerHTML=`<div style="flex:1;font-weight:700;min-width:80px;">${_recSelMsgs.size} selected</div>
+    <button ${dis} onclick="recDeleteChatSel('me')" style="background:#F1F5F9;border:none;border-radius:9px;padding:9px 14px;font-weight:700;${op}">Delete for me</button>
     ${allMine?`<button onclick="recDeleteChatSel('everyone')" style="background:#FDEBEC;color:#D6455D;border:none;border-radius:9px;padding:9px 14px;font-weight:700;">Delete for everyone</button>`:''}
-    <button onclick="recClearChatSel()" style="background:none;border:none;color:#64748B;">Cancel</button>`;
+    <button onclick="recToggleMsgSelectMode()" style="background:none;border:none;color:#64748B;">Cancel</button>`;
 }
-function recClearChatSel(){ _recSelMsgs.clear(); document.querySelectorAll("#chat-body .bubble.sel").forEach(el=>el.classList.remove("sel")); recUpdateSelBar(); }
 async function recDeleteChatSel(scope){
   const ids=[..._recSelMsgs]; if(!ids.length) return;
   if(scope==="everyone" && !confirm("Delete for everyone? This can't be undone.")) return;
   try{ await api("/chat/"+recCurConv+"/delete-messages",{method:"POST",body:{message_ids:ids,scope}});
-    _recSelMsgs.clear(); openRecChat(recCurConv);
+    _recSelMsgs.clear(); _recMsgSelectMode=false;
+    const btn=document.getElementById("rec-msg-select-btn"); if(btn) btn.style.color="";
+    openRecChat(recCurConv);
   }catch(e){ alert(e.message); }
 }
 function closeRecChat(){ loadConvs(); }

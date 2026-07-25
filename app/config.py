@@ -11,10 +11,18 @@ class Settings(BaseSettings):
     JWT_EXPIRE_MINUTES: int = 43200  # 30 days
     JWT_ALGORITHM: str = "HS256"
 
-    # --- SMS (Twilio) ---
-    # In dev mode the OTP is printed to the server log instead of sending a real SMS,
-    # so the full auth flow can be built and tested without any keys.
+    # --- SMS ---
+    # In dev mode the OTP is printed to the server log instead of sending a real SMS.
     SMS_DEV_MODE: bool = True
+    # Which provider to use for real SMS: "infobip" (default) or "twilio".
+    SMS_PROVIDER: str = "infobip"
+
+    # --- Infobip (global SMS to 190+ countries) ---
+    INFOBIP_BASE_URL: str = ""      # e.g. 1eyqrk.api.infobip.com (no https://)
+    INFOBIP_API_KEY: str = ""       # from Infobip → Developers → API Keys
+    INFOBIP_SENDER: str = "JobifyPL"  # alphanumeric sender (auto-fallback per country)
+
+    # --- Twilio (kept as an optional fallback) ---
     TWILIO_ACCOUNT_SID: str = ""
     TWILIO_AUTH_TOKEN: str = ""
     TWILIO_FROM_NUMBER: str = ""   # your Twilio phone number, e.g. +1234567890

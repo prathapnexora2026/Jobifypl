@@ -39,11 +39,21 @@ services:
       - key: JWT_EXPIRE_MINUTES
         value: "43200"
 
-      # --- SMS: TEST MODE for now (OTP shown in test viewer, no real texts) ---
+      # --- SMS (Infobip = real, global). Set SMS_DEV_MODE=false in the dashboard
+      #     and fill the Infobip secrets to send real OTP worldwide. ---
       - key: SMS_DEV_MODE
-        value: "true"
+        value: "true"             # flip to "false" in dashboard to go live
+      - key: SMS_PROVIDER
+        value: "infobip"
+      - key: INFOBIP_BASE_URL
+        sync: false               # e.g. 1eyqrk.api.infobip.com
+      - key: INFOBIP_API_KEY
+        sync: false               # secret — set only in the dashboard
+      - key: INFOBIP_SENDER
+        value: "JobifyPL"
+      # Twilio kept as optional fallback (unused unless SMS_PROVIDER=twilio)
       - key: TWILIO_ACCOUNT_SID
-        sync: false               # set later when flipping to real SMS
+        sync: false
       - key: TWILIO_AUTH_TOKEN
         sync: false
       - key: TWILIO_FROM_NUMBER

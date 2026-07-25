@@ -915,9 +915,29 @@ function go(id){
    go home -> (press twice) exit. No browser URL tricks. */
 let _lastBackTs=0;
 function handleBack(){
-  // 1) A popup/modal open? Just close it.
+  // 1) Any popup/modal open (country picker, upgrade, etc.)? Just close it.
   const openPop=document.querySelector(".pop-bg.show");
   if(openPop){ openPop.classList.remove("show"); return; }
+  // photo viewer open?
+  const pv=document.getElementById("photo-viewer");
+  if(pv && pv.style.display!=="none" && pv.style.display!==""){ pv.style.display="none"; return; }
+
+  // Which screen is actually visible right now?
+  const activeEl=document.querySelector(".screen.active");
+  const active=activeEl?activeEl.id:"";
+
+  // ---- PRE-LOGIN screens: never fall through to s-home (needs login) ----
+  // Role picker -> press back twice to exit.
+  if(active==="s-role"){
+    const now=Date.now();
+    if(now-_lastBackTs<2000){ exitAppSafe(); return; }
+    _lastBackTs=now; toast("Press back again to exit"); return;
+  }
+  // Sign-in screen (candidate) -> back to role picker.
+  if(active==="s-signin"){ go("s-role"); return; }
+  // CV / documents during first-time onboarding -> back to sign-in.
+  if(active==="s-cv"){ go(cvBackScreen||"s-signin"); return; }
+  if(active==="s-docs"){ go("s-cv"); return; }
 
   const current=_navStack[_navStack.length-1];
 
@@ -936,14 +956,14 @@ function handleBack(){
 
   // 4) On main home -> press back twice within 2s to exit.
   const now=Date.now();
-  if(now-_lastBackTs < 2000){
-    if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
-      window.Capacitor.Plugins.App.exitApp();
-    }
-    return;
-  }
+  if(now-_lastBackTs < 2000){ exitAppSafe(); return; }
   _lastBackTs=now;
   toast("Press back again to exit");
+}
+function exitAppSafe(){
+  if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
+    window.Capacitor.Plugins.App.exitApp();
+  }
 }
 
 // Wire the native back button when Capacitor is ready.

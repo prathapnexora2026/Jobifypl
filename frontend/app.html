@@ -1745,8 +1745,9 @@ function showPayResult(state, info){
     icon.style.background="#FFF6E5"; icon.textContent="⏳";
     title.textContent="Confirming payment…";
     msg.textContent="Please wait while we confirm your payment.";
-    amt.textContent=""; sub.textContent="This can take a few seconds.";
-    prim.textContent="Please wait"; prim.disabled=true;
+    amt.textContent=""; sub.textContent="This can take a few seconds. You can close this and check your wallet history.";
+    // Never trap the user: always allow closing the pending popup.
+    prim.textContent="Close"; prim.disabled=false;
   } else if(state==="success"){
     icon.style.background="#E6F7EC"; icon.textContent="✅";
     title.textContent="Payment successful";
@@ -1809,8 +1810,17 @@ async function resumePendingPayu(){
     }
   },2500);
 }
-// Resume any payment that was in flight when the app (re)loads.
-window.addEventListener("load", resumePendingPayu);
+// On (re)load: if already logged in (token present) jump straight to Home so a
+// PayU redirect back into the app doesn't dump the user on the role picker /
+// sign-in (which looked like being logged out). Then resume any pending payment.
+async function bootApp(){
+  if(token()){
+    // logged in — go to the dashboard, not the role picker
+    go("s-home");
+  }
+  resumePendingPayu();
+}
+window.addEventListener("load", bootApp);
 
 /* ============ PLANS ============ */
 async function loadPlans(){

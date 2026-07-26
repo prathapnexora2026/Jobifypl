@@ -599,6 +599,22 @@ def rec_payment_status(ext_order_id: str, user: User = Depends(require_recruiter
         _Payment.ext_order_id == ext_order_id, _Payment.user_id == user.id).first()
     if not pay:
         raise HTTPException(404, "Payment not found")
+
+    # Same as the candidate side: don't rely on the webhook alone. If still
+    # pending, ask PayU; capture a WAITING_FOR_CONFIRMATION order, then fulfil.
+    from app.config import settings as _settings
+    from app.services import payu as _payu
+    from app.routers.wallet import _fulfil_payment
+    if not pay.fulfilled and pay.status != "failed" and pay.payu_order_id and _settings.PAYU_ENABLED:
+        pu = _payu.get_order_status(pay.payu_order_id)
+        if pu == "WAITING_FOR_CONFIRMATION":
+            _payu.capture_order(pay.payu_order_id)
+            pu = _payu.get_order_status(pay.payu_order_id)
+        if pu == "COMPLETED":
+            _fulfil_payment(db, pay)
+        elif pu in ("CANCELED", "REJECTED"):
+            pay.status = "failed"; db.commit()
+
     return {"status": "success", "payment_status": pay.status, "fulfilled": pay.fulfilled}
 
 

@@ -10,14 +10,15 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Payment, SubscriptionPlan, Wallet, WalletTransaction
+from app.models import Payment
 from app.services import payu
-from app.routers.wallet import credit_wallet, activate_plan
 
 router = APIRouter(prefix="/payu", tags=["payu"])
 
 # PayU statuses that mean the money is actually captured.
 _PAID = {"COMPLETED"}
+# Authorized but not yet collected (manual-capture POS). We must capture these.
+_NEEDS_CAPTURE = {"WAITING_FOR_CONFIRMATION"}
 
 
 @router.post("/notify")
@@ -47,6 +48,20 @@ async def payu_notify(request: Request,
     if not pay:
         return {"status": "unknown-order"}
 
+    # Authorized but not collected yet (manual-capture POS): capture it now so
+    # it becomes COMPLETED. PayU then sends another notify with COMPLETED, and
+    # we also fall through below in case this same call flips to paid.
+    if status in _NEEDS_CAPTURE:
+        if payu.capture_order(pay.payu_order_id):
+            # Re-check the real status after capture.
+            new_status = payu.get_order_status(pay.payu_order_id)
+            if new_status in _PAID:
+                status = new_status  # fall through to fulfilment below
+            else:
+                return {"status": "capturing"}
+        else:
+            return {"status": "capture-pending"}
+
     # Record the latest status.
     if status and status not in _PAID:
         if status in ("CANCELED", "REJECTED"):
@@ -56,35 +71,8 @@ async def payu_notify(request: Request,
 
     # 2) Money captured. Fulfil exactly once (idempotent — PayU may retry).
     if status in _PAID and not pay.fulfilled:
-        pay.status = "paid"
-        pay.fulfilled = True
-        if pay.purpose == "wallet_topup":
-            credit_wallet(db, pay.user_id, pay.amount, "Wallet top-up (PayU)",
-                          method="payu", payu_ref=pay.payu_order_id)
-        elif pay.purpose == "plan" and pay.plan_id:
-            # Candidate subscription plan
-            plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == pay.plan_id).first()
-            if plan:
-                wal = db.query(Wallet).filter(Wallet.user_id == pay.user_id).first()
-                if wal:
-                    wal.total_spent += plan.price
-                db.add(WalletTransaction(user_id=pay.user_id, amount=plan.price,
-                                        type="debit", reason=f"Subscription: {plan.name}",
-                                        method="payu", payu_ref=pay.payu_order_id))
-                activate_plan(db, pay.user_id, plan, "payu")
-        elif pay.purpose == "rec_plan" and pay.plan_id:
-            # Recruiter package: activate quota + posting rights
-            plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == pay.plan_id).first()
-            if plan:
-                wal = db.query(Wallet).filter(Wallet.user_id == pay.user_id).first()
-                if wal:
-                    wal.total_spent += plan.price
-                db.add(WalletTransaction(user_id=pay.user_id, amount=plan.price,
-                                        type="debit", reason=f"{plan.name} Plan",
-                                        method="payu", payu_ref=pay.payu_order_id))
-                from app.routers.recruiter import activate_recruiter_package
-                activate_recruiter_package(db, pay.user_id, plan)
-        db.commit()
+        from app.routers.wallet import _fulfil_payment
+        _fulfil_payment(db, pay)
 
     return {"status": "ok"}
 

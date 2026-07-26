@@ -83,6 +83,55 @@ def create_order(*, ext_order_id: str, amount_pln: float, description: str,
     }
 
 
+def capture_order(payu_order_id: str) -> bool:
+    """Capture (collect) an authorized-but-uncaptured order.
+
+    When the POS is set to manual/two-step capture, PayU leaves the order in
+    WAITING_FOR_CONFIRMATION ("waiting for collection") and never sends a
+    COMPLETED notify. We PUT statusCompleted to actually collect the money.
+    Returns True if PayU accepted the capture (or it was already completed).
+    """
+    if not payu_order_id:
+        return False
+    try:
+        token = _oauth_token()
+        url = f"{settings.PAYU_BASE}/api/v2_1/orders/{payu_order_id}/status"
+        headers = {"Authorization": f"Bearer {token}"}
+        with httpx.Client(timeout=20) as c:
+            r = c.put(url, json={"orderId": payu_order_id, "orderStatus": "COMPLETED"}, headers=headers)
+        # 200 = captured; PayU also returns SUCCESS statusCode in body.
+        if r.status_code in (200, 201):
+            return True
+        # Some POS return an error if already completed — treat that as success.
+        txt = (r.text or "").upper()
+        if "ALREADY" in txt or "COMPLETED" in txt:
+            return True
+        print(f"[PayU] capture failed {r.status_code}: {r.text[:200]}")
+        return False
+    except Exception as e:
+        print(f"[PayU] capture error: {type(e).__name__}: {e}")
+        return False
+
+
+def get_order_status(payu_order_id: str) -> str:
+    """Fetch the current status of an order from PayU (COMPLETED / PENDING / …)."""
+    if not payu_order_id:
+        return ""
+    try:
+        token = _oauth_token()
+        url = f"{settings.PAYU_BASE}/api/v2_1/orders/{payu_order_id}"
+        headers = {"Authorization": f"Bearer {token}"}
+        with httpx.Client(timeout=20, follow_redirects=False) as c:
+            r = c.get(url, headers=headers)
+        if r.status_code == 200:
+            orders = r.json().get("orders") or []
+            if orders:
+                return (orders[0].get("status") or "").upper()
+    except Exception as e:
+        print(f"[PayU] status fetch error: {type(e).__name__}: {e}")
+    return ""
+
+
 def verify_notify_signature(raw_body: bytes, signature_header: str) -> bool:
     """Verify the OpenPayU-Signature header on a notify webhook.
 

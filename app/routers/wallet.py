@@ -223,9 +223,70 @@ def plan_checkout(body: PurchaseIn, request: Request,
 @plans_router.get("/payment-status/{ext_order_id}")
 def payment_status(ext_order_id: str, user: User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
-    """The app polls this after returning from PayU to know if it's done."""
+    """The app polls this after returning from PayU to know if it's done.
+
+    We don't rely on the notify webhook alone (it can be delayed or blocked):
+    if the payment is still pending, ask PayU directly. If PayU says the order
+    is only WAITING_FOR_CONFIRMATION (manual-capture POS), capture it here, then
+    fulfil — so the wallet is credited even if no webhook ever arrives.
+    """
     pay = db.query(Payment).filter(
         Payment.ext_order_id == ext_order_id, Payment.user_id == user.id).first()
     if not pay:
         raise HTTPException(404, "Payment not found")
+
+    if not pay.fulfilled and pay.status != "failed" and pay.payu_order_id and settings.PAYU_ENABLED:
+        pu = payu.get_order_status(pay.payu_order_id)
+        if pu == "WAITING_FOR_CONFIRMATION":
+            payu.capture_order(pay.payu_order_id)
+            pu = payu.get_order_status(pay.payu_order_id)
+        if pu == "COMPLETED":
+            _fulfil_payment(db, pay)
+        elif pu in ("CANCELED", "REJECTED"):
+            pay.status = "failed"; db.commit()
+
     return {"status": "success", "payment_status": pay.status, "fulfilled": pay.fulfilled}
+
+
+def _fulfil_payment(db: Session, pay: Payment):
+    """Credit wallet / activate plan for a confirmed payment, exactly once.
+    Shared by the polling endpoint and the notify webhook.
+
+    Guard against a poll + webhook fulfilling the same payment at once: flip
+    `fulfilled` false->true with a single conditional UPDATE and only proceed if
+    THIS call is the one that won the flip (rowcount == 1)."""
+    if pay.fulfilled:
+        return
+    won = (db.query(Payment)
+             .filter(Payment.id == pay.id, Payment.fulfilled == False)  # noqa: E712
+             .update({Payment.fulfilled: True, Payment.status: "paid"},
+                     synchronize_session=False))
+    db.commit()
+    if not won:
+        return  # another request already fulfilled it
+    db.refresh(pay)
+    if pay.purpose == "wallet_topup":
+        credit_wallet(db, pay.user_id, pay.amount, "Wallet top-up (PayU)",
+                      method="payu", payu_ref=pay.payu_order_id)
+    elif pay.purpose == "plan" and pay.plan_id:
+        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == pay.plan_id).first()
+        if plan:
+            wal = db.query(Wallet).filter(Wallet.user_id == pay.user_id).first()
+            if wal:
+                wal.total_spent += plan.price
+            db.add(WalletTransaction(user_id=pay.user_id, amount=plan.price, type="debit",
+                                    reason=f"Subscription: {plan.name}", method="payu",
+                                    payu_ref=pay.payu_order_id))
+            activate_plan(db, pay.user_id, plan, "payu")
+    elif pay.purpose == "rec_plan" and pay.plan_id:
+        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == pay.plan_id).first()
+        if plan:
+            wal = db.query(Wallet).filter(Wallet.user_id == pay.user_id).first()
+            if wal:
+                wal.total_spent += plan.price
+            db.add(WalletTransaction(user_id=pay.user_id, amount=plan.price, type="debit",
+                                    reason=f"{plan.name} Plan", method="payu",
+                                    payu_ref=pay.payu_order_id))
+            from app.routers.recruiter import activate_recruiter_package
+            activate_recruiter_package(db, pay.user_id, plan)
+    db.commit()

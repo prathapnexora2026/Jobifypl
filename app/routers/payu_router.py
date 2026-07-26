@@ -79,8 +79,12 @@ async def payu_notify(request: Request,
 
 @router.get("/return", response_class=HTMLResponse)
 def payu_return(ext: str = ""):
-    """Landing page after PayU checkout. The app reads window.name/URL and
-    re-checks /plans/payment-status to confirm. Kept minimal + self-closing."""
+    """Landing page after PayU checkout. Sends the user back to the SAME app they
+    paid from (recruiter vs candidate), so the pending-payment resume runs and
+    the wallet is credited — a recruiter must not land on the candidate app."""
+    # ext prefixes: recwallet-/recplan- => recruiter; wallet-/plan- => candidate.
+    is_recruiter = ext.startswith("rec")
+    back = "/recruiter.html" if is_recruiter else "/app.html"
     return f"""<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Payment complete — JobifyPL</title>
@@ -88,11 +92,14 @@ def payu_return(ext: str = ""):
 .b{{background:#0b63c5;color:#fff;border:none;border-radius:10px;padding:14px 22px;font-size:16px}}</style>
 </head><body>
 <h2>Payment received</h2>
-<p>You can return to the JobifyPL app now.</p>
-<button class="b" onclick="try{{window.close()}}catch(e){{}};location.href='/app.html'">Back to app</button>
+<p>Returning you to the JobifyPL app…</p>
+<button class="b" onclick="goBack()">Back to app</button>
 <script>
-// If opened inside the app's in-app browser, signal the opener and close.
+var BACK={back!r};
+function goBack(){{ try{{window.close()}}catch(e){{}}; location.href=BACK; }}
+// If opened inside an in-app browser, signal the opener and close.
 try{{ if(window.opener){{ window.opener.postMessage({{payu:'done',ext:'{ext}'}}, '*'); }} }}catch(e){{}}
-setTimeout(function(){{ try{{window.close()}}catch(e){{}} }}, 1500);
+// Auto-return to the correct app so the payment resume runs and credits the wallet.
+setTimeout(goBack, 1200);
 </script>
 </body></html>"""

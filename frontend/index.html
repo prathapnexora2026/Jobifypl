@@ -137,6 +137,16 @@
   .store{background:#000;color:#fff;border-radius:8px;padding:10px 20px;display:flex;align-items:center;gap:12px;min-width:180px}
   .store small{display:block;font-size:10px;opacity:.85;line-height:1.2}
   .store b{font-size:16px;font-weight:600;line-height:1.2}
+  .store{border:0;cursor:pointer;font-family:inherit;text-align:left}
+  .store.apk{background:var(--yellow);color:#241c00}
+  /* launching-soon popup */
+  .soon-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+  .soon-bg.show{display:flex}
+  .soon-card{background:#fff;border-radius:20px;padding:34px 30px;max-width:400px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .soon-card .soon-ic{width:76px;height:76px;border-radius:50%;background:#FFF6E0;display:grid;place-items:center;font-size:38px;margin:0 auto 16px}
+  .soon-card h3{font-size:24px;font-weight:800;color:var(--navy);margin-bottom:10px}
+  .soon-card p{color:var(--body);font-size:15px;margin-bottom:22px}
+  .soon-close{display:block;width:100%;margin-top:14px;background:none;border:0;color:var(--body);font-size:15px;cursor:pointer;font-family:inherit}
 
   /* FOOTER */
   footer{background:var(--navy2);color:#c9d2e3;padding:60px 0 26px}
@@ -181,7 +191,6 @@
         <li><a href="#advertise">Advertise with us</a></li>
         <li><a href="#contact">Contact us</a></li>
       </ul>
-      <a class="cta-app" href="/app.html">Open App</a>
       <button class="burger" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
     </nav>
   </div>
@@ -195,10 +204,6 @@
         <h1>Find a Perfect Job &amp;<span>Shape Your Future</span></h1>
         <p class="sub">Trusted by over <b>10k+</b> diverse community in Poland</p>
         <p class="bullet">• Local Jobs — all in your language</p>
-        <div class="hbtns">
-          <a class="btn-yellow" href="/app.html">Find a Job</a>
-          <a class="btn-outline" style="background:#fff;" href="#advertise">For Recruiters</a>
-        </div>
       </div>
       <div class="slider" id="slider">
         <button class="arrow l" onclick="move(-1)" aria-label="Previous">‹</button>
@@ -380,15 +385,18 @@
 <section class="app">
   <div class="wrap">
     <div class="app-grid">
-      <div><img src="/assets/banner/boardingpic-3.png" alt="JobifyPL mobile app" loading="lazy" style="border-radius:16px"></div>
+      <div style="text-align:center;"><img src="/assets/jobifyPLlogo.png" alt="JobifyPL app" loading="lazy" style="max-width:420px;width:100%;margin:0 auto;"></div>
       <div>
         <span class="pill" style="margin:0 0 18px">Step Forward Now</span>
         <h2>The Jobify<span class="hl">PL</span> APP</h2>
         <p class="sub">A world of opportunity in your hand</p>
         <p class="body">Discover jobs faster and smarter with the JobifyPL mobile app. Browse thousands of verified job listings, apply instantly, and track your applications in real time. Connect directly with recruiters, get personalized recommendations, and never miss an opportunity with instant notifications.</p>
         <div class="stores">
-          <a class="store" href="/app.html"><span style="font-size:22px">🍎</span><span><small>Download on the</small><b>App Store</b></span></a>
-          <a class="store" href="/app.html"><span style="font-size:20px">▶</span><span><small>GET IT ON</small><b>Google Play</b></span></a>
+          <button class="store" onclick="launchingSoon()"><span style="font-size:22px">🍎</span><span><small>Download on the</small><b>App Store</b></span></button>
+          <button class="store" onclick="launchingSoon()"><span style="font-size:20px">▶</span><span><small>GET IT ON</small><b>Google Play</b></span></button>
+        </div>
+        <div class="stores" style="margin-top:14px;">
+          <a class="store apk" href="/download/app" download><span style="font-size:22px">⬇️</span><span><small>Direct download</small><b>Download APK</b></span></a>
         </div>
       </div>
     </div>
@@ -447,6 +455,18 @@
   </div>
 </footer>
 
+<!-- LAUNCHING SOON POPUP -->
+<div class="soon-bg" id="soonPop" onclick="if(event.target===this)closeSoon()">
+  <div class="soon-card">
+    <div class="soon-ic">🚀</div>
+    <h3>Launching Soon!</h3>
+    <p>Our app will be available on the App Store and Google Play very soon.<br>
+    Meanwhile, you can download the Android APK directly.</p>
+    <a class="btn-yellow" href="/download/app" download style="font-size:16px;padding:13px 30px;">⬇️ Download APK</a>
+    <button class="soon-close" onclick="closeSoon()">Close</button>
+  </div>
+</div>
+
 <!-- FLOATING LANGUAGE SWITCHER -->
 <div class="lang">
   <div class="lang-menu" id="langMenu">
@@ -461,6 +481,8 @@
 
 <script>
   function sent(e, msg){ e.preventDefault(); alert(msg); e.target.reset(); return false; }
+  function launchingSoon(){ document.getElementById('soonPop').classList.add('show'); }
+  function closeSoon(){ document.getElementById('soonPop').classList.remove('show'); }
 
   /* FLOATING LANGUAGE SWITCHER — translates the homepage text (EN/PL/UK) */
   var I18N_HOME = {

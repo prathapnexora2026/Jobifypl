@@ -14,6 +14,10 @@
   html,body{height:100%;}
   body{font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:#000;color:var(--ink);}
   #app{max-width:460px;margin:0 auto;min-height:100vh;background:#fff;position:relative;overflow-x:hidden;}
+  /* Launch splash — white background with the JobifyPL logo, fades out. */
+  #app-splash{position:fixed;inset:0;z-index:9999;background:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .45s ease;}
+  #app-splash img{width:min(62vw,300px);height:auto;}
+  #app-splash.hide{opacity:0;pointer-events:none;}
   img{max-width:100%;display:block;}
   .screen{display:none;min-height:100vh;padding-bottom:20px;}
   .screen.active{display:block;}
@@ -391,6 +395,10 @@
 </style>
 </head>
 <body>
+<!-- App splash: JobifyPL logo on white, shown briefly on launch then fades out. -->
+<div id="app-splash">
+  <img src="/assets/logo/jobifyPLlogo.png" alt="JobifyPL" onerror="this.style.display='none'">
+</div>
 <div id="app">
 
   <!-- ROLE -->
@@ -1838,6 +1846,13 @@ async function bootApp(){
     maybeRemindUpgrade();
   }
   resumePendingPayu();
+  hideSplash();
+}
+// Fade out the launch splash once the app is ready.
+function hideSplash(){
+  const s=document.getElementById("app-splash");
+  if(!s) return;
+  setTimeout(()=>{ s.classList.add("hide"); setTimeout(()=>s.remove(),500); }, 700);
 }
 async function maybeRemindUpgrade(){
   if(sessionStorage.getItem("upgradeReminded")) return;

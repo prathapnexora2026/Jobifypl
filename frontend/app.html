@@ -553,7 +553,7 @@
         <div class="agree" onclick="toggleAgree()"><div class="checkbox" id="doc-agree" style="width:24px;height:24px;"></div><span>I agree to the terms and conditions</span></div>
       </div>
       <button class="btn grey" id="doc-submit" style="margin:22px 0 10px;" onclick="submitDocs()">Submit Application</button>
-      <button class="linkbtn" onclick="go('s-home')">Skip for now</button>
+      <button class="linkbtn" onclick="goPlansOnboarding()">Skip for now</button>
     </div>
     <input type="file" id="doc-file-input" accept="image/*,.pdf,.doc,.docx" style="display:none;">
   </div>
@@ -694,6 +694,9 @@
     </div>
     <div class="plans-title">Choose your plan</div>
     <div id="plans-list"><div class="loading">Loading plans…</div></div>
+    <div id="plans-skip" style="display:none;text-align:center;padding:8px 16px 24px;">
+      <button class="linkbtn" onclick="skipPlansOnboarding()">Skip for now</button>
+    </div>
   </div>
 
   <!-- CONTACT US -->
@@ -1491,7 +1494,18 @@ async function submitDocs(){
   if(!docAgreed){ toast("Please agree to the terms and conditions"); return; }
   const missing=DOC_DEFS.filter(d=>d.req&&!uploadedDocs[d.type]).map(d=>d.label);
   if(missing.length){ toast("Please upload: "+missing.join(", ")); return; }
-  toast("Application submitted"); setTimeout(()=>go("s-home"),800);
+  toast("Application submitted");
+  // After documents, show the Plans page (skippable) as the final onboarding step.
+  setTimeout(()=>goPlansOnboarding(), 800);
+}
+// Show the Plans page during first-time onboarding, with a "Skip" that goes home.
+function goPlansOnboarding(){
+  sessionStorage.setItem("fromOnboarding","1");
+  go("s-plans");
+}
+function skipPlansOnboarding(){
+  sessionStorage.removeItem("fromOnboarding");
+  go("s-home");
 }
 
 /* ============ HOME ============ */
@@ -2060,6 +2074,9 @@ window.addEventListener("load", bootApp);
 
 /* ============ PLANS ============ */
 async function loadPlans(){
+  // Show the "Skip for now" button only during first-time onboarding.
+  const skip=document.getElementById("plans-skip");
+  if(skip) skip.style.display = sessionStorage.getItem("fromOnboarding")==="1" ? "block" : "none";
   try{ const w=await api("/wallet"); document.getElementById("plan-bal").textContent=`${Math.round(w.balance||0)} ${w.currency||'PLN'}`; }catch(e){}
   const box=document.getElementById("plans-list"); box.innerHTML=`<div class="loading">Loading plans…</div>`;
   // Find the currently active plan (so we show "Currently Active" instead of "Buy Now").

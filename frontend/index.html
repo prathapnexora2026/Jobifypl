@@ -50,6 +50,19 @@
   .hero .hbtns{margin-top:30px;display:flex;gap:14px;flex-wrap:wrap}
   .hero-img{border-radius:24px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.4);max-height:520px}
   .hero-img img{width:100%;height:100%;object-fit:cover}
+  /* rotating slider */
+  .slider{position:relative;height:560px;display:flex;align-items:center;justify-content:center}
+  .slide{position:absolute;transition:.55s cubic-bezier(.4,0,.2,1);border-radius:24px;overflow:hidden;opacity:0}
+  .slide img{height:100%;width:100%;object-fit:cover}
+  .slide .cap{position:absolute;top:14px;left:0;right:0;text-align:center;font-weight:800;color:var(--yellow-strong);letter-spacing:1px;text-transform:uppercase;font-size:14px;text-shadow:0 2px 8px #000}
+  .slide.active{width:240px;height:480px;opacity:1;z-index:3;transform:translateX(0)}
+  .slide.prev{width:190px;height:380px;opacity:.8;z-index:2;transform:translateX(-200px)}
+  .slide.next{width:190px;height:380px;opacity:.8;z-index:2;transform:translateX(200px)}
+  .arrow{position:absolute;z-index:6;width:48px;height:48px;border-radius:50%;background:#fff;border:0;cursor:pointer;font-size:22px;color:#222;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+  .arrow.l{left:2%} .arrow.r{right:2%}
+  .dots{position:absolute;bottom:8px;left:0;right:0;display:flex;gap:9px;justify-content:center;z-index:6}
+  .dot{width:11px;height:11px;border-radius:50%;background:#fff;opacity:.7;border:0;cursor:pointer}
+  .dot.on{background:var(--yellow);opacity:1}
 
   /* SECTIONS */
   section{padding:80px 0}
@@ -180,7 +193,15 @@
           <a class="btn-outline" style="background:#fff;" href="#advertise">For Recruiters</a>
         </div>
       </div>
-      <div class="hero-img"><img src="/assets/banner/boardingpic-1.jpg" alt="Job seekers in Poland"></div>
+      <div class="slider" id="slider">
+        <button class="arrow l" onclick="move(-1)" aria-label="Previous">‹</button>
+        <div class="slide" data-cap="Features"><img src="/assets/banner/boardingpic-2.png" alt="Features"><div class="cap">Features</div></div>
+        <div class="slide" data-cap="Advertise with us"><img src="/assets/banner/boardingpic-1.jpg" alt="Advertise with JobifyPL"><div class="cap">Advertise with us</div></div>
+        <div class="slide" data-cap="Job Seekers"><img src="/assets/banner/boardingpic-3.png" alt="Job seekers in Poland"><div class="cap">Job Seekers</div></div>
+        <div class="slide" data-cap="Our Story"><img src="/assets/banner/banner-1.png" alt="Our story"><div class="cap">Our Story</div></div>
+        <button class="arrow r" onclick="move(1)" aria-label="Next">›</button>
+        <div class="dots" id="dots"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -421,6 +442,31 @@
 
 <script>
   function sent(e, msg){ e.preventDefault(); alert(msg); e.target.reset(); return false; }
+
+  /* HERO SLIDER — auto-rotates every 5s, arrows + dots */
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var dotsBox = document.getElementById('dots');
+  var idx = 1;
+  slides.forEach(function(_, i){
+    var b = document.createElement('button');
+    b.className = 'dot';
+    b.onclick = function(){ idx = i; render(); };
+    dotsBox.appendChild(b);
+  });
+  function render(){
+    var n = slides.length;
+    slides.forEach(function(s,i){
+      s.className = 'slide';
+      if(i === idx) s.classList.add('active');
+      else if(i === (idx-1+n)%n) s.classList.add('prev');
+      else if(i === (idx+1)%n) s.classList.add('next');
+    });
+    Array.prototype.forEach.call(dotsBox.children, function(d,i){
+      d.className = 'dot' + (i === idx ? ' on' : '');
+    });
+  }
+  function move(step){ idx = (idx + step + slides.length) % slides.length; render(); }
+  if(slides.length){ render(); setInterval(function(){ move(1); }, 5000); }
 </script>
 </body>
 </html>

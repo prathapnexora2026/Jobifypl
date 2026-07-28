@@ -1953,19 +1953,22 @@ async function showRecPlanNotice(exhausted){
   const icon=document.getElementById("rec-pr-icon"), title=document.getElementById("rec-pr-title");
   const msg=document.getElementById("rec-pr-msg"), amt=document.getElementById("rec-pr-amount");
   const sub=document.getElementById("rec-pr-sub"), prim=document.getElementById("rec-pr-primary");
-  icon.style.background="#FFF6E5"; icon.textContent=exhausted?"📌":"🗂️";
+  // Premium "Upgrade Your Plan" styling (crown), matching the candidate popup.
+  icon.style.background="var(--yellow,#F5A800)"; icon.style.color="#fff"; icon.textContent="👑";
   if(exhausted){
-    title.textContent="All job posts used";
-    msg.textContent="You've used all posts in your current plan.";
+    title.textContent="Upgrade Your Plan";
+    msg.textContent="You've used all job posts in your current plan.";
     amt.textContent="";
     sub.textContent = expires ? ("Upgrade now to post more, or wait — your plan renews around "+expires+".")
                               : "Upgrade to a higher plan to post more jobs.";
   } else {
-    title.textContent="Choose a plan";
-    msg.textContent="Pick a plan to start posting jobs.";
-    amt.textContent=""; sub.textContent="Plans set how many jobs you can post.";
+    title.textContent="Upgrade Your Plan";
+    msg.textContent="Choose a plan to unlock job posting and reach more candidates.";
+    amt.textContent=""; sub.textContent="";
   }
   prim.textContent="View Plans"; prim.disabled=false;
+  prim.className="btn"; prim.style.background="var(--yellow,#F5A800)"; prim.style.color="#241c00";
+  prim.onclick=function(){ recClosePayResult(); railTo('packages'); };
   document.getElementById("rec-pop-result").classList.add("show");
 }
 
@@ -1989,6 +1992,9 @@ function recPayResult(state, info){
   const icon=document.getElementById("rec-pr-icon"), title=document.getElementById("rec-pr-title");
   const msg=document.getElementById("rec-pr-msg"), amt=document.getElementById("rec-pr-amount");
   const sub=document.getElementById("rec-pr-sub"), prim=document.getElementById("rec-pr-primary");
+  // Reset the shared button back to its default (the plan-notice restyles it).
+  icon.style.color=""; prim.className="btn blue"; prim.style.background=""; prim.style.color="";
+  prim.onclick=recClosePayResult;
   if(state==="pending"){
     icon.style.background="#FFF6E5"; icon.textContent="⏳"; title.textContent="Confirming payment…";
     msg.textContent="Please wait while we confirm your payment."; amt.textContent="";

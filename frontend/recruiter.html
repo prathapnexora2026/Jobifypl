@@ -87,6 +87,8 @@
   .rhead .r{display:flex;align-items:center;gap:14px;}
   .rhead .av{width:42px;height:42px;border-radius:50%;object-fit:cover;background:#e2e8f0;border:2px solid #eee;display:grid;place-items:center;font-size:20px;}
   .rhead .burger{font-size:26px;background:none;border:none;cursor:pointer;color:#111;line-height:1;}
+  .rhead .wal-chip{display:flex;align-items:center;gap:6px;background:#EEF3FB;border:1px solid #DCE6F5;color:var(--blue,#2563EB);border-radius:20px;padding:6px 12px;font-weight:800;font-size:14px;cursor:pointer;white-space:nowrap;}
+  .rhead .wal-chip .svg-ic{font-size:18px;}
   .rhead .bell-btn{position:relative;background:none;border:none;cursor:pointer;color:#111;line-height:1;padding:0;display:flex;align-items:center;}
   .rhead .bell-btn .svg-ic{font-size:24px;}
   .rhead .bell-dot{position:absolute;top:-1px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--danger);border:1.5px solid #fff;}
@@ -446,6 +448,10 @@
         <img class="mascot" src="/assets/logo/mascot.png" onerror="this.style.display='none'">
         <span class="brand">Jobify<span class="pl">PL</span></span></div>
       <div class="r">
+        <button class="wal-chip" id="head-wallet" onclick="railTo('wallet')" title="Wallet">
+          <span class="svg-ic"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M16 12h3"/><path d="M3 9h18"/></svg></span>
+          <span id="head-wal-amt">0 PLN</span>
+        </button>
         <button class="bell-btn" id="head-bell" onclick="go('notif')" title="Notifications"><span class="svg-ic"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span><span class="bell-dot" id="head-bell-dot" style="display:none;"></span></button>
         <button class="burger" onclick="toggleMenu(true)"><span class="svg-ic"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></span></button>
       </div>
@@ -849,7 +855,10 @@ function railTo(k){
   if(k==="dashboard") return go("home");
   go(k);
 }
-function enterDash(){ showScreen("s-dash"); applyLang(); navStack=[]; go("home"); loadHeaderAvatar(); maybeRemindRecPlan(); }
+function enterDash(){ showScreen("s-dash"); applyLang(); navStack=[]; go("home"); loadHeaderAvatar(); loadHeaderWallet(); maybeRemindRecPlan(); }
+// Keep the header wallet chip in sync with the recruiter's balance.
+function updateHeaderWallet(bal){ const el=document.getElementById("head-wal-amt"); if(el) el.textContent=Math.round(bal||0)+" PLN"; }
+async function loadHeaderWallet(){ try{ const d=await api("/recruiter/packages"); updateHeaderWallet(d.wallet||0); }catch(e){} }
 // Free-tier reminder (#2): on entering the dashboard, if the recruiter has no
 // active plan, nudge them to choose one (they can't post jobs without it).
 // Shown once per app launch so it isn't repetitive.
@@ -1305,6 +1314,7 @@ async function loadWallet(){
   try{ const d=await api("/recruiter/packages");
     document.getElementById("wal-bal").textContent=(d.wallet||0).toFixed(2)+" PLN";
     document.getElementById("wal-bal2").textContent=(d.wallet||0).toFixed(2)+" PLN";
+    updateHeaderWallet(d.wallet||0);
   }catch(e){}
   try{ const p=await api("/recruiter/payments");
     const h=document.getElementById("wal-history");

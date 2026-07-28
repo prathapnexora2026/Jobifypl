@@ -1833,8 +1833,21 @@ async function bootApp(){
   if(token()){
     // logged in — go to the dashboard, not the role picker
     go("s-home");
+    // Free-tier reminder (#2): if the user has no active plan, nudge them to
+    // upgrade so they can apply for jobs. Shown once per app launch.
+    maybeRemindUpgrade();
   }
   resumePendingPayu();
+}
+async function maybeRemindUpgrade(){
+  if(sessionStorage.getItem("upgradeReminded")) return;
+  try{
+    const c=await api("/plans/current");
+    if(!c.plan){                       // no active plan = Free tier
+      sessionStorage.setItem("upgradeReminded","1");
+      setTimeout(openUpgrade, 1200);   // small delay so Home renders first
+    }
+  }catch(e){}
 }
 window.addEventListener("load", bootApp);
 

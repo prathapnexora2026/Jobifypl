@@ -845,7 +845,20 @@ function railTo(k){
   if(k==="dashboard") return go("home");
   go(k);
 }
-function enterDash(){ showScreen("s-dash"); applyLang(); navStack=[]; go("home"); loadHeaderAvatar(); }
+function enterDash(){ showScreen("s-dash"); applyLang(); navStack=[]; go("home"); loadHeaderAvatar(); maybeRemindRecPlan(); }
+// Free-tier reminder (#2): on entering the dashboard, if the recruiter has no
+// active plan, nudge them to choose one (they can't post jobs without it).
+// Shown once per app launch so it isn't repetitive.
+async function maybeRemindRecPlan(){
+  if(sessionStorage.getItem("recPlanReminded")) return;
+  try{
+    const q=await api("/recruiter/quota");
+    if(q && q.has_plan===false){
+      sessionStorage.setItem("recPlanReminded","1");
+      setTimeout(()=>showRecPlanNotice(false), 1200);
+    }
+  }catch(e){}
+}
 
 // ---- page history for back navigation ----
 let navStack=[];

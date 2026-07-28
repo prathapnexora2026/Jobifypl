@@ -18,6 +18,25 @@
   #app-splash{position:fixed;inset:0;z-index:9999;background:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .45s ease;}
   #app-splash img{width:min(62vw,300px);height:auto;}
   #app-splash.hide{opacity:0;pointer-events:none;}
+  /* First-time onboarding */
+  #s-onboard.active{display:flex;flex-direction:column;background:#fff;min-height:100vh;}
+  .ob-wrap{flex:1;display:flex;flex-direction:column;padding:26px 22px 26px;}
+  .ob-slides{flex:1;position:relative;overflow:hidden;}
+  .ob-slide{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;text-align:center;}
+  .ob-slide.on{display:flex;animation:obfade .4s ease;}
+  @keyframes obfade{from{opacity:0;transform:translateX(14px);}to{opacity:1;transform:none;}}
+  .ob-imgcard{width:100%;max-width:340px;aspect-ratio:1/1;border:6px solid var(--yellow);border-radius:28px;overflow:hidden;background:#fff;margin:8px auto 0;box-shadow:0 10px 30px rgba(0,0,0,.08);}
+  .ob-imgcard img{width:100%;height:100%;object-fit:cover;}
+  .ob-slide h2{font-size:24px;font-weight:800;color:var(--navy,#12305a);margin:26px 20px 10px;line-height:1.25;}
+  .ob-slide p{color:var(--muted);font-size:15px;margin:0 24px;line-height:1.5;}
+  .ob-langhero{width:96px;height:96px;border-radius:50%;background:#FFF6E0;display:grid;place-items:center;color:var(--yellow);margin:20px auto 0;}
+  .ob-langs{display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;margin:22px auto 0;}
+  .ob-lang{padding:16px 18px;border:2px solid var(--line,#E5E7EB);border-radius:14px;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;gap:12px;background:#fff;}
+  .ob-lang.on{border-color:var(--yellow);background:#FFFBF0;}
+  .ob-lang .fl{font-size:22px;}
+  .ob-dots{display:flex;gap:8px;justify-content:center;margin:18px 0;}
+  .ob-dots i{width:8px;height:8px;border-radius:50%;background:#E2C9A0;transition:.25s;}
+  .ob-dots i.on{width:26px;border-radius:6px;background:var(--yellow);}
   img{max-width:100%;display:block;}
   .screen{display:none;min-height:100vh;padding-bottom:20px;}
   .screen.active{display:block;}
@@ -400,6 +419,37 @@
   <img src="/assets/logo/jobifyPLlogo.png" alt="JobifyPL" onerror="this.style.display='none'">
 </div>
 <div id="app">
+
+  <!-- FIRST-TIME ONBOARDING (3 intro slides + language pick). Shown once. -->
+  <div class="screen" id="s-onboard">
+    <div class="ob-wrap">
+      <div class="ob-slides" id="ob-slides">
+        <div class="ob-slide">
+          <div class="ob-imgcard"><img src="/assets/banner/onboard-1.png" onerror="this.onerror=null;this.src='/assets/banner/boardingpic-1.jpg'"></div>
+          <h2>Help Find the Right Job With Your Desire</h2>
+          <p>JobifyPL can help you find the right job with your desire</p>
+        </div>
+        <div class="ob-slide">
+          <div class="ob-imgcard"><img src="/assets/banner/onboard-2.png" onerror="this.onerror=null;this.src='/assets/banner/boardingpic-2.png'"></div>
+          <h2>Apply for job anywhere &amp; anytime</h2>
+          <p>JobifyPL makes you can apply for job from anywhere and anytime</p>
+        </div>
+        <div class="ob-slide">
+          <div class="ob-imgcard"><img src="/assets/banner/onboard-3.png" onerror="this.onerror=null;this.src='/assets/banner/boardingpic-3.png'"></div>
+          <h2>Make Easy Your self</h2>
+          <p>By Taking JobifyPL Subscription, you can search and post jobs</p>
+        </div>
+        <div class="ob-slide" id="ob-lang-slide">
+          <div class="ob-langhero"><span data-ic="globe" style="font-size:44px;"></span></div>
+          <h2>Choose your language</h2>
+          <p>You can change this later anytime in the app.</p>
+          <div class="ob-langs" id="ob-langs"></div>
+        </div>
+      </div>
+      <div class="ob-dots" id="ob-dots"></div>
+      <button class="btn" id="ob-next" onclick="obNext()">Next</button>
+    </div>
+  </div>
 
   <!-- ROLE -->
   <div class="screen active" id="s-role">
@@ -1844,6 +1894,10 @@ async function bootApp(){
     // Free-tier reminder (#2): if the user has no active plan, nudge them to
     // upgrade so they can apply for jobs. Shown once per app launch.
     maybeRemindUpgrade();
+  } else if(!onboardingDone()){
+    // First-ever launch (not logged in, never onboarded) -> show the 3 intro
+    // slides + language picker BEFORE the role picker. Shown only once.
+    startOnboarding();
   }
   resumePendingPayu();
   hideSplash();
@@ -1853,6 +1907,42 @@ function hideSplash(){
   const s=document.getElementById("app-splash");
   if(!s) return;
   setTimeout(()=>{ s.classList.add("hide"); setTimeout(()=>s.remove(),500); }, 700);
+}
+
+/* ============ FIRST-TIME ONBOARDING (#1) ============ */
+const OB_LANGS=[{c:"en",n:"English",f:"🇬🇧"},{c:"pl",n:"Polski",f:"🇵🇱"},{c:"uk",n:"Українська",f:"🇺🇦"}];
+let obStep=0, obChosenLang=localStorage.getItem("lang")||"en";
+function onboardingDone(){ return localStorage.getItem("onboarded")==="1"; }
+function startOnboarding(){
+  obStep=0;
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById("s-onboard").classList.add("active");
+  renderObLangs(); renderOb();
+}
+function renderObLangs(){
+  document.getElementById("ob-langs").innerHTML=OB_LANGS.map(l=>
+    `<div class="ob-lang ${obChosenLang===l.c?'on':''}" onclick="pickObLang('${l.c}')"><span class="fl">${l.f}</span><span>${l.n}</span></div>`
+  ).join("");
+}
+function pickObLang(c){ obChosenLang=c; renderObLangs(); }
+function renderOb(){
+  const slides=document.querySelectorAll("#ob-slides .ob-slide");
+  slides.forEach((s,i)=>s.classList.toggle("on",i===obStep));
+  const dots=[...slides].map((_,i)=>`<i class="${i===obStep?'on':''}"></i>`).join("");
+  document.getElementById("ob-dots").innerHTML=dots;
+  const last=obStep===slides.length-1;
+  const secondLast=obStep===slides.length-2;
+  document.getElementById("ob-next").textContent = last ? "Continue" : (secondLast ? "Get Started" : "Next");
+}
+function obNext(){
+  const total=document.querySelectorAll("#ob-slides .ob-slide").length;
+  if(obStep < total-1){ obStep++; renderOb(); return; }
+  // Last slide (language) -> save choice, mark onboarded, go to role picker.
+  localStorage.setItem("lang", obChosenLang);
+  localStorage.setItem("onboarded","1");
+  if(typeof applyLanguage==="function") try{ applyLanguage(obChosenLang); }catch(e){}
+  document.getElementById("s-onboard").classList.remove("active");
+  go("s-role");
 }
 async function maybeRemindUpgrade(){
   if(sessionStorage.getItem("upgradeReminded")) return;

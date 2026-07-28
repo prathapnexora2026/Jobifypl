@@ -125,6 +125,7 @@ class Job(Base):
     joining = Column(String(40), default="Immediate Joining")
     need_work_permit = Column(Boolean, default=False)
     accommodation = Column(String(30))             # Free / Paid
+    accommodation_amount = Column(Integer, nullable=True)  # PLN/month when Paid
     charges_fee = Column(Boolean, default=False)
     nationalities = Column(String(200))            # "Nepal & Philippines"
     accepts_to = Column(String(60))                # Student Only / Polish TRC / Polish Citizens / All

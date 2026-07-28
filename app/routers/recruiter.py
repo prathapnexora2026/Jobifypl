@@ -133,6 +133,7 @@ class JobIn(BaseModel):
     joining: str | None = "Immediate Joining"
     need_work_permit: bool | None = False
     accommodation: str | None = None
+    accommodation_amount: int | None = None
     charges_fee: bool | None = False
     # Step 2 — Candidate Requirements
     nationalities: str | None = None
@@ -207,7 +208,8 @@ def post_job(body: JobIn, user: User = Depends(require_recruiter), db: Session =
         max_salary=body.max_salary, currency="PLN", openings=body.openings or 1,
         languages_required=body.languages_required, street=body.street,
         joining=body.joining, need_work_permit=bool(body.need_work_permit),
-        accommodation=body.accommodation, charges_fee=bool(body.charges_fee),
+        accommodation=body.accommodation, accommodation_amount=body.accommodation_amount,
+        charges_fee=bool(body.charges_fee),
         nationalities=body.nationalities, accepts_to=body.accepts_to,
         hiring_authority=body.hiring_authority,
         contact_first_name=body.contact_first_name, contact_middle_name=body.contact_middle_name,
@@ -246,6 +248,7 @@ def my_jobs(user: User = Depends(require_recruiter), db: Session = Depends(get_d
                     "position": j.position, "shift_timing": j.shift_timing,
                     "languages_required": j.languages_required, "street": j.street,
                     "need_work_permit": j.need_work_permit, "accommodation": j.accommodation,
+                    "accommodation_amount": j.accommodation_amount,
                     "charges_fee": j.charges_fee, "nationalities": j.nationalities,
                     "age_from": j.age_from, "age_to": j.age_to, "accepts_to": j.accepts_to,
                     "description": j.description, "hiring_authority": j.hiring_authority,

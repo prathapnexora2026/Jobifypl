@@ -39,6 +39,8 @@ def _job_dict(j: Job, applied=False, interested=False, db=None):
         "age_from": j.age_from, "age_to": j.age_to,
         "min_salary": j.min_salary, "max_salary": j.max_salary, "currency": j.currency,
         "openings": j.openings, "is_premium": j.is_premium, "status": j.status,
+        "accommodation": j.accommodation, "accommodation_amount": j.accommodation_amount,
+        "charges_fee": bool(j.charges_fee),
         "recruiter_id": j.recruiter_id,
         "recruiter_photo": _recruiter_photo(db, j.recruiter_id) if db is not None else None,
         "applied": applied, "interested": interested,

@@ -1412,7 +1412,7 @@ function editJob(id){
     job_type:j.job_type||"", work_type:j.work_type||"", languages_required:j.languages_required||"",
     location:j.location&&j.location!=="N/A"?j.location:"", street:j.street||"",
     joining:j.joining||"", need_work_permit:!!j.need_work_permit,
-    accommodation:j.accommodation||"", charges_fee:!!j.charges_fee,
+    accommodation:j.accommodation||"", accommodation_amount:j.accommodation_amount||null, charges_fee:!!j.charges_fee,
     nationalities:j.nationalities||"", age_from:j.age_from||null, age_to:j.age_to||null,
     gender_pref:j.gender_pref||"", accepts_to:j.accepts_to||"", description:j.description||"",
     hiring_authority:j.hiring_authority||"",
@@ -1464,6 +1464,10 @@ function renderWizard(){
       <label>Accommodation <span class="req">*</span></label>
       <button class="tcard ${job.accommodation==='Free'?'on':''}" id="f-accfree" onclick="tgAcc('Free')">Free Accommodation <span class="svg-ic em" style="font-size:18px;"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg></span></button>
       <button class="tcard ${job.accommodation==='Paid'?'on':''}" id="f-accpaid" style="margin-top:12px;" onclick="tgAcc('Paid')">Paid Accommodation <span class="svg-ic em" style="font-size:18px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M14.5 9.2c-.5-1-1.5-1.5-2.7-1.5-1.6 0-2.6.9-2.6 2 0 2.6 5.6 1.3 5.6 4 0 1.2-1.1 2.1-2.8 2.1-1.3 0-2.4-.6-2.9-1.6"/><path d="M12 6v1.7M12 16.3V18"/></svg></span></button>
+      <div id="f-accamt-wrap" style="margin-top:12px;display:${job.accommodation==='Paid'?'block':'none'};">
+        <label>Accommodation cost per month (PLN)</label>
+        <input id="f-accamt" type="number" min="0" placeholder="e.g. 800" value="${job.accommodation_amount||''}" oninput="job.accommodation_amount=parseInt(this.value)||null">
+      </div>
       <div class="fee-box"><div class="q">Will you charge any fee from candidates?</div>
         <div class="radio-row">
           <label><input type="radio" name="fee" ${job.charges_fee?'checked':''} onchange="tgFee(true)"> Yes</label>
@@ -1629,7 +1633,10 @@ function tgJoin(btn){ job.joining=(job.joining==='Immediate Joining'?'':'Immedia
 function tgPermit(btn){ job.need_work_permit=!job.need_work_permit; btn.classList.toggle("on",job.need_work_permit); }
 function tgAcc(v){ job.accommodation=(job.accommodation===v?'':v);
   document.getElementById("f-accfree").classList.toggle("on",job.accommodation==='Free');
-  document.getElementById("f-accpaid").classList.toggle("on",job.accommodation==='Paid'); }
+  document.getElementById("f-accpaid").classList.toggle("on",job.accommodation==='Paid');
+  // Show the cost input only for Paid; clear it otherwise.
+  const w=document.getElementById("f-accamt-wrap");
+  if(w){ const paid=job.accommodation==='Paid'; w.style.display=paid?'block':'none'; if(!paid) job.accommodation_amount=null; } }
 function tgFee(yes){ job.charges_fee=yes;
   const t=document.getElementById("fee-text");
   if(t) t.innerHTML=yes?`By choosing 'Yes', you agree this is shown to candidates and discouraged.`:`By choosing 'No', you acknowledge and agree that candidates will <b>not be charged any fees</b> under any circumstances.`; }
@@ -1663,7 +1670,7 @@ function updateJdCount(){
   if(ok) ok.textContent=enough?"✓":"";
 }
 function validateStep(){
-  if(wzStep===1){ if(!job.category){alert("Please choose a Work Category");return false;} if(!job.position){alert("Please enter a Position");return false;} if(!job.languages_required){alert("Please select Languages required");return false;} if(!job.accommodation){alert("Please select Accommodation");return false;} }
+  if(wzStep===1){ if(!job.category){alert("Please choose a Work Category");return false;} if(!job.position){alert("Please enter a Position");return false;} if(!job.languages_required){alert("Please select Languages required");return false;} if(!job.accommodation){alert("Please select Accommodation");return false;} if(job.accommodation==='Paid'&&!(job.accommodation_amount>0)){alert("Please enter the accommodation cost (PLN) for Paid Accommodation");return false;} }
   if(wzStep===2){ if(!job.nationalities){alert("Please enter Nationalities Accepted");return false;} }
   if(wzStep===3){ const len=(job.description||"").trim().length; if(len<300){alert("Job Description must be at least 300 characters. You currently have "+len+".");return false;} }
   if(wzStep===4){ if(!job.hiring_authority){alert("Please choose who you are posting as");return false;} if(!job.contact_first_name||!job.contact_last_name){alert("Please enter contact first & last name");return false;} }

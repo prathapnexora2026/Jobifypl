@@ -39,5 +39,7 @@ def run_migrations():
             # messages: WhatsApp-style deletion flags
             _add_column(conn, "messages", "deleted_for_all", "BOOLEAN DEFAULT FALSE")
             _add_column(conn, "messages", "deleted_for", "TEXT")
+            # jobs: monthly cost when accommodation is Paid (change #6)
+            _add_column(conn, "jobs", "accommodation_amount", "INTEGER")
     except Exception as e:
         print(f"[migrate] skipped: {e}")

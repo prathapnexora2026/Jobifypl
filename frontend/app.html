@@ -1381,14 +1381,25 @@ function jdShow(j){
     <h2>${esc(j.position||j.title||j.category)}</h2><div class="co">${esc(j.company_name||'')} • ${esc(j.location||'')}</div>`;
   const sb=document.getElementById("jd-share");
   if(sb){ sb.innerHTML=svg("share"); sb.onclick=()=>shareJob(j.id, j.position||j.title||"", j.company_name||""); }
+  // Accommodation shows the monthly cost when it's Paid.
+  const accomVal = j.accommodation==='Paid'
+    ? ('Paid'+(j.accommodation_amount?` · ${j.accommodation_amount} PLN/month`:''))
+    : j.accommodation;
   const rows=[
     ["Category",j.category],["Job Type",j.job_type],["Work Type",j.work_type],["Shift",j.shift_timing],
     ["Location",j.location],["Gender",j.gender_pref],["Nationalities",j.nationalities],
     ["Age",(j.age_from||'')+((j.age_from||j.age_to)?' - ':'')+(j.age_to||'')],
-    ["Accommodation",j.accommodation],["Accepts",j.accepts_to],["Language",j.languages_required],
+    ["Accommodation",accomVal],["Accepts",j.accepts_to],["Language",j.languages_required],
   ].filter(r=>r[1]);
+  // Candidate-fee banner (#7): if recruiter is NOT charging, reassure the candidate.
+  const feeBanner = j.charges_fee
+    ? `<div class="jd-sec"><div style="background:#FFF7E6;border:1px solid #FCE3A6;border-radius:12px;padding:14px 16px;color:#8A6100;font-size:14px;">
+         <b>Note:</b> This recruiter has indicated a fee may apply. Please confirm all details before paying anything.</div></div>`
+    : `<div class="jd-sec"><div style="background:#E9F9F0;border:1px solid #B9EBCD;border-radius:12px;padding:14px 16px;color:#0E7A46;font-size:14px;">
+         ✓ <b>This is a free job.</b> You don't need to pay any fee to the recruiter to apply.</div></div>`;
   document.getElementById("jd-content").innerHTML=`
     <div class="jd-sec"><h3>Job Information</h3><div class="jd-grid">${rows.map(r=>`<div><div class="k">${esc(r[0])}</div><div class="v">${esc(r[1])}</div></div>`).join("")}</div></div>
+    ${feeBanner}
     ${j.description?`<div class="jd-sec"><h3>Description</h3><div class="jd-desc">${esc(j.description)}</div></div>`:""}`;
   const applied=j.applied||appliedIds.has(j.id);
   document.getElementById("jd-foot").innerHTML=applied

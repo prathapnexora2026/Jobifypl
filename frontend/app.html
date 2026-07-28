@@ -1293,7 +1293,7 @@ async function saveCv(){
 
 /* ============ DOCUMENTS ============ */
 const DOC_DEFS=[
-  {type:"resume", label:"Resume / CV", req:true, hint:"Format: PDF, DOC, JPG, PNG"},
+  {type:"resume", label:"Resume / CV", req:false, hint:"Optional · Format: PDF, DOC, JPG, PNG"},
   {type:"trc_card", label:"TRC Card or Application", req:true, hint:"Format: PDF, JPG, PNG"},
   {type:"pesel", label:"Pesel Number", req:true, hint:"Upload PESEL PDF / Image"},
   {type:"passport", label:"Passport", req:true, hint:"Format: PDF, JPG, PNG"},
@@ -1328,8 +1328,7 @@ document.getElementById("doc-file-input").addEventListener("change",async functi
   }catch(e){ toast(e.message); }
 });
 async function submitDocs(){
-  // Resume is mandatory — flag it first and clearly.
-  if(!uploadedDocs["resume"]){ toast("Resume / CV is required. Please upload it first."); return; }
+  // Resume / CV is now OPTIONAL — no longer blocks submission.
   if(!docAgreed){ toast("Please agree to the terms and conditions"); return; }
   const missing=DOC_DEFS.filter(d=>d.req&&!uploadedDocs[d.type]).map(d=>d.label);
   if(missing.length){ toast("Please upload: "+missing.join(", ")); return; }

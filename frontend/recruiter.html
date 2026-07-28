@@ -1494,8 +1494,9 @@ function renderWizard(){
   else if(wzStep===3){
     b.innerHTML=`
       <label>Full Job Description <span class="req">*</span></label>
-      <textarea id="f-desc" style="min-height:200px;" placeholder="Write job description (max 300 characters)" maxlength="300" oninput="job.description=this.value;document.getElementById('cc').textContent=this.value.length">${esc(job.description||"")}</textarea>
-      <div style="text-align:right;color:var(--muted);margin-top:6px;"><span id="cc">${(job.description||"").length}</span> characters</div>`;
+      <textarea id="f-desc" style="min-height:200px;" placeholder="Write a detailed job description (minimum 300 characters)" oninput="job.description=this.value;updateJdCount()">${esc(job.description||"")}</textarea>
+      <div style="text-align:right;margin-top:6px;font-size:13px;"><span id="cc">${(job.description||"").length}</span> / 300 min <span id="cc-ok"></span></div>`;
+    setTimeout(updateJdCount,0);
   }
   else if(wzStep===4){
     const auths=[["Agency","building"],["Company","briefcase"],["Freelancer","freelancer"],["Self-Hiring","person"]];
@@ -1629,10 +1630,19 @@ function tgAcc(v){ job.accommodation=(job.accommodation===v?'':v);
 function tgFee(yes){ job.charges_fee=yes;
   const t=document.getElementById("fee-text");
   if(t) t.innerHTML=yes?`By choosing 'Yes', you agree this is shown to candidates and discouraged.`:`By choosing 'No', you acknowledge and agree that candidates will <b>not be charged any fees</b> under any circumstances.`; }
+function updateJdCount(){
+  const el=document.getElementById("cc"), ok=document.getElementById("cc-ok");
+  if(!el) return;
+  const len=(job.description||"").trim().length;
+  el.textContent=len;
+  const enough=len>=300;
+  el.style.color=enough?"var(--green,#0E9F5A)":"#EF4444";
+  if(ok) ok.textContent=enough?"✓":"";
+}
 function validateStep(){
   if(wzStep===1){ if(!job.category){alert("Please choose a Work Category");return false;} if(!job.position){alert("Please enter a Position");return false;} if(!job.languages_required){alert("Please select Languages required");return false;} if(!job.accommodation){alert("Please select Accommodation");return false;} }
   if(wzStep===2){ if(!job.nationalities){alert("Please enter Nationalities Accepted");return false;} }
-  if(wzStep===3){ if(!job.description||job.description.length<1){alert("Please write a Job Description");return false;} }
+  if(wzStep===3){ const len=(job.description||"").trim().length; if(len<300){alert("Job Description must be at least 300 characters. You currently have "+len+".");return false;} }
   if(wzStep===4){ if(!job.hiring_authority){alert("Please choose who you are posting as");return false;} if(!job.contact_first_name||!job.contact_last_name){alert("Please enter contact first & last name");return false;} }
   return true;
 }

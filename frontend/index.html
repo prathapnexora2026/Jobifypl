@@ -37,7 +37,9 @@
   /* NAV */
   header{position:sticky;top:0;z-index:60;background:#fff;border-bottom:1px solid #eee}
   .nav{display:flex;align-items:center;justify-content:space-between;height:78px}
-  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:28px;color:var(--navy);letter-spacing:-.5px}
+  .logo{display:flex;align-items:center;gap:12px;font-weight:800;font-size:28px;color:var(--navy);letter-spacing:-.5px}
+  .logo .logo-img{width:52px;height:52px;object-fit:contain;}
+  .logo .logo-txt{display:flex;align-items:center;gap:6px;}
   .logo .badge{background:var(--yellow-strong);color:#0d1b3d;padding:0 8px;border:2px solid var(--navy);border-radius:4px}
   .logo .mark{width:42px;height:42px;border:2px solid var(--navy);border-radius:8px;display:grid;place-items:center;font-size:20px;background:#fff}
   nav ul{display:flex;gap:38px;list-style:none}
@@ -127,6 +129,14 @@
   .connect p{color:var(--body);margin-top:16px}
   .connect .tagline{color:var(--yellow);font-weight:700;font-size:19px;margin-top:24px}
 
+  /* WATCH VIDEO */
+  .video-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+  .vchecks{margin-top:22px;list-style:none;font-size:16px;color:var(--ink)}
+  .vchecks li{margin-bottom:10px}
+  .vwrap{position:relative;border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+  .vwrap img{width:100%;height:100%;object-fit:cover}
+  .play{position:absolute;inset:0;margin:auto;width:92px;height:92px;border-radius:50%;background:var(--yellow);border:0;cursor:pointer;display:grid;place-items:center}
+  .play:after{content:"";border-left:24px solid #fff;border-top:15px solid transparent;border-bottom:15px solid transparent;margin-left:6px}
   /* APP */
   .app{background:var(--cream)}
   .app-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
@@ -182,7 +192,7 @@
 <header>
   <div class="wrap">
     <nav class="nav" id="nav">
-      <a class="logo" href="#home"><span class="mark">👷</span>Jobify<span class="badge">PL</span></a>
+      <a class="logo" href="#home"><img src="/assets/logo/mascot.png" alt="JobifyPL" class="logo-img"><span class="logo-txt">Jobify<span class="badge">PL</span></span></a>
       <ul>
         <li><a href="#home">Home</a></li>
         <li><a href="#features">Features</a></li>
@@ -311,6 +321,27 @@
   </div>
 </section>
 
+<!-- WATCH VIDEO -->
+<section class="cream">
+  <div class="wrap">
+    <div class="video-grid">
+      <div>
+        <span class="pill" style="margin:0 0 18px">Here You Can See</span>
+        <h2 class="title dark" style="text-align:left;">Watch Our <span class="yellow-text">Video</span></h2>
+        <p style="color:var(--body);margin-top:18px;font-size:16px;">JobifyPL connects talent with opportunity through a smart, streamlined hiring platform. Discover jobs, manage applications, and connect with recruiters — all in one place. Built to make hiring faster, simpler, and more effective for everyone.</p>
+        <ul class="vchecks">
+          <li>✓ Learn about our platform</li>
+          <li>✓ See how it works</li>
+        </ul>
+      </div>
+      <div class="vwrap">
+        <img src="/assets/home/video.jpg" alt="JobifyPL platform walkthrough" loading="lazy">
+        <button class="play" aria-label="Play video" onclick="launchingSoon()"></button>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- WHY CHOOSE US -->
 <section>
   <div class="wrap">
@@ -386,7 +417,7 @@
 <section class="app">
   <div class="wrap">
     <div class="app-grid">
-      <div style="text-align:center;"><img src="/assets/jobifyPLlogo.png" alt="JobifyPL app" loading="lazy" style="max-width:420px;width:100%;margin:0 auto;"></div>
+      <div style="text-align:center;"><img src="/assets/home/app-mockup.png" alt="JobifyPL app screens" loading="lazy" style="max-width:520px;width:100%;margin:0 auto;"></div>
       <div>
         <span class="pill" style="margin:0 0 18px">Step Forward Now</span>
         <h2>The Jobify<span class="hl">PL</span> APP</h2>
@@ -409,7 +440,7 @@
   <div class="wrap">
     <div class="fgrid">
       <div>
-        <div class="logo" style="color:#fff;font-size:24px">Jobify<span class="badge">PL</span></div>
+        <div class="logo" style="color:#fff;font-size:24px"><img src="/assets/logo/mascot.png" alt="JobifyPL" class="logo-img" style="background:#fff;border-radius:8px;padding:2px;"><span class="logo-txt">Jobify<span class="badge">PL</span></span></div>
         <p class="legal">
           Operated by NEXORA TECH SOLUTIONS SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ (Sp. z o.o.),
           registered in the Register of Entrepreneurs of the National Court Register (KRS) under
@@ -500,6 +531,14 @@
       "The Jobify APP":"Aplikacja JobifyPL","A world of opportunity in your hand":"Świat możliwości w Twojej dłoni",
       "Quick Links":"Szybkie linki","Contact":"Kontakt","Follow Us":"Obserwuj nas",
       "Terms & Conditions":"Regulamin","Privacy Policy":"Polityka prywatności",
+      "Our Key Features":"Nasze kluczowe funkcje","Helping to find Job":"Pomagamy znaleźć pracę",
+      "Platform for Recruiters":"Platforma dla rekruterów","Advertise With Us":"Reklamuj się u nas","Other Services":"Inne usługi",
+      "Fast Hiring Process":"Szybki proces rekrutacji","Precision Matching":"Precyzyjne dopasowanie","Secure Profiles":"Bezpieczne profile","Global Job Network":"Globalna sieć ofert",
+      "Watch Our Video":"Obejrzyj nasze wideo","Here You Can See":"Tutaj możesz zobaczyć",
+      "Learn about our platform":"Poznaj naszą platformę","See how it works":"Zobacz, jak to działa",
+      "Step Forward Now":"Zrób krok naprzód","Download APK":"Pobierz APK","Direct download":"Bezpośrednie pobieranie",
+      "Launching Soon!":"Wkrótce premiera!","Close":"Zamknij","Let's":"Poł","Connect":"ączmy się",
+      "Sponsored by":"Sponsorowane przez",
     },
     uk: {
       "Home":"Головна","Features":"Функції","Careers":"Кар'єра","Our Story":"Про нас",
@@ -514,6 +553,13 @@
       "The Jobify APP":"Застосунок JobifyPL","A world of opportunity in your hand":"Світ можливостей у вашій руці",
       "Quick Links":"Швидкі посилання","Contact":"Контакти","Follow Us":"Стежте за нами",
       "Terms & Conditions":"Умови","Privacy Policy":"Політика конфіденційності",
+      "Our Key Features":"Наші ключові функції","Helping to find Job":"Допомагаємо знайти роботу",
+      "Platform for Recruiters":"Платформа для рекрутерів","Advertise With Us":"Рекламуйтеся з нами","Other Services":"Інші послуги",
+      "Fast Hiring Process":"Швидкий найм","Precision Matching":"Точний підбір","Secure Profiles":"Захищені профілі","Global Job Network":"Глобальна мережа вакансій",
+      "Watch Our Video":"Дивіться наше відео","Here You Can See":"Тут ви можете побачити",
+      "Learn about our platform":"Дізнайтесь про платформу","See how it works":"Подивіться, як це працює",
+      "Step Forward Now":"Зробіть крок уперед","Download APK":"Завантажити APK","Direct download":"Пряме завантаження",
+      "Launching Soon!":"Скоро запуск!","Close":"Закрити","Sponsored by":"Спонсор:",
     }
   };
   var LANG_META={en:{f:"🇬🇧",n:"English"},pl:{f:"🇵🇱",n:"Polski"},uk:{f:"🇺🇦",n:"Українська"}};

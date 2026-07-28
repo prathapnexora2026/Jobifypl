@@ -26,6 +26,13 @@
   /* SPONSOR BAR */
   .sponsor-bar{background:var(--navy);color:#fff;text-align:center;font-size:13px;padding:8px 16px;letter-spacing:.3px}
   .sponsor-bar b{color:var(--yellow-strong);font-weight:700}
+  /* floating language switcher */
+  .lang{position:fixed;right:24px;bottom:24px;z-index:80}
+  .lang-btn{background:#0d1226;color:#fff;border:1px solid var(--yellow);border-radius:999px;padding:12px 20px;display:flex;align-items:center;gap:10px;cursor:pointer;font-family:inherit;font-size:15px}
+  .lang-menu{position:absolute;bottom:60px;right:0;background:#101a33;border-radius:12px;padding:10px;display:none;min-width:180px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  .lang-menu.open{display:block}
+  .lang-menu button{width:100%;background:none;border:0;color:#fff;display:flex;gap:12px;align-items:center;padding:11px 12px;font-size:15px;cursor:pointer;font-family:inherit;border-radius:8px}
+  .lang-menu button:hover{background:#1c2b4d}
 
   /* NAV */
   header{position:sticky;top:0;z-index:60;background:#fff;border-bottom:1px solid #eee}
@@ -440,8 +447,69 @@
   </div>
 </footer>
 
+<!-- FLOATING LANGUAGE SWITCHER -->
+<div class="lang">
+  <div class="lang-menu" id="langMenu">
+    <button onclick="setLang('en')">🇬🇧 English</button>
+    <button onclick="setLang('pl')">🇵🇱 Polski</button>
+    <button onclick="setLang('uk')">🇺🇦 Українська</button>
+  </div>
+  <button class="lang-btn" onclick="document.getElementById('langMenu').classList.toggle('open')">
+    <span>文</span><span id="langFlag">🇬🇧</span><span id="langName">English</span><span>⌃</span>
+  </button>
+</div>
+
 <script>
   function sent(e, msg){ e.preventDefault(); alert(msg); e.target.reset(); return false; }
+
+  /* FLOATING LANGUAGE SWITCHER — translates the homepage text (EN/PL/UK) */
+  var I18N_HOME = {
+    pl: {
+      "Home":"Główna","Features":"Funkcje","Careers":"Kariera","Our Story":"O nas",
+      "Advertise with us":"Reklamuj się","Blogs":"Blog","Contact us":"Kontakt","Open App":"Otwórz aplikację",
+      "Find a Job":"Znajdź pracę","For Recruiters":"Dla rekruterów",
+      "Trusted by over":"Zaufało nam ponad","diverse community in Poland":"zróżnicowanej społeczności w Polsce",
+      "Local Jobs — all in your language":"Lokalne oferty pracy — w Twoim języku",
+      "How It Works":"Jak to działa","Create an Account":"Załóż konto","Complete Your Profile":"Uzupełnij profil","Apply or Hire":"Aplikuj lub zatrudniaj",
+      "Popular Industries":"Popularne branże","Explore Sectors":"Poznaj sektory",
+      "Join Our Team":"Dołącz do zespołu","Our Story":"O nas","Why Choose Us?":"Dlaczego my?",
+      "Contact Us":"Kontakt","Send Message":"Wyślij wiadomość","Send Request":"Wyślij zapytanie","Get a Quote":"Poproś o wycenę",
+      "The Jobify APP":"Aplikacja JobifyPL","A world of opportunity in your hand":"Świat możliwości w Twojej dłoni",
+      "Quick Links":"Szybkie linki","Contact":"Kontakt","Follow Us":"Obserwuj nas",
+      "Terms & Conditions":"Regulamin","Privacy Policy":"Polityka prywatności",
+    },
+    uk: {
+      "Home":"Головна","Features":"Функції","Careers":"Кар'єра","Our Story":"Про нас",
+      "Advertise with us":"Реклама","Blogs":"Блог","Contact us":"Контакти","Open App":"Відкрити застосунок",
+      "Find a Job":"Знайти роботу","For Recruiters":"Для рекрутерів",
+      "Trusted by over":"Нам довіряють понад","diverse community in Poland":"різноманітної спільноти в Польщі",
+      "Local Jobs — all in your language":"Локальні вакансії — вашою мовою",
+      "How It Works":"Як це працює","Create an Account":"Створіть акаунт","Complete Your Profile":"Заповніть профіль","Apply or Hire":"Подавайтесь або наймайте",
+      "Popular Industries":"Популярні галузі","Explore Sectors":"Огляд секторів",
+      "Join Our Team":"Приєднуйтесь до нас","Our Story":"Про нас","Why Choose Us?":"Чому ми?",
+      "Contact Us":"Контакти","Send Message":"Надіслати повідомлення","Send Request":"Надіслати запит","Get a Quote":"Отримати пропозицію",
+      "The Jobify APP":"Застосунок JobifyPL","A world of opportunity in your hand":"Світ можливостей у вашій руці",
+      "Quick Links":"Швидкі посилання","Contact":"Контакти","Follow Us":"Стежте за нами",
+      "Terms & Conditions":"Умови","Privacy Policy":"Політика конфіденційності",
+    }
+  };
+  var LANG_META={en:{f:"🇬🇧",n:"English"},pl:{f:"🇵🇱",n:"Polski"},uk:{f:"🇺🇦",n:"Українська"}};
+  var _homeOrig=null;
+  function setLang(code){
+    var menu=document.getElementById('langMenu'); if(menu) menu.classList.remove('open');
+    document.getElementById('langFlag').textContent=LANG_META[code].f;
+    document.getElementById('langName').textContent=LANG_META[code].n;
+    // snapshot the original English text once
+    var nodes=document.querySelectorAll('nav a,h1 span,h2,h3,p,button,a,li,.cap');
+    if(!_homeOrig){ _homeOrig=new Map(); nodes.forEach(function(el){ if(!el.children.length) _homeOrig.set(el,(el.textContent||'').trim()); }); }
+    var dict=I18N_HOME[code];
+    _homeOrig.forEach(function(orig,el){
+      if(!dict){ el.textContent=orig; return; }        // English = restore
+      el.textContent = dict[orig] || orig;
+    });
+    try{ localStorage.setItem('homeLang',code); }catch(e){}
+  }
+  (function(){ var l=localStorage.getItem('homeLang'); if(l&&l!=='en') setTimeout(function(){setLang(l);},50); })();
 
   /* HERO SLIDER — auto-rotates every 5s, arrows + dots */
   var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));

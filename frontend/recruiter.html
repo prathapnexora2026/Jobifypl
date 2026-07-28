@@ -1419,6 +1419,7 @@ function editJob(id){
     contact_cc:j.contact_cc||"", contact_first_name:j.contact_first_name||"",
     contact_middle_name:j.contact_middle_name||"", contact_last_name:j.contact_last_name||"",
     contact_phone:j.contact_phone||"", contact_email:j.contact_email||"",
+    contact_company:j.contact_company||j.company_name||"",
   };
   wzStep=1; showScreen("s-wizard"); renderWizard();
 }
@@ -1510,12 +1511,12 @@ function renderWizard(){
     b.innerHTML=`
       <div class="auth-grid">${auths.map(([a,icn])=>`<div class="authcard ${job.hiring_authority===a?'on':''}" data-auth="${a}" onclick="tgAuth('${a}')"><div class="em">${ic(icn)}</div><div class="lbl">${a}</div></div>`).join("")}</div>
       <div class="contact-box"><div class="ct">${ic('contacts')} Contact Details</div>
-        <input placeholder="Cc" value="${esc(job.contact_cc||"")}" oninput="job.contact_cc=this.value">
+        <div id="auth-company-wrap">${authCompanyField()}</div>
         <input placeholder="First Name *" value="${esc(job.contact_first_name||"")}" oninput="job.contact_first_name=this.value">
         <input placeholder="Middle Name" value="${esc(job.contact_middle_name||"")}" oninput="job.contact_middle_name=this.value">
         <input placeholder="Last Name *" value="${esc(job.contact_last_name||"")}" oninput="job.contact_last_name=this.value">
         <input placeholder="Phone Number *" value="${esc(job.contact_phone||"")}" oninput="job.contact_phone=this.value">
-        <input placeholder="Company Email (No Gmail/Yahoo allowed)" value="${esc(job.contact_email||"")}" oninput="job.contact_email=this.value">
+        <div id="auth-email-wrap">${authEmailField()}</div>
       </div>`;
   }
   else if(wzStep===5){
@@ -1535,8 +1536,25 @@ function renderWizard(){
   if(_lastRenderedStep!==wzStep){ window.scrollTo(0,0); _lastRenderedStep=wzStep; }
 }
 let _lastRenderedStep=null;
+// Step-4 fields depend on the hiring type (change #5):
+//  Company / Agency -> company email REQUIRED (no free mail); company name shown.
+//  Freelancer / Self-Hiring -> email OPTIONAL, any email allowed.
+function authIsCompany(){ return job.hiring_authority==='Company'||job.hiring_authority==='Agency'; }
+function authCompanyField(){
+  if(!authIsCompany()) return "";
+  return `<input placeholder="Company Name *" value="${esc(job.contact_company||"")}" oninput="job.contact_company=this.value">`;
+}
+function authEmailField(){
+  if(authIsCompany()){
+    return `<input type="email" placeholder="Company Email * (no Gmail/Yahoo)" value="${esc(job.contact_email||"")}" oninput="job.contact_email=this.value">`;
+  }
+  return `<input type="email" placeholder="Email (optional)" value="${esc(job.contact_email||"")}" oninput="job.contact_email=this.value">`;
+}
 function tgAuth(a){ job.hiring_authority=a;
-  document.querySelectorAll(".authcard[data-auth]").forEach(el=>el.classList.toggle("on",el.getAttribute("data-auth")===a)); }
+  document.querySelectorAll(".authcard[data-auth]").forEach(el=>el.classList.toggle("on",el.getAttribute("data-auth")===a));
+  // Re-render the type-dependent fields (company name + email requirement).
+  const cw=document.getElementById("auth-company-wrap"); if(cw) cw.innerHTML=authCompanyField();
+  const ew=document.getElementById("auth-email-wrap"); if(ew) ew.innerHTML=authEmailField(); }
 // Selecting a plan in the wizard actually BUYS it (test mode = wallet).
 // The backend requires an ACTIVE plan with remaining posts before a job can be posted,
 // so a local plan_id alone isn't enough — we activate it here, then the post goes through.
@@ -1673,7 +1691,16 @@ function validateStep(){
   if(wzStep===1){ if(!job.category){alert("Please choose a Work Category");return false;} if(!job.position){alert("Please enter a Position");return false;} if(!job.languages_required){alert("Please select Languages required");return false;} if(!job.accommodation){alert("Please select Accommodation");return false;} if(job.accommodation==='Paid'&&!(job.accommodation_amount>0)){alert("Please enter the accommodation cost (PLN) for Paid Accommodation");return false;} }
   if(wzStep===2){ if(!job.nationalities){alert("Please enter Nationalities Accepted");return false;} }
   if(wzStep===3){ const len=(job.description||"").trim().length; if(len<300){alert("Job Description must be at least 300 characters. You currently have "+len+".");return false;} }
-  if(wzStep===4){ if(!job.hiring_authority){alert("Please choose who you are posting as");return false;} if(!job.contact_first_name||!job.contact_last_name){alert("Please enter contact first & last name");return false;} }
+  if(wzStep===4){
+    if(!job.hiring_authority){alert("Please choose who you are posting as");return false;}
+    if(!job.contact_first_name||!job.contact_last_name){alert("Please enter contact first & last name");return false;}
+    if(authIsCompany()){
+      if(!job.contact_company){alert("Please enter the Company Name");return false;}
+      const em=(job.contact_email||"").trim();
+      if(!em){alert("A company email is required when posting as a Company/Agency");return false;}
+      if(/@(gmail|yahoo|hotmail|outlook|icloud)\./i.test(em)){alert("Please use a company email (Gmail/Yahoo/Hotmail etc. are not allowed for companies)");return false;}
+    }
+  }
   return true;
 }
 // Step-5 branch: reuse an active plan (no forced re-buy) OR show plans to buy.

@@ -145,6 +145,7 @@ class JobIn(BaseModel):
     description: str | None = None
     # Step 4 — Hiring Authority
     hiring_authority: str | None = None
+    contact_company: str | None = None
     contact_first_name: str | None = None
     contact_middle_name: str | None = None
     contact_last_name: str | None = None
@@ -196,7 +197,10 @@ def post_job(body: JobIn, user: User = Depends(require_recruiter), db: Session =
     if body.hiring_authority and not p.hiring_authority:
         p.hiring_authority = body.hiring_authority
 
-    company = p.company_name or f"{p.first_name or ''} {p.last_name or ''}".strip() or "Self-Hiring"
+    # Prefer the company name entered on this posting (Company/Agency), else the
+    # recruiter's saved company, else their name.
+    company = (body.contact_company or p.company_name
+               or f"{p.first_name or ''} {p.last_name or ''}".strip() or "Self-Hiring")
     if body.hiring_authority == "Self-Hiring":
         company = "Self-Hiring"
     job = Job(

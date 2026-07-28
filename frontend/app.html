@@ -662,6 +662,7 @@
       <div class="pf-item" onclick="openMyDocs()"><div class="l"><div class="iconc" data-ic="doc"></div><div class="t">My Documents</div></div><div class="chev" data-ic="chevron"></div></div>
       <div class="pf-item" onclick="go('s-wallet')"><div class="l"><div class="iconc" data-ic="wallet"></div><div class="t">Wallet</div></div><div class="chev" data-ic="chevron"></div></div>
       <div class="pf-item" onclick="go('s-plans')"><div class="l"><div class="iconc" data-ic="star"></div><div class="t">Plans</div></div><div class="chev" data-ic="chevron"></div></div>
+      <div class="pf-item" onclick="openLangPicker()"><div class="l"><div class="iconc" data-ic="globe"></div><div class="t">Language</div></div><div class="chev" data-ic="chevron"></div></div>
       <div class="pf-item" onclick="go('s-contact')"><div class="l"><div class="iconc" data-ic="call"></div><div class="t">Contact Us</div></div><div class="chev" data-ic="chevron"></div></div>
       <div class="pf-item logout" onclick="confirmLogout()"><div class="l"><div class="iconc" data-ic="logout"></div><div class="t">Log out</div></div></div>
     </div>
@@ -834,6 +835,14 @@
     </div>
   </div>
 
+  <!-- language picker -->
+  <div class="pop-bg" id="pop-lang">
+    <div class="pop"><div class="crown" data-ic="globe"></div><h3>Choose your language</h3>
+      <div id="lang-opts" style="display:flex;flex-direction:column;gap:10px;margin:12px 0;"></div>
+      <button class="later" onclick="document.getElementById('pop-lang').classList.remove('show')">Close</button>
+    </div>
+  </div>
+
   <!-- country code picker -->
   <div class="pop-bg" id="pop-ccpick">
     <div class="pop" style="max-width:420px;height:70vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
@@ -950,6 +959,97 @@ let _navStack=[];   // in-memory screen history (NOT browser history — this is
                     // native app; navigation is driven by the Capacitor back
                     // button event, not the browser URL/history stack).
 
+/* ============ i18n — English → Polish / Ukrainian (candidate app) ============
+   Dictionary keyed by the ENGLISH source text. applyLanguage() walks the visible
+   screen and swaps text/placeholder for the chosen language. English is the
+   default (no swap). Dynamic user content (job posts) is untouched here — that's
+   handled later via the translation API. */
+const CAND_LANG = localStorage.getItem("lang") || "en";
+let curLang = CAND_LANG;
+const I18N_CAND = {
+  pl: {
+    "Find your dream job":"Znajdź wymarzoną pracę","in Poland":"w Polsce",
+    "Trusted by 10k+ community":"Zaufało nam ponad 10 tys. osób",
+    "Choose your role":"Wybierz swoją rolę","I want a job":"Szukam pracy","I want to hire":"Chcę zatrudniać",
+    "Sign in to your account":"Zaloguj się na swoje konto","Enter your mobile number to continue":"Podaj numer telefonu, aby kontynuować",
+    "Mobile Number":"Numer telefonu","Send OTP":"Wyślij kod","Change role":"Zmień rolę",
+    "Enter the code":"Wpisz kod","Verify & Continue":"Zweryfikuj i kontynuuj","Resend Code":"Wyślij kod ponownie",
+    "Build Your CV":"Uzupełnij CV","Continue":"Kontynuuj","Skip for now":"Pomiń na razie",
+    "Upload Your Documents":"Prześlij dokumenty","Add More Documents":"Dodaj więcej dokumentów",
+    "Submit Application":"Wyślij zgłoszenie","I agree to the terms and conditions":"Akceptuję regulamin",
+    "Your Applications":"Twoje aplikacje","Application Status":"Status aplikacji","Track Journey":"Śledź postęp",
+    "Messages":"Wiadomości","Notifications":"Powiadomienia","Job Details":"Szczegóły oferty",
+    "Job Information":"Informacje o pracy","Description":"Opis","Apply Now":"Aplikuj teraz","Applied":"Zaaplikowano",
+    "Category":"Kategoria","Job Type":"Rodzaj pracy","Work Type":"Tryb pracy","Shift":"Zmiana","Location":"Lokalizacja",
+    "Gender":"Płeć","Nationalities":"Narodowości","Age":"Wiek","Accommodation":"Zakwaterowanie","Accepts":"Akceptuje","Language":"Język",
+    "Add Money to Wallet":"Doładuj portfel","Add Money":"Dodaj środki","Cancel":"Anuluj","Enter an amount to top up your wallet.":"Podaj kwotę doładowania portfela.",
+    "Purchase History":"Historia zakupów","No transactions yet":"Brak transakcji",
+    "Buy a plan to apply":"Kup plan, aby aplikować","View Plans":"Zobacz plany","Maybe Later":"Może później",
+    "Choose payment method":"Wybierz metodę płatności","Contact Us":"Kontakt","How Can We Help?":"Jak możemy pomóc?",
+    "Quick Support":"Szybka pomoc","Send a Message":"Wyślij wiadomość","Submit":"Wyślij","Send":"Wyślij",
+    "Home":"Główna","Profile":"Profil","Wallet":"Portfel","Logout":"Wyloguj","Log out":"Wyloguj",
+    "This is a free job.":"To darmowa oferta.","Choose your language":"Wybierz język",
+    "You can change this later anytime in the app.":"Możesz to zmienić później w aplikacji.",
+    "Get Started":"Rozpocznij","Next":"Dalej","Done":"Gotowe","Close":"Zamknij","Please wait":"Proszę czekać",
+    "Payment successful":"Płatność zakończona sukcesem","Confirming payment…":"Potwierdzanie płatności…",
+  },
+  uk: {
+    "Find your dream job":"Знайдіть роботу мрії","in Poland":"в Польщі",
+    "Trusted by 10k+ community":"Нам довіряють понад 10 тис. людей",
+    "Choose your role":"Оберіть свою роль","I want a job":"Шукаю роботу","I want to hire":"Хочу наймати",
+    "Sign in to your account":"Увійдіть до облікового запису","Enter your mobile number to continue":"Введіть номер телефону, щоб продовжити",
+    "Mobile Number":"Номер телефону","Send OTP":"Надіслати код","Change role":"Змінити роль",
+    "Enter the code":"Введіть код","Verify & Continue":"Підтвердити та продовжити","Resend Code":"Надіслати код ще раз",
+    "Build Your CV":"Створіть резюме","Continue":"Продовжити","Skip for now":"Пропустити поки що",
+    "Upload Your Documents":"Завантажте документи","Add More Documents":"Додати ще документи",
+    "Submit Application":"Надіслати заявку","I agree to the terms and conditions":"Я приймаю умови",
+    "Your Applications":"Ваші заявки","Application Status":"Статус заявки","Track Journey":"Відстежити шлях",
+    "Messages":"Повідомлення","Notifications":"Сповіщення","Job Details":"Деталі вакансії",
+    "Job Information":"Інформація про роботу","Description":"Опис","Apply Now":"Подати заявку","Applied":"Подано",
+    "Category":"Категорія","Job Type":"Тип роботи","Work Type":"Формат роботи","Shift":"Зміна","Location":"Місце",
+    "Gender":"Стать","Nationalities":"Національності","Age":"Вік","Accommodation":"Житло","Accepts":"Приймає","Language":"Мова",
+    "Add Money to Wallet":"Поповнити гаманець","Add Money":"Додати кошти","Cancel":"Скасувати","Enter an amount to top up your wallet.":"Введіть суму поповнення гаманця.",
+    "Purchase History":"Історія покупок","No transactions yet":"Транзакцій ще немає",
+    "Buy a plan to apply":"Купіть план, щоб подати заявку","View Plans":"Переглянути плани","Maybe Later":"Можливо пізніше",
+    "Choose payment method":"Оберіть спосіб оплати","Contact Us":"Контакти","How Can We Help?":"Чим допомогти?",
+    "Quick Support":"Швидка підтримка","Send a Message":"Надіслати повідомлення","Submit":"Надіслати","Send":"Надіслати",
+    "Home":"Головна","Profile":"Профіль","Wallet":"Гаманець","Logout":"Вийти","Log out":"Вийти",
+    "This is a free job.":"Це безкоштовна вакансія.","Choose your language":"Оберіть мову",
+    "You can change this later anytime in the app.":"Ви можете змінити це пізніше в застосунку.",
+    "Get Started":"Почати","Next":"Далі","Done":"Готово","Close":"Закрити","Please wait":"Зачекайте",
+    "Payment successful":"Оплата успішна","Confirming payment…":"Підтвердження оплати…",
+  }
+};
+function applyLanguage(lang){
+  if(lang){ curLang=lang; localStorage.setItem("lang",lang); }
+  const dict=I18N_CAND[curLang];
+  if(!dict) return;   // English or unknown = leave as authored
+  const root=document.querySelector(".screen.active")||document.body;
+  // Translate text nodes that exactly match a dictionary key.
+  root.querySelectorAll("h1,h2,h3,h4,label,button,.t,.txt,.lbl,.subt,.sub,span,p,div").forEach(el=>{
+    if(el.children.length) return;           // only leaf elements (avoid nesting)
+    const key=(el.textContent||"").trim();
+    if(dict[key]) el.textContent=dict[key];
+  });
+  root.querySelectorAll("[placeholder]").forEach(el=>{
+    const key=(el.getAttribute("placeholder")||"").trim();
+    if(dict[key]) el.setAttribute("placeholder",dict[key]);
+  });
+}
+function setLanguage(lang){ applyLanguage(lang); }
+function openLangPicker(){
+  const opts=[{c:"en",n:"English",f:"🇬🇧"},{c:"pl",n:"Polski",f:"🇵🇱"},{c:"uk",n:"Українська",f:"🇺🇦"}];
+  document.getElementById("lang-opts").innerHTML=opts.map(o=>
+    `<button class="btn ${curLang===o.c?'':'outline'}" style="justify-content:flex-start;gap:12px;" onclick="chooseLang('${o.c}')"><span style="font-size:20px;">${o.f}</span> ${o.n}</button>`
+  ).join("");
+  document.getElementById("pop-lang").classList.add("show");
+}
+function chooseLang(c){
+  applyLanguage(c);
+  document.getElementById("pop-lang").classList.remove("show");
+  toast("Language updated");
+}
+
 function go(id){
   if(!document.getElementById(id)){ toast("Coming soon"); return; }
   // record navigation (avoid duplicate consecutive entries)
@@ -971,6 +1071,7 @@ function go(id){
   if(id==="s-plans") loadPlans();
   if(id==="s-contact") prefillContact();
   if(id==="s-notif") loadNotifications();
+  applyLanguage();   // translate the newly shown screen
 }
 
 /* ---- Native hardware/gesture back handling (Capacitor App plugin) ----
@@ -1888,6 +1989,7 @@ async function resumePendingPayu(){
 // PayU redirect back into the app doesn't dump the user on the role picker /
 // sign-in (which looked like being logged out). Then resume any pending payment.
 async function bootApp(){
+  applyLanguage(localStorage.getItem("lang")||"en");   // restore chosen language
   if(token()){
     // logged in — go to the dashboard, not the role picker
     go("s-home");

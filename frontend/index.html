@@ -1,527 +1,426 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>JobifyPL — Find a Perfect Job & Shape Your Future</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JobifyPL — Find a Perfect Job &amp; Shape Your Future</title>
+<meta name="description" content="JobifyPL connects talent with opportunity in Poland. Browse verified job listings, apply instantly, hire faster and advertise with us." />
+<meta property="og:title" content="JobifyPL — Find a Perfect Job &amp; Shape Your Future" />
+<meta property="og:description" content="Trusted by over 10k+ diverse community in Poland. Local jobs — all in your language." />
+<meta property="og:type" content="website" />
 <style>
   :root{
-    --navy:#18274b; --navy2:#101b38; --yellow:#F5A800; --yellow-d:#e09a00;
-    --ink:#0f172a; --muted:#5b6472; --line:#E7E9EE; --bg:#ffffff;
-    --cream:#F7F6EE; --hero:#0a0a0c; --card:#fff; --soft:#EEF2F8;
+    --yellow:#F5A800; --yellow-strong:#FFC107; --navy:#152046; --navy2:#111A33;
+    --ink:#1a1a1a; --body:#5b6472; --cream:#FAFAF2; --soft:#E9EFF6; --white:#fff;
+    --shadow:0 8px 30px rgba(20,32,70,.08);
   }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  html{scroll-behavior:smooth;}
-  body{font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.55;}
-  img{max-width:100%;display:block;}
-  a{text-decoration:none;color:inherit;}
-  .wrap{max-width:1240px;margin:0 auto;padding:0 24px;}
-  section{scroll-margin-top:90px;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--white);line-height:1.6;overflow-x:hidden}
+  img{max-width:100%;display:block}
+  a{text-decoration:none;color:inherit}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+  .hl{background:var(--yellow-strong);padding:0 6px;border-radius:3px;color:#000}
+  .yellow-text{color:var(--yellow)}
 
-  h1,h2,h3{color:var(--navy);font-weight:800;letter-spacing:-.5px;text-wrap:balance;}
-  .yellow{color:var(--yellow);}
-  .btn{display:inline-flex;align-items:center;gap:8px;border:none;border-radius:30px;font-weight:700;cursor:pointer;font-size:15px;padding:13px 26px;transition:.18s;}
-  .btn-y{background:var(--yellow);color:#111;box-shadow:0 8px 20px rgba(245,168,0,.28);}
-  .btn-y:hover{background:var(--yellow-d);transform:translateY(-1px);}
-  .btn-o{background:transparent;color:var(--navy);border:1.6px solid var(--navy);}
-  .btn-o:hover{background:var(--navy);color:#fff;}
-  .btn-navy{background:var(--navy);color:#fff;} .btn-navy:hover{background:var(--navy2);}
+  /* SPONSOR BAR */
+  .sponsor-bar{background:var(--navy);color:#fff;text-align:center;font-size:13px;padding:8px 16px;letter-spacing:.3px}
+  .sponsor-bar b{color:var(--yellow-strong);font-weight:700}
 
-  /* ===== NAV ===== */
-  header{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid #eef0f3;}
-  .nav{display:flex;align-items:center;justify-content:space-between;height:74px;}
-  .brand{display:flex;align-items:center;gap:10px;font-size:24px;font-weight:900;color:var(--navy);}
-  .brand img{height:44px;width:44px;object-fit:contain;}
-  .brand .pl{background:var(--yellow);color:#111;border:2px solid var(--navy);padding:0 6px;border-radius:4px;line-height:1.05;}
-  .menu{display:flex;gap:36px;align-items:center;}
-  .menu a{color:#3b4557;font-weight:600;font-size:15.5px;transition:.15s;}
-  .menu a:hover,.menu a.active{color:var(--navy);}
-  .nav-cta{display:flex;gap:12px;align-items:center;}
-  .burger{display:none;background:none;border:none;font-size:26px;cursor:pointer;color:var(--navy);}
-  @media(max-width:1080px){
-    .menu{position:fixed;top:74px;left:0;right:0;background:#fff;flex-direction:column;gap:0;padding:10px 0;
-      box-shadow:0 12px 30px rgba(0,0,0,.1);transform:translateY(-140%);transition:.28s;border-bottom:1px solid var(--line);}
-    .menu.open{transform:translateY(0);} .menu a{padding:14px 24px;width:100%;}
-    .burger{display:block;} .nav-cta .btn-o{display:none;}
+  /* NAV */
+  header{position:sticky;top:0;z-index:60;background:#fff;border-bottom:1px solid #eee}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:78px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:28px;color:var(--navy);letter-spacing:-.5px}
+  .logo .badge{background:var(--yellow-strong);color:#0d1b3d;padding:0 8px;border:2px solid var(--navy);border-radius:4px}
+  .logo .mark{width:42px;height:42px;border:2px solid var(--navy);border-radius:8px;display:grid;place-items:center;font-size:20px;background:#fff}
+  nav ul{display:flex;gap:38px;list-style:none}
+  nav a{font-size:16px;color:#4a5568;font-weight:500}
+  nav a:hover{color:var(--yellow)}
+  .cta-app{background:var(--yellow);color:#241c00;font-weight:700;padding:10px 22px;border-radius:999px;font-size:15px}
+  .burger{display:none;background:none;border:0;font-size:26px;cursor:pointer}
+
+  /* HERO */
+  .hero{background:#000;color:#fff;position:relative;overflow:hidden}
+  .hero-inner{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;min-height:560px;padding:60px 0}
+  .hero h1{font-size:56px;line-height:1.08;font-weight:800;letter-spacing:-1px}
+  .hero h1 span{color:var(--yellow-strong);display:block}
+  .hero p.sub{margin-top:24px;font-size:22px;color:#e8e8e8;font-weight:400}
+  .hero p.sub b{color:var(--yellow-strong);font-weight:600}
+  .hero .bullet{margin-top:24px;font-size:18px;color:#f2f2f2}
+  .hero .hbtns{margin-top:30px;display:flex;gap:14px;flex-wrap:wrap}
+  .hero-img{border-radius:24px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.4);max-height:520px}
+  .hero-img img{width:100%;height:100%;object-fit:cover}
+
+  /* SECTIONS */
+  section{padding:80px 0}
+  .cream{background:var(--cream)}
+  h2.title{text-align:center;font-size:46px;font-weight:800;color:var(--navy);letter-spacing:-1px}
+  h2.dark{color:#111}
+  .rule{width:100px;height:5px;background:var(--yellow);border-radius:3px;margin:18px auto 0}
+  .lead{text-align:center;max-width:760px;margin:24px auto 0;color:var(--body);font-size:18px}
+  .pill{display:block;width:max-content;margin:0 auto 18px;background:#FCF3D6;color:#3b3b3b;font-weight:600;font-size:14px;padding:8px 18px;border-radius:999px}
+
+  /* HOW IT WORKS */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;margin-top:52px}
+  .step{background:var(--soft);border-radius:16px;padding:38px 28px;text-align:center;position:relative}
+  .step .tag{position:absolute;top:18px;right:18px;background:var(--yellow);color:#3a2c00;font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;letter-spacing:.5px}
+  .step .ico{width:96px;height:96px;border-radius:50%;background:#fff;display:grid;place-items:center;margin:14px auto 24px;font-size:40px}
+  .step h3{font-size:22px;color:var(--navy);font-weight:700}
+  .step p{color:var(--body);margin-top:10px;font-size:15px}
+
+  /* FEATURES */
+  .feats{display:grid;grid-template-columns:repeat(4,1fr);gap:34px;margin-top:56px;text-align:center}
+  .feats .ico{width:84px;height:84px;border-radius:50%;background:var(--yellow);display:grid;place-items:center;margin:0 auto 20px;color:#fff}
+  .feats h3{font-size:20px;font-weight:700;color:#111}
+  .feats p{color:var(--body);margin-top:10px;font-size:15px}
+
+  /* INDUSTRIES */
+  .chips{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;margin-top:40px}
+  .chip{background:var(--soft);border-radius:999px;padding:12px 24px 12px 12px;display:flex;align-items:center;gap:12px;font-weight:600;color:var(--navy);font-size:16px}
+  .chip .e{width:36px;height:36px;background:#fff;border-radius:50%;display:grid;place-items:center;font-size:18px}
+  .chip.dashed{border:2px dashed #222;background:transparent;padding:14px 28px;color:#111}
+
+  /* JOBS */
+  .jobs{display:grid;grid-template-columns:repeat(2,1fr);gap:30px;max-width:830px;margin:52px auto 0}
+  .jobcard{border:1px solid #e6e6e6;border-radius:10px;padding:34px 28px;text-align:center;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+  .jobcard .ico{width:80px;height:80px;border-radius:50%;background:var(--yellow);display:grid;place-items:center;margin:0 auto 20px;color:#fff;font-size:34px}
+  .jobcard h3{font-size:22px;color:var(--navy);font-weight:700}
+  .jobcard p{color:var(--body);margin:14px 0 22px;font-size:15px}
+  .btn-outline{display:inline-block;border:1px solid #cfcfcf;border-radius:999px;padding:9px 24px;font-size:15px;background:#fff;cursor:pointer}
+  .btn-outline:hover{border-color:var(--yellow);color:#8a6b00}
+  .btn-yellow{display:inline-block;background:var(--yellow);color:#241c00;font-weight:600;font-size:18px;padding:15px 40px;border-radius:999px;border:0;cursor:pointer;box-shadow:0 8px 20px rgba(245,168,0,.35)}
+  .btn-yellow:hover{filter:brightness(1.05)}
+
+  /* FORMS */
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:stretch;margin-top:52px}
+  .photo{border-radius:12px;overflow:hidden;min-height:100%;box-shadow:var(--shadow)}
+  .photo img{height:100%;width:100%;object-fit:cover}
+  .card{border:1px solid #e8e8e8;border-radius:12px;padding:36px;background:#fff}
+  .card h3{font-size:28px;font-weight:700;margin-bottom:24px}
+  .field{display:flex;align-items:center;gap:12px;border:1px solid #ddd;border-radius:8px;padding:0 16px;margin-bottom:16px}
+  .field span{color:#888}
+  .field input,.field textarea{border:0;outline:0;padding:15px 0;width:100%;font-family:inherit;font-size:15px;background:transparent}
+  .field textarea{resize:vertical;min-height:110px}
+  .submit{width:100%;background:var(--yellow);border:0;border-radius:999px;padding:15px;font-weight:700;font-size:16px;cursor:pointer;font-family:inherit}
+  .privacy{text-align:center;font-size:12px;color:#8b8b8b;margin-top:12px}
+  .connect h3{font-size:28px;font-weight:700}
+  .connect p{color:var(--body);margin-top:16px}
+  .connect .tagline{color:var(--yellow);font-weight:700;font-size:19px;margin-top:24px}
+
+  /* APP */
+  .app{background:var(--cream)}
+  .app-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+  .app h2{font-size:42px;font-weight:800;color:var(--navy)}
+  .app .sub{font-size:19px;color:#4a5568;margin-top:14px}
+  .app p.body{color:var(--body);margin-top:18px;font-size:15px}
+  .stores{display:flex;gap:16px;margin-top:26px;flex-wrap:wrap}
+  .store{background:#000;color:#fff;border-radius:8px;padding:10px 20px;display:flex;align-items:center;gap:12px;min-width:180px}
+  .store small{display:block;font-size:10px;opacity:.85;line-height:1.2}
+  .store b{font-size:16px;font-weight:600;line-height:1.2}
+
+  /* FOOTER */
+  footer{background:var(--navy2);color:#c9d2e3;padding:60px 0 26px}
+  .fgrid{display:grid;grid-template-columns:1.6fr 1fr 1.4fr 1fr;gap:40px}
+  footer h4{color:#fff;font-size:17px;margin-bottom:16px}
+  footer li{list-style:none;margin-bottom:10px;font-size:14px}
+  footer li a:hover{color:var(--yellow)}
+  footer .legal{font-size:12.5px;line-height:1.7;color:#b8c2d6;margin-top:14px}
+  .socials{display:flex;gap:10px}
+  .socials a{width:36px;height:36px;border-radius:50%;background:#1e2a4a;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700}
+  .socials a:hover{background:var(--yellow);color:#111}
+  .copy{text-align:center;font-size:13px;margin-top:40px;padding-top:20px;border-top:1px solid #23304f}
+  .copy a{color:#b8c2d6;text-decoration:underline}
+
+  @media(max-width:1000px){
+    nav ul,.cta-app{display:none}
+    .burger{display:block}
+    nav.open ul{display:flex;flex-direction:column;position:absolute;top:78px;left:0;right:0;background:#fff;padding:20px 24px;gap:16px;border-bottom:1px solid #eee;z-index:60}
+    .hero-inner,.video-grid,.two,.app-grid{grid-template-columns:1fr}
+    .hero h1{font-size:38px}
+    h2.title{font-size:32px}
+    .steps,.feats,.jobs,.fgrid{grid-template-columns:1fr}
+    .feats{gap:40px}
   }
-
-  /* ===== HERO ===== */
-  .hero{background:radial-gradient(120% 120% at 80% 20%,#161821 0%,var(--hero) 60%);color:#fff;overflow:hidden;}
-  .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;min-height:560px;padding-top:40px;padding-bottom:40px;}
-  .hero h1{color:#fff;font-size:clamp(38px,5vw,66px);line-height:1.04;}
-  .hero h1 .yellow{color:var(--yellow);}
-  .hero p{color:#c9cdd6;font-size:19px;margin:22px 0 8px;max-width:520px;}
-  .hero .trust b{color:var(--yellow);}
-  .hero ul{list-style:none;margin:18px 0 30px;}
-  .hero ul li{color:#e7e9ee;margin:8px 0;font-size:16px;}
-  .hero .cta{display:flex;gap:14px;flex-wrap:wrap;}
-  @media(max-width:900px){.hero .wrap{grid-template-columns:1fr;text-align:center;}.hero p,.hero ul{margin-left:auto;margin-right:auto;} .hero .cta{justify-content:center;} .hero-art{order:-1;}}
-
-  /* hero carousel art (device panels) */
-  .hero-art{position:relative;height:440px;}
-  .panel{position:absolute;border-radius:22px;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.5);border:6px solid #1c1f2b;}
-  .panel img{width:100%;height:100%;object-fit:cover;}
-  .panel.center{width:230px;height:420px;left:50%;top:0;transform:translateX(-50%);z-index:3;border-radius:34px;}
-  .panel.left{width:200px;height:320px;left:2%;top:60px;transform:rotateY(18deg);z-index:1;opacity:.9;}
-  .panel.right{width:200px;height:320px;right:2%;top:60px;transform:rotateY(-18deg);z-index:1;opacity:.9;}
-  .panel .cap{position:absolute;top:10px;left:0;right:0;text-align:center;color:var(--yellow);font-weight:800;font-size:12px;letter-spacing:1px;text-shadow:0 2px 6px rgba(0,0,0,.6);}
-  .dots{position:absolute;bottom:-6px;left:0;right:0;display:flex;gap:8px;justify-content:center;}
-  .dots span{width:9px;height:9px;border-radius:50%;background:#39404f;} .dots span.on{background:var(--yellow);}
-  @media(max-width:900px){.hero-art{height:360px;} .panel.left,.panel.right{display:none;} .panel.center{width:200px;height:340px;}}
-
-  /* ===== SECTION SHELL ===== */
-  .sec{padding:80px 0;}
-  .sec.cream{background:var(--cream);}
-  .sec-head{text-align:center;margin-bottom:52px;}
-  .sec-head .eyebrow{display:inline-block;background:#FDF0CC;color:#9a7514;font-weight:700;font-size:13px;padding:7px 18px;border-radius:20px;margin-bottom:14px;}
-  .sec-head h2{font-size:clamp(30px,4vw,44px);}
-  .sec-head .rule{width:70px;height:4px;background:var(--yellow);border-radius:3px;margin:16px auto 0;}
-  .sec-head p{color:var(--muted);max-width:640px;margin:16px auto 0;font-size:17px;}
-
-  /* How it works */
-  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;}
-  @media(max-width:900px){.steps{grid-template-columns:1fr;}}
-  .step{background:#eef2f8;border:1px solid #e3e9f2;border-radius:22px;padding:40px 28px;text-align:center;position:relative;}
-  .step .tag{position:absolute;top:22px;right:22px;background:var(--yellow);color:#111;font-weight:700;font-size:12px;padding:5px 14px;border-radius:20px;}
-  .step .ic{width:96px;height:96px;border-radius:50%;background:#fff;display:grid;place-items:center;margin:0 auto 22px;box-shadow:0 8px 20px rgba(0,0,0,.06);}
-  .step .ic svg{width:44px;height:44px;}
-  .step h3{font-size:22px;margin-bottom:10px;}
-  .step p{color:var(--muted);font-size:15.5px;}
-
-  /* Key features */
-  .feats{display:grid;grid-template-columns:repeat(4,1fr);gap:26px;text-align:center;}
-  @media(max-width:900px){.feats{grid-template-columns:1fr 1fr;gap:32px;}}
-  @media(max-width:560px){.feats{grid-template-columns:1fr;}}
-  .feat .ic{width:78px;height:78px;border-radius:50%;background:var(--yellow);display:grid;place-items:center;margin:0 auto 18px;box-shadow:0 10px 24px rgba(245,168,0,.3);}
-  .feat .ic svg{width:36px;height:36px;stroke:#fff;fill:none;stroke-width:2;}
-  .feat h3{font-size:19px;margin-bottom:8px;color:#111;}
-  .feat p{color:var(--muted);font-size:15px;}
-
-  /* Why choose us — same grid, plain icons */
-  .why .feat .ic{background:var(--yellow);}
-
-  /* Advertise / Contact split */
-  .split{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;}
-  @media(max-width:900px){.split{grid-template-columns:1fr;}}
-  .split .art{border-radius:22px;overflow:hidden;min-height:360px;background:linear-gradient(135deg,#1e2a4a,#0f1830);position:relative;box-shadow:0 20px 50px rgba(0,0,0,.15);}
-  .split .art .badge{position:absolute;top:24px;left:24px;background:var(--yellow);color:#111;font-weight:800;padding:8px 16px;border-radius:8px;font-size:13px;letter-spacing:1px;}
-  .form-card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:34px;box-shadow:0 16px 40px rgba(0,0,0,.06);}
-  .form-card h3{font-size:26px;margin-bottom:22px;}
-  .field{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:2px 16px;margin-bottom:14px;}
-  .field svg{width:20px;height:20px;stroke:#9aa1ac;fill:none;stroke-width:2;flex-shrink:0;}
-  .field input,.field textarea{border:none;outline:none;padding:15px 0;width:100%;font-size:15px;font-family:inherit;background:transparent;resize:vertical;}
-  .form-card .btn{width:100%;justify-content:center;margin-top:4px;}
-  .form-card .note{text-align:center;color:#9aa1ac;font-size:12.5px;margin-top:12px;}
-
-  /* Industries chips */
-  .chips{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;max-width:960px;margin:0 auto;}
-  .chip{display:flex;align-items:center;gap:10px;background:#eef2f8;border:1px solid #e3e9f2;border-radius:30px;padding:14px 24px;font-weight:700;color:var(--navy);font-size:15px;}
-  .chip .n{color:var(--muted);font-weight:600;}
-  .chip.dash{background:#fff;border:2px dashed #c9d2e0;}
-
-  /* App download band */
-  .appband{background:var(--cream);}
-  .appband .split{align-items:center;}
-  .appband .phones{display:flex;justify-content:center;}
-  .appband .phones img{max-width:440px;}
-  .stores{display:flex;gap:14px;margin-top:22px;flex-wrap:wrap;}
-  .store{display:flex;align-items:center;gap:10px;background:#111;color:#fff;border-radius:12px;padding:10px 18px;}
-  .store svg{width:26px;height:26px;fill:#fff;}
-  .store .s1{font-size:11px;opacity:.8;line-height:1;} .store .s2{font-size:16px;font-weight:700;line-height:1.2;}
-
-  /* Footer */
-  footer{background:var(--navy2);color:#c7cede;padding:56px 0 26px;}
-  .fgrid{display:grid;grid-template-columns:1.6fr 1fr 1.2fr 1fr;gap:34px;}
-  @media(max-width:900px){.fgrid{grid-template-columns:1fr 1fr;gap:28px;}}
-  @media(max-width:560px){.fgrid{grid-template-columns:1fr;}}
-  footer .brand{color:#fff;margin-bottom:16px;}
-  footer .brand .pl{border-color:#fff;}
-  footer .legal{font-size:12.5px;color:#8b95ac;line-height:1.8;}
-  footer h4{color:#fff;font-size:15px;margin-bottom:16px;letter-spacing:.3px;}
-  footer ul{list-style:none;} footer ul li{margin:9px 0;} footer ul a{color:#c7cede;font-size:14.5px;} footer ul a:hover{color:var(--yellow);}
-  footer .contact li{display:flex;gap:8px;align-items:center;font-size:14px;margin:11px 0;}
-  .social{display:flex;gap:12px;} .social a{width:38px;height:38px;border-radius:50%;background:#233156;display:grid;place-items:center;color:#fff;transition:.15s;} .social a:hover{background:var(--yellow);color:#111;}
-  .social svg{width:18px;height:18px;fill:currentColor;}
-  .copyright{text-align:center;border-top:1px solid #24304f;margin-top:40px;padding-top:22px;font-size:13px;color:#8b95ac;}
-
-  /* ===== LOGIN MODAL ===== */
-  .modal-bg{position:fixed;inset:0;background:rgba(10,13,20,.6);backdrop-filter:blur(3px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
-  .modal-bg.show{display:flex;}
-  .modal{background:#fff;border-radius:24px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.4);}
-  .modal-top{background:linear-gradient(135deg,var(--yellow),#FFD36B);padding:26px;text-align:center;position:relative;}
-  .modal-top img{height:64px;margin:0 auto;}
-  .modal-top .x{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.5);border:none;font-size:18px;cursor:pointer;}
-  .modal-top h3{color:#111;margin-top:8px;font-size:20px;}
-  .modal-body{padding:26px;}
-  .modal-body label{display:block;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 6px;}
-  .modal-body input{width:100%;padding:14px 16px;border:1.5px solid var(--line);border-radius:12px;font-size:16px;outline:none;}
-  .modal-body input:focus{border-color:var(--yellow);}
-  .modal-body .btn{width:100%;justify-content:center;margin-top:18px;}
-  .otp-row{display:flex;gap:8px;} .otp-row input{text-align:center;font-size:22px;font-weight:800;padding:12px 0;}
-  .m-msg{margin-top:12px;padding:11px;border-radius:10px;font-size:13.5px;display:none;}
-  .m-msg.show{display:block;} .m-msg.err{background:#FEF2F2;color:#B91C1C;} .m-msg.ok{background:#ECFDF5;color:#047857;}
-  .role-pick{display:flex;gap:12px;margin-top:8px;}
-  .role-pick button{flex:1;padding:16px 10px;border:1.5px solid var(--line);border-radius:14px;background:#fff;cursor:pointer;font-weight:700;color:var(--navy);}
-  .role-pick button.on{border-color:var(--yellow);background:#FEF6DD;}
-  .linkbtn{background:none;border:none;color:var(--muted);font-size:13px;margin-top:12px;cursor:pointer;width:100%;}
 </style>
 </head>
 <body>
 
-<!-- ============ NAV ============ -->
+<!-- SPONSOR BAR -->
+<div class="sponsor-bar">Sponsored by <b>Nexora Tech Solutions</b></div>
+
+<!-- NAV -->
 <header>
-  <div class="wrap nav">
-    <a href="#home" class="brand"><img src="/assets/logo/mascot.png" alt="JobifyPL" onerror="this.style.display='none'">Jobify<span class="pl">PL</span></a>
-    <nav class="menu" id="menu">
-      <a href="#home" class="active" onclick="closeMenu()">Home</a>
-      <a href="#features" onclick="closeMenu()">Features</a>
-      <a href="#careers" onclick="closeMenu()">Careers</a>
-      <a href="#story" onclick="closeMenu()">Our Story</a>
-      <a href="#advertise" onclick="closeMenu()">Advertise with us</a>
-      <a href="#blogs" onclick="closeMenu()">Blogs</a>
-      <a href="#contact" onclick="closeMenu()">Contact us</a>
+  <div class="wrap">
+    <nav class="nav" id="nav">
+      <a class="logo" href="#home"><span class="mark">👷</span>Jobify<span class="badge">PL</span></a>
+      <ul>
+        <li><a href="#home">Home</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#careers">Careers</a></li>
+        <li><a href="#story">Our Story</a></li>
+        <li><a href="#advertise">Advertise with us</a></li>
+        <li><a href="#contact">Contact us</a></li>
+      </ul>
+      <a class="cta-app" href="/app.html">Open App</a>
+      <button class="burger" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
     </nav>
-    <div class="nav-cta">
-      <!-- Login/Register hidden until the desktop dashboards are finalised.
-           Re-enable by removing style="display:none" on these two buttons. -->
-      <button class="btn btn-o" style="display:none;" onclick="openLogin('register')">Register</button>
-      <button class="btn btn-y" style="display:none;" onclick="openLogin('login')">Login</button>
-      <button class="burger" onclick="document.getElementById('menu').classList.toggle('open')">☰</button>
-    </div>
   </div>
 </header>
 
-<!-- ============ HERO ============ -->
-<section class="hero" id="home">
+<!-- HERO -->
+<div class="hero" id="home">
   <div class="wrap">
-    <div>
-      <h1>Find a Perfect Job &amp;<br><span class="yellow">Shape Your Future</span></h1>
-      <p class="trust">Trusted by over <b>10k+</b> Diverse community in Poland</p>
-      <ul>
-        <li>• Local Jobs — all in your language</li>
-        <li>• Verified recruiters &amp; secure profiles</li>
-        <li>• Apply, track &amp; chat — all in one place</li>
-      </ul>
-      <div class="cta">
-        <button class="btn btn-y" onclick="openLogin('register')">Get Started Free</button>
-        <a class="btn btn-o" style="color:#fff;border-color:#fff;" href="#howitworks">How it works</a>
-      </div>
-    </div>
-    <div class="hero-art">
-      <div class="panel left"><div class="cap">FEATURES</div><img src="/assets/banner/boardingpic-2.png" onerror="this.parentElement.style.background='linear-gradient(135deg,#2a3a5f,#16223d)'"></div>
-      <div class="panel right"><div class="cap">JOB SEEKERS</div><img src="/assets/banner/boardingpic-3.png" onerror="this.parentElement.style.background='linear-gradient(135deg,#2a3a5f,#16223d)'"></div>
-      <div class="panel center"><div class="cap">ADVERTISE WITH US</div><img src="/assets/banner/boardingpic-1.jpg" onerror="this.parentElement.style.background='linear-gradient(135deg,#3a4a75,#1a2748)'"></div>
-      <div class="dots"><span class="on"></span><span></span><span></span><span></span></div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ HOW IT WORKS ============ -->
-<section class="sec cream" id="howitworks">
-  <div class="wrap">
-    <div class="sec-head"><h2>How It Works</h2><div class="rule"></div></div>
-    <div class="steps">
-      <div class="step"><span class="tag">STEP 01</span>
-        <div class="ic"><svg viewBox="0 0 24 24" fill="#6b46c1"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-5 0-9 2.5-9 6v2h18v-2c0-3.5-4-6-9-6z"/></svg></div>
-        <h3>Create an Account</h3><p>Register easily and begin your professional journey.</p></div>
-      <div class="step"><span class="tag">STEP 02</span>
-        <div class="ic"><svg viewBox="0 0 24 24" fill="#e11d48"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></div>
-        <h3>Complete Your Profile</h3><p>Share your skills so employers can discover you.</p></div>
-      <div class="step"><span class="tag">STEP 03</span>
-        <div class="ic"><svg viewBox="0 0 24 24" fill="#f97316"><path d="M12 2c3 3 5 6 5 10a5 5 0 01-10 0c0-4 2-7 5-10zm0 15a2 2 0 002-2c0-1-1-2-2-3-1 1-2 2-2 3a2 2 0 002 2z"/></svg></div>
-        <h3>Apply or Hire</h3><p>Find your dream job or the right candidate effortlessly.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ KEY FEATURES ============ -->
-<section class="sec" id="features">
-  <div class="wrap">
-    <div class="sec-head"><h2>Our <span class="yellow">Key Features</span></h2><div class="rule"></div></div>
-    <div class="feats">
-      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div><h3>Helping to find Job</h3><p>Discover verified local jobs matched to your skills.</p></div>
-      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M15 8a3 3 0 010 6M3 20c0-3 3-5 6-5s6 2 6 5M15 15c3 0 6 2 6 5"/></svg></div><h3>Platform for Recruiters</h3><p>Post jobs, screen applicants and hire faster.</p></div>
-      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 11l18-6-4 16-5-5-4 2z"/></svg></div><h3>Advertise With Us</h3><p>Reach thousands of active job seekers daily.</p></div>
-      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div><h3>Other Services</h3><p>Karta pobytu, documents &amp; relocation help.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ WHY CHOOSE US ============ -->
-<section class="sec why cream">
-  <div class="wrap">
-    <div class="sec-head"><h2 style="color:#111;">Why Choose Us?</h2></div>
-    <div class="feats">
-      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 100 18 9 9 0 000-18z"/><path d="M12 8v4l3 2"/></svg></div><h3>Fast Hiring Process</h3><p>Get hired quicker with streamlined job listings and instant applications.</p></div>
-      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg></div><h3>Precision Matching</h3><p>Smart matching connects the right candidates with the right jobs.</p></div>
-      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6l7-3z"/><path d="M12 11v3M12 8h.01"/></svg></div><h3>Secure Profiles</h3><p>Verified profiles and secure data ensure trusted hiring.</p></div>
-      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div><h3>Global Job Network</h3><p>Access opportunities across regions and international markets.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ ADVERTISE ============ -->
-<section class="sec" id="advertise">
-  <div class="wrap">
-    <div class="sec-head"><h2>Advertise with <span style="color:#111;">Jobify</span><span class="pl" style="background:var(--yellow);border:2px solid var(--navy);padding:0 6px;border-radius:4px;">PL</span></h2><div class="rule"></div>
-      <p>Partner with us to reach thousands of active job seekers and recruiters every day. Boost your brand visibility with targeted advertising.</p></div>
-    <div class="split">
-      <div class="art"><div class="badge">ADVERTISE WITH US!</div>
-        <img src="/assets/banner/boardingpic-1.jpg" style="height:100%;object-fit:cover;" onerror="this.style.display='none'"></div>
-      <div class="form-card">
-        <h3>Get a Quote</h3>
-        <div class="field"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg><input id="ad-name" placeholder="Your Full Name"></div>
-        <div class="field"><svg viewBox="0 0 24 24"><path d="M4 4h4l2 5-3 2a12 12 0 006 6l2-3 5 2v4a2 2 0 01-2 2A16 16 0 014 6a2 2 0 012-2z"/></svg><input id="ad-phone" placeholder="Mobile Number"></div>
-        <div class="field"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><input id="ad-email" placeholder="Email Address"></div>
-        <div class="field"><textarea id="ad-msg" rows="3" placeholder="Tell us about your advertising needs..."></textarea></div>
-        <button class="btn btn-y" onclick="submitContact('ad')">Send Request</button>
-        <div class="note">We respect your privacy. Your information is safe with us.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ INDUSTRIES ============ -->
-<section class="sec cream">
-  <div class="wrap">
-    <div class="sec-head"><span class="eyebrow">Explore Sectors</span><h2>Popular Industries</h2></div>
-    <div class="chips">
-      <div class="chip">🏭 Manufacturing <span class="n">(5)</span></div>
-      <div class="chip">👗 Fashion <span class="n">(2)</span></div>
-      <div class="chip">💡 Electronics <span class="n">(2)</span></div>
-      <div class="chip">📣 Advertising/PR <span class="n">(2)</span></div>
-      <div class="chip">💻 Information Technology <span class="n">(2)</span></div>
-      <div class="chip">🚚 Courier/Logistics <span class="n">(1)</span></div>
-      <div class="chip">🚗 Automobile <span class="n">(1)</span></div>
-      <div class="chip">🎓 Education/Training <span class="n">(1)</span></div>
-      <div class="chip">🏦 Banking/Financial Services <span class="n">(1)</span></div>
-      <div class="chip">💪 Health &amp; Fitness <span class="n">(1)</span></div>
-    </div>
-    <div style="text-align:center;margin-top:20px;"><span class="chip dash">+ Many Other Sectors</span></div>
-  </div>
-</section>
-
-<!-- ============ CAREERS ============ -->
-<section class="sec" id="careers">
-  <div class="wrap">
-    <div class="sec-head"><h2>Join Our Team</h2><div class="rule"></div>
-      <p>We're looking for passionate individuals to help us build the future of job discovery. Explore our open positions below.</p></div>
-    <div class="steps">
-      <div class="step" style="background:#fff;border:1px solid var(--line);">
-        <div class="ic" style="background:var(--yellow);"><svg viewBox="0 0 24 24" fill="#fff" width="40" height="40"><path d="M12 3l2 4 4 .5-3 3 .7 4.2L12 12.8 8.3 14.7 9 10.5l-3-3L10 7z"/></svg></div>
-        <h3>Polish/English Sales Executive</h3><p>Dynamic professionals proficient in Polish and English to drive international sales and manage key client relationships.</p>
-        <button class="btn btn-o" style="margin-top:16px;" onclick="openLogin('register')">Apply Now</button></div>
-      <div class="step" style="background:#fff;border:1px solid var(--line);">
-        <div class="ic" style="background:var(--yellow);"><svg viewBox="0 0 24 24" fill="#fff" width="40" height="40"><path d="M10 4h4a2 2 0 012 2v2h3a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9a2 2 0 012-2h3V6a2 2 0 012-2zm4 4V6h-4v2h4z"/></svg></div>
-        <h3>Business Developers</h3><p>Experienced managers to drive business growth, identify new opportunities, and lead strategic partnerships.</p>
-        <button class="btn btn-o" style="margin-top:16px;" onclick="openLogin('register')">Apply Now</button></div>
-      <div class="step" style="background:#fff;border:1px solid var(--line);">
-        <div class="ic" style="background:var(--yellow);"><svg viewBox="0 0 24 24" fill="#fff" width="40" height="40"><path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7zm0 4a3 3 0 100 6 3 3 0 000-6z"/></svg></div>
-        <h3>Community Managers</h3><p>Friendly, organized people to support our growing community of job seekers and recruiters across Poland.</p>
-        <button class="btn btn-o" style="margin-top:16px;" onclick="openLogin('register')">Apply Now</button></div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ OUR STORY ============ -->
-<section class="sec cream" id="story">
-  <div class="wrap">
-    <div class="sec-head"><h2>Our Story</h2><div class="rule"></div>
-      <p>Founded in 2018 with a mission to empower local communities, JobifyPL is now a trusted platform with 10k+ Diverse community in Poland...</p></div>
-    <div style="text-align:center;margin-bottom:56px;"><button class="btn btn-y" onclick="openLogin('register')">Join our mission</button></div>
-    <div class="split">
+    <div class="hero-inner">
       <div>
-        <span class="eyebrow">HERE YOU CAN SEE</span>
-        <h2 style="font-size:38px;margin:14px 0;">Watch Our <span class="yellow">Video</span></h2>
-        <p style="color:var(--muted);font-size:16px;">JobifyPL connects talent with opportunity through a smart, streamlined hiring platform. Discover jobs, manage applications, and connect with recruiters — all in one place. Built to make hiring faster, simpler, and more effective for everyone.</p>
-        <ul style="list-style:none;margin-top:18px;">
-          <li style="margin:10px 0;color:var(--navy);font-weight:600;">✓ Learn about our platform</li>
-          <li style="margin:10px 0;color:var(--navy);font-weight:600;">✓ See how it works</li>
-        </ul>
-      </div>
-      <div class="art" style="min-height:340px;">
-        <img src="/assets/banner/boardingpic-2.png" style="height:100%;object-fit:cover;" onerror="this.style.display='none'">
-        <div style="position:absolute;inset:0;display:grid;place-items:center;"><div style="width:76px;height:76px;border-radius:50%;background:var(--yellow);display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.4);cursor:pointer;"><svg width="28" height="28" viewBox="0 0 24 24" fill="#111"><path d="M8 5v14l11-7z"/></svg></div></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ APP DOWNLOAD ============ -->
-<section class="sec appband" id="blogs">
-  <div class="wrap split">
-    <div class="phones"><img src="/assets/banner/boarding1.png" onerror="this.src='/assets/logo/mascot.png';this.style.maxWidth='300px'"></div>
-    <div>
-      <span class="eyebrow">Step Forward Now</span>
-      <h2 style="font-size:40px;margin:12px 0;">The Jobify<span class="pl" style="background:var(--yellow);border:2px solid var(--navy);padding:0 6px;border-radius:4px;">PL</span> APP</h2>
-      <p style="font-weight:700;color:var(--navy);font-size:18px;">A world of opportunity in your hand</p>
-      <p style="color:var(--muted);margin-top:10px;">Discover jobs faster and smarter with the JobifyPL mobile app. Browse thousands of verified job listings, apply instantly, and track your applications in real time. Connect directly with recruiters, get personalized job recommendations, and never miss an opportunity with instant notifications.</p>
-      <div class="stores">
-        <a class="store" href="#" onclick="return false" style="opacity:.5;cursor:default;" title="iOS app coming soon"><svg viewBox="0 0 24 24"><path d="M16 1a5 5 0 00-4 2 5 5 0 00-1 4 5 5 0 004-2 5 5 0 001-4zM20 17c-1 2-2 3-3 4-1 0-2-1-3-1s-2 1-3 1-2-2-3-4c-2-3-2-7 0-9 1-1 2-2 3-2s2 1 3 1 2-1 3-1 2 1 3 2c-2 1-3 5 0 9z"/></svg><div><div class="s1">Coming soon</div><div class="s2">App Store</div></div></a>
-        <a class="store" href="/download/app" download><svg viewBox="0 0 24 24"><path d="M3 2l14 10L3 22V2zm12 10l4-3-3-2-1 5zm0 0l1 5 3-2-4-3z"/></svg><div><div class="s1">DIRECT DOWNLOAD</div><div class="s2">Android APK</div></div></a>
-      </div>
-      <div style="margin-top:16px;"><a class="btn btn-navy" href="/download/app" download>⬇ Download APK (Android)</a></div>
-      <p style="color:var(--muted);font-size:13px;margin-top:8px;">Android only. After downloading, tap the file and allow install from this source.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ============ CONTACT ============ -->
-<section class="sec" id="contact">
-  <div class="wrap split">
-    <div>
-      <h2 style="font-size:40px;">Let's <span class="yellow">Connect</span></h2>
-      <p style="color:var(--muted);margin-top:16px;">If you have any questions, doubts, feedback, or just want to say hello — feel free to reach out. Our team is here to help!</p>
-      <p style="color:var(--muted);margin-top:12px;">Whether you're a job seeker, recruiter, or business looking to advertise — we're excited to hear from you.</p>
-      <p class="yellow" style="font-weight:800;font-size:20px;margin-top:22px;">Building the future of job discovery</p>
-    </div>
-    <div class="form-card">
-      <div class="field"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg><input id="c-name" placeholder="Your Full Name"></div>
-      <div class="field"><svg viewBox="0 0 24 24"><path d="M4 4h4l2 5-3 2a12 12 0 006 6l2-3 5 2v4a2 2 0 01-2 2A16 16 0 014 6a2 2 0 012-2z"/></svg><input id="c-phone" placeholder="Mobile Number"></div>
-      <div class="field"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><input id="c-email" placeholder="Email Address"></div>
-      <div class="field"><textarea id="c-msg" rows="3" placeholder="Your Message..."></textarea></div>
-      <button class="btn btn-y" onclick="submitContact('c')">Send Message</button>
-      <div class="note">We respect your privacy. Your information is safe with us.</div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ FOOTER ============ -->
-<footer>
-  <div class="wrap fgrid">
-    <div>
-      <div class="brand">Jobify<span class="pl">PL</span></div>
-      <div class="legal">
-        Operated by NEXORA TECH SOLUTIONS Sp. z o.o., registered in the Register of
-        Entrepreneurs of the National Court Register (KRS) under number 0001235557,
-        maintained by the District Court in Poznań.<br>
-        NIP 7822968719 · REGON 544525141<br>
-        ul. Katowicka 85A/12, 61-131 Poznań, Poland.
-      </div>
-    </div>
-    <div><h4>Quick Links</h4><ul>
-      <li><a href="#home">Home</a></li><li><a href="#features">Features</a></li>
-      <li><a href="#careers">Careers</a></li><li><a href="#story">Our Story</a></li>
-      <li><a href="#advertise">Advertise with us</a></li><li><a href="#blogs">Blogs</a></li>
-      <li><a href="#contact">Contact</a></li>
-      <li><a href="/terms.html">Terms &amp; Conditions</a></li>
-      <li><a href="/privacy.html">Privacy Policy</a></li>
-    </ul></div>
-    <div><h4>Contact</h4><ul class="contact">
-      <li>✉️ jobifyplsalesteam@jobifypl.pl</li>
-      <li>✉️ jobifypladmin@jobifypl.pl</li>
-      <li>💬 +48 786 618 856</li>
-    </ul></div>
-    <div><h4>Follow Us</h4><div class="social">
-      <a href="#" title="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2c2.7 0 3 0 4.1.1 1 0 1.7.2 2.3.5.6.2 1.1.5 1.6 1s.8 1 1 1.6c.3.6.4 1.3.5 2.3.1 1.1.1 1.4.1 4.1s0 3-.1 4.1c0 1-.2 1.7-.5 2.3-.2.6-.5 1.1-1 1.6s-1 .8-1.6 1c-.6.3-1.3.4-2.3.5-1.1.1-1.4.1-4.1.1s-3 0-4.1-.1c-1 0-1.7-.2-2.3-.5-.6-.2-1.1-.5-1.6-1s-.8-1-1-1.6c-.3-.6-.4-1.3-.5-2.3C2 15 2 14.7 2 12s0-3 .1-4.1c0-1 .2-1.7.5-2.3.2-.6.5-1.1 1-1.6s1-.8 1.6-1c.6-.3 1.3-.4 2.3-.5C9 2 9.3 2 12 2zm0 5a5 5 0 100 10 5 5 0 000-10zm0 8.3a3.3 3.3 0 110-6.6 3.3 3.3 0 010 6.6zM17.8 5.9a1.2 1.2 0 100 2.4 1.2 1.2 0 000-2.4z"/></svg></a>
-      <a href="#" title="Facebook"><svg viewBox="0 0 24 24"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg></a>
-      <a href="#" title="LinkedIn"><svg viewBox="0 0 24 24"><path d="M6.9 5A1.9 1.9 0 115 3.1 1.9 1.9 0 016.9 5zM5 8.5h3.8V21H5V8.5zM10.5 8.5h3.6v1.7h.1c.5-.9 1.7-1.9 3.5-1.9 3.8 0 4.5 2.5 4.5 5.7V21h-3.8v-5.5c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21h-3.8V8.5z"/></svg></a>
-      <a href="#" title="TikTok"><svg viewBox="0 0 24 24"><path d="M16 3c.3 2 1.6 3.6 3.6 3.9V10a6.3 6.3 0 01-3.6-1.2v6.4a5.6 5.6 0 11-5.6-5.6c.3 0 .6 0 .9.1v3a2.6 2.6 0 102 2.5V3H16z"/></svg></a>
-      <a href="#" title="YouTube"><svg viewBox="0 0 24 24"><path d="M23 12s0-3.2-.4-4.7a2.5 2.5 0 00-1.8-1.8C19.3 5 12 5 12 5s-7.3 0-8.8.5A2.5 2.5 0 001.4 7.3C1 8.8 1 12 1 12s0 3.2.4 4.7a2.5 2.5 0 001.8 1.8C4.7 19 12 19 12 19s7.3 0 8.8-.5a2.5 2.5 0 001.8-1.8C23 15.2 23 12 23 12zM10 15V9l5 3-5 3z"/></svg></a>
-    </div></div>
-  </div>
-  <div class="copyright">© 2026 JobifyPL — NEXORA TECH SOLUTIONS Sp. z o.o. All rights reserved. ·
-    <a href="/terms.html" style="color:#8b95ac;text-decoration:underline;">Terms</a> ·
-    <a href="/privacy.html" style="color:#8b95ac;text-decoration:underline;">Privacy</a></div>
-</footer>
-
-<!-- ============ LOGIN / REGISTER MODAL ============ -->
-<div class="modal-bg" id="login-modal">
-  <div class="modal">
-    <div class="modal-top">
-      <button class="x" onclick="closeLogin()">×</button>
-      <img src="/assets/logo/mascot.png" onerror="this.style.display='none'">
-      <h3 id="login-title">Login to JobifyPL</h3>
-    </div>
-    <div class="modal-body">
-      <div id="lg-phase-role">
-        <label>I am a</label>
-        <div class="role-pick">
-          <button id="rp-candidate" class="on" onclick="pickRole('candidate')">🧑‍💼 Job Seeker</button>
-          <button id="rp-recruiter" onclick="pickRole('recruiter')">🏢 Recruiter</button>
+        <h1>Find a Perfect Job &amp;<span>Shape Your Future</span></h1>
+        <p class="sub">Trusted by over <b>10k+</b> diverse community in Poland</p>
+        <p class="bullet">• Local Jobs — all in your language</p>
+        <div class="hbtns">
+          <a class="btn-yellow" href="/app.html">Find a Job</a>
+          <a class="btn-outline" style="background:#fff;" href="#advertise">For Recruiters</a>
         </div>
-        <label>Mobile number (with country code)</label>
-        <input id="lg-phone" type="tel" placeholder="+48 512 345 678">
-        <button class="btn btn-y" onclick="lgSendOtp()" id="lg-send">Send OTP</button>
       </div>
-      <div id="lg-phase-otp" style="display:none;">
-        <label>Enter the 6-digit code</label>
-        <div class="otp-row" id="lg-otp"></div>
-        <button class="btn btn-y" onclick="lgVerify()">Verify &amp; Continue</button>
-        <button class="linkbtn" onclick="lgBack()">← Change number</button>
-      </div>
-      <div class="m-msg" id="lg-msg"></div>
+      <div class="hero-img"><img src="/assets/banner/boardingpic-1.jpg" alt="Job seekers in Poland"></div>
     </div>
   </div>
 </div>
 
+<!-- HOW IT WORKS -->
+<section class="cream">
+  <div class="wrap">
+    <h2 class="title">How It Works</h2>
+    <div class="steps">
+      <div class="step"><span class="tag">STEP 01</span><div class="ico">👤</div><h3>Create an Account</h3><p>Register easily and begin your professional journey.</p></div>
+      <div class="step"><span class="tag">STEP 02</span><div class="ico">📝</div><h3>Complete Your Profile</h3><p>Share your skills so employers can discover you.</p></div>
+      <div class="step"><span class="tag">STEP 03</span><div class="ico">🚀</div><h3>Apply or Hire</h3><p>Find your dream job or the right candidate effortlessly.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- KEY FEATURES -->
+<section id="features">
+  <div class="wrap">
+    <h2 class="title dark">Our <span class="yellow-text">Key Features</span></h2>
+    <div class="rule"></div>
+    <div class="feats">
+      <div>
+        <div class="ico"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></div>
+        <h3>Helping to find Job</h3><p>Discover verified listings that match your skills and location.</p>
+      </div>
+      <div>
+        <div class="ico"><svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="8" r="3.2"/><circle cx="16.5" cy="9" r="2.6"/><path d="M3 19c0-3.3 2.7-5 6-5s6 1.7 6 5z"/><path d="M15 19c0-2.5 1.3-4 4-4s3 1.5 3 4z"/></svg></div>
+        <h3>Platform for Recruiters</h3><p>Post roles, screen candidates and hire faster in one place.</p>
+      </div>
+      <div>
+        <div class="ico"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11v3l7 3V8z"/><path d="M10 9l9-4v14l-9-4"/></svg></div>
+        <h3>Advertise With Us</h3><p>Put your brand in front of thousands of active job seekers.</p>
+      </div>
+      <div>
+        <div class="ico"><svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg></div>
+        <h3>Other Services</h3><p>CV support, career guidance and relocation help for newcomers.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INDUSTRIES -->
+<section class="cream">
+  <div class="wrap">
+    <span class="pill">Explore Sectors</span>
+    <h2 class="title">Popular Industries</h2>
+    <div class="chips">
+      <div class="chip"><span class="e">🏭</span>Manufacturing</div>
+      <div class="chip"><span class="e">👗</span>Fashion</div>
+      <div class="chip"><span class="e">🔌</span>Electronics</div>
+      <div class="chip"><span class="e">📣</span>Advertising/PR</div>
+      <div class="chip"><span class="e">💻</span>Information Technology</div>
+      <div class="chip"><span class="e">🚚</span>Courier/Logistics</div>
+      <div class="chip"><span class="e">🚗</span>Automobile</div>
+      <div class="chip"><span class="e">🎓</span>Education/Training</div>
+      <div class="chip"><span class="e">🏦</span>Banking/Financial Services</div>
+      <div class="chip"><span class="e">💪</span>Health &amp; Fitness</div>
+    </div>
+    <div class="chips"><div class="chip dashed">+ Many Other Sectors</div></div>
+  </div>
+</section>
+
+<!-- JOIN OUR TEAM -->
+<section id="careers">
+  <div class="wrap">
+    <h2 class="title dark">Join Our Team</h2>
+    <div class="rule"></div>
+    <p class="lead">We're looking for passionate individuals to help us build the future of job discovery. Explore our open positions below.</p>
+    <div class="jobs">
+      <div class="jobcard">
+        <div class="ico">🗣️</div>
+        <h3>Polish/English Sales Executive</h3>
+        <p>Dynamic professionals proficient in Polish and English to drive international sales and manage key client relationships.</p>
+        <a class="btn-outline" href="#contact">Apply Now</a>
+      </div>
+      <div class="jobcard">
+        <div class="ico">💼</div>
+        <h3>Business Developers</h3>
+        <p>Experienced managers to drive business growth, identify new opportunities, and lead strategic partnerships.</p>
+        <a class="btn-outline" href="#contact">Apply Now</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OUR STORY -->
+<section id="story" style="background:#F7F8FA;text-align:center">
+  <div class="wrap">
+    <h2 class="title dark">Our Story</h2>
+    <div class="rule"></div>
+    <p class="lead">Founded with a mission to empower local communities, JobifyPL is a trusted platform serving a 10k+ diverse community in Poland — connecting talent with the right opportunities, in every language.</p>
+    <div style="margin-top:36px"><a class="btn-yellow" href="#contact">Join our mission</a></div>
+  </div>
+</section>
+
+<!-- WHY CHOOSE US -->
+<section>
+  <div class="wrap">
+    <h2 class="title dark">Why Choose Us?</h2>
+    <div class="feats">
+      <div>
+        <div class="ico"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 15a9 9 0 1 1 18 0"/><path d="M12 14l4-4"/></svg></div>
+        <h3>Fast Hiring Process</h3><p>Get hired quicker with streamlined job listings and instant applications.</p>
+      </div>
+      <div>
+        <div class="ico"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg></div>
+        <h3>Precision Matching</h3><p>Smart matching connects the right candidates with the right jobs.</p>
+      </div>
+      <div>
+        <div class="ico"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.4-3 7.7-7 9-4-1.3-7-4.6-7-9V6z"/><circle cx="12" cy="11" r="1.6"/><path d="M12 12.6V15"/></svg></div>
+        <h3>Secure Profiles</h3><p>Verified profiles and secure data ensure trusted hiring.</p>
+      </div>
+      <div>
+        <div class="ico"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"/></svg></div>
+        <h3>Global Job Network</h3><p>Access opportunities across regions and international markets.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ADVERTISE -->
+<section id="advertise" class="cream">
+  <div class="wrap">
+    <h2 class="title dark">Advertise with Jobify<span class="hl">PL</span></h2>
+    <div class="rule"></div>
+    <p class="lead">Partner with us to reach thousands of active job seekers and recruiters every day. Boost your brand visibility with targeted advertising.</p>
+    <div class="two">
+      <div class="photo"><img src="/assets/banner/boardingpic-2.png" alt="Advertising partnership meeting" loading="lazy"></div>
+      <form class="card" onsubmit="return sent(event,'Thanks! Our sales team will get back to you soon.')">
+        <h3>Get a Quote</h3>
+        <label class="field"><span>👤</span><input required placeholder="Your Full Name"></label>
+        <label class="field"><span>📞</span><input required placeholder="Mobile Number"></label>
+        <label class="field"><span>✉️</span><input type="email" required placeholder="Email Address"></label>
+        <label class="field"><textarea placeholder="Tell us about your advertising needs..."></textarea></label>
+        <button class="submit">Send Request</button>
+        <p class="privacy">We respect your privacy. Your information is safe with us.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="wrap">
+    <h2 class="title dark">Contact Us</h2>
+    <div class="rule"></div>
+    <p class="lead">Have a question? Fill out the form and our team will get back to you soon.</p>
+    <div class="two">
+      <div class="connect" style="align-self:center">
+        <h3>Let's <span class="yellow-text">Connect</span></h3>
+        <p>If you have any questions, doubts, feedback, or just want to say hello — feel free to reach out. Our team is here to help!</p>
+        <p>Whether you're a job seeker, recruiter, or business looking to advertise — we're excited to hear from you.</p>
+        <p class="tagline">Building the future of job discovery</p>
+      </div>
+      <form class="card" onsubmit="return sent(event,'Message sent! We will reply shortly.')">
+        <label class="field"><span>👤</span><input required placeholder="Your Full Name"></label>
+        <label class="field"><span>📞</span><input required placeholder="Mobile Number"></label>
+        <label class="field"><span>✉️</span><input type="email" required placeholder="Email Address"></label>
+        <label class="field"><textarea placeholder="Your Message..."></textarea></label>
+        <button class="submit">Send Message</button>
+        <p class="privacy">We respect your privacy. Your information is safe with us.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- APP -->
+<section class="app">
+  <div class="wrap">
+    <div class="app-grid">
+      <div><img src="/assets/banner/boardingpic-3.png" alt="JobifyPL mobile app" loading="lazy" style="border-radius:16px"></div>
+      <div>
+        <span class="pill" style="margin:0 0 18px">Step Forward Now</span>
+        <h2>The Jobify<span class="hl">PL</span> APP</h2>
+        <p class="sub">A world of opportunity in your hand</p>
+        <p class="body">Discover jobs faster and smarter with the JobifyPL mobile app. Browse thousands of verified job listings, apply instantly, and track your applications in real time. Connect directly with recruiters, get personalized recommendations, and never miss an opportunity with instant notifications.</p>
+        <div class="stores">
+          <a class="store" href="/app.html"><span style="font-size:22px">🍎</span><span><small>Download on the</small><b>App Store</b></span></a>
+          <a class="store" href="/app.html"><span style="font-size:20px">▶</span><span><small>GET IT ON</small><b>Google Play</b></span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div>
+        <div class="logo" style="color:#fff;font-size:24px">Jobify<span class="badge">PL</span></div>
+        <p class="legal">
+          Operated by NEXORA TECH SOLUTIONS SPÓŁKA Z OGRANICZONĄ ODPOWIEDZIALNOŚCIĄ (Sp. z o.o.),
+          registered in the Register of Entrepreneurs of the National Court Register (KRS) under
+          number 0001235557, maintained by the District Court in Poznań.<br>
+          NIP 7822968719 · REGON 544525141<br>
+          ul. Katowicka 85A/12, 61-131 Poznań, Poland.
+        </p>
+      </div>
+      <div>
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="#home">Home</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#careers">Careers</a></li>
+          <li><a href="#story">Our Story</a></li>
+          <li><a href="#advertise">Advertise with us</a></li>
+          <li><a href="#contact">Contact</a></li>
+          <li><a href="/terms.html">Terms &amp; Conditions</a></li>
+          <li><a href="/privacy.html">Privacy Policy</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li>✉️ contactus@nexoratechsolutions.pl</li>
+          <li>✉️ jobifyplsupport@jobifypl.pl</li>
+          <li>✉️ jobifyplsalesteam@jobifypl.pl</li>
+          <li>✉️ jobifypladmin@jobifypl.pl</li>
+          <li>💬 +48 786 618 856</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Follow Us</h4>
+        <div class="socials">
+          <a href="#" aria-label="Instagram">IG</a>
+          <a href="#" aria-label="Facebook">f</a>
+          <a href="#" aria-label="LinkedIn">in</a>
+          <a href="#" aria-label="YouTube">▶</a>
+        </div>
+      </div>
+    </div>
+    <p class="copy">© 2026 JobifyPL — NEXORA TECH SOLUTIONS Sp. z o.o. All rights reserved. ·
+      <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a></p>
+  </div>
+</footer>
+
 <script>
-const API="";
-function closeMenu(){ document.getElementById("menu").classList.remove("open"); }
-
-// active nav link on scroll
-const navLinks=[...document.querySelectorAll('.menu a')];
-window.addEventListener("scroll",()=>{
-  let cur="home";
-  document.querySelectorAll("section[id]").forEach(s=>{ if(window.scrollY>=s.offsetTop-120) cur=s.id; });
-  navLinks.forEach(a=>a.classList.toggle("active",a.getAttribute("href")==="#"+cur));
-});
-
-// ---- contact / advertise forms ----
-async function submitContact(prefix){
-  const name=document.getElementById(prefix+"-name").value.trim();
-  const phone=document.getElementById(prefix+"-phone").value.trim();
-  const email=document.getElementById(prefix+"-email").value.trim();
-  const message=document.getElementById(prefix+"-msg").value.trim();
-  if(!name||!message){ alert("Please enter your name and a message."); return; }
-  try{
-    const r=await fetch(API+"/contact",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,email,phone,message})});
-    if(r.ok){ alert("✅ Message sent! Our team will get back to you soon.");
-      [prefix+"-name",prefix+"-phone",prefix+"-email",prefix+"-msg"].forEach(i=>{const el=document.getElementById(i);if(el)el.value="";});
-    } else alert("Could not send right now, please try again.");
-  }catch(e){ alert("Network error, please try again."); }
-}
-
-// ---- login / register modal ----
-let lgRole="candidate", lgPhone="";
-const lgOtp=document.getElementById("lg-otp");
-for(let i=0;i<6;i++){ const inp=document.createElement("input"); inp.maxLength=1; inp.inputMode="numeric";
-  inp.addEventListener("input",()=>{ if(inp.value&&inp.nextElementSibling) inp.nextElementSibling.focus(); });
-  inp.addEventListener("keydown",e=>{ if(e.key==="Backspace"&&!inp.value&&inp.previousElementSibling) inp.previousElementSibling.focus(); });
-  lgOtp.appendChild(inp); }
-function openLogin(mode){ document.getElementById("login-title").textContent=(mode==="register")?"Register on JobifyPL":"Login to JobifyPL";
-  document.getElementById("login-modal").classList.add("show"); lgBack(); }
-function closeLogin(){ document.getElementById("login-modal").classList.remove("show"); }
-function pickRole(r){ lgRole=r; document.getElementById("rp-candidate").classList.toggle("on",r==="candidate"); document.getElementById("rp-recruiter").classList.toggle("on",r==="recruiter"); }
-function lgMsg(t,k){ const m=document.getElementById("lg-msg"); m.textContent=t; m.className="m-msg show "+k; }
-function lgClear(){ document.getElementById("lg-msg").className="m-msg"; }
-function lgBack(){ document.getElementById("lg-phase-otp").style.display="none"; document.getElementById("lg-phase-role").style.display="block"; lgClear(); [...lgOtp.children].forEach(x=>x.value=""); }
-async function lgSendOtp(){
-  lgClear(); lgPhone=document.getElementById("lg-phone").value.replace(/\s/g,"");
-  if(!lgPhone.startsWith("+")||lgPhone.length<8) return lgMsg("Enter a valid phone with country code (+48…)","err");
-  const b=document.getElementById("lg-send"); b.disabled=true; b.textContent="Sending…";
-  try{
-    const r=await fetch(API+"/auth/send-otp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:lgPhone,role:lgRole})});
-    if(!r.ok){ const d=await r.json().catch(()=>({})); throw new Error(d.detail||"Could not send OTP"); }
-    document.getElementById("lg-phase-role").style.display="none";
-    document.getElementById("lg-phase-otp").style.display="block"; lgOtp.children[0].focus();
-  }catch(e){ lgMsg(e.message,"err"); }
-  b.disabled=false; b.textContent="Send OTP";
-}
-async function lgVerify(){
-  lgClear(); const code=[...lgOtp.children].map(x=>x.value).join("");
-  if(code.length!==6) return lgMsg("Enter all 6 digits","err");
-  try{
-    const r=await fetch(API+"/auth/verify-otp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({phone:lgPhone,code,role:lgRole})});
-    const d=await r.json();
-    if(!r.ok) throw new Error(d.detail||"Wrong OTP");
-    localStorage.setItem("token",d.token); localStorage.setItem("role",d.role);
-    // Route to the DESKTOP dashboard for their role (website login).
-    if(d.role==="recruiter"){ window.location.href="web-recruiter.html"; }
-    else if(d.role==="admin"){ window.location.href="admin.html"; }
-    else { window.location.href="web-candidate.html"; }
-  }catch(e){ lgMsg(e.message,"err"); }
-}
+  function sent(e, msg){ e.preventDefault(); alert(msg); e.target.reset(); return false; }
 </script>
 </body>
 </html>

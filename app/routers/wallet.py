@@ -146,6 +146,25 @@ def list_plans(user: User = Depends(get_current_user), db: Session = Depends(get
     ]}
 
 
+@plans_router.get("/public")
+def public_plans(db: Session = Depends(get_db)):
+    """Public price list (NO login) for the website — required by the payment
+    provider so prices are visible before purchase. Reflects live admin changes
+    (reads the same SubscriptionPlan table), so it is never hard-coded.
+    Returns plans grouped into candidate (job seeker) and recruiter (employer)."""
+    rows = db.query(SubscriptionPlan).filter(SubscriptionPlan.is_active == True)\
+             .order_by(SubscriptionPlan.price.asc()).all()
+
+    def fmt(p):
+        return {"id": p.id, "name": p.name, "price": p.price, "currency": p.currency or "PLN",
+                "duration_days": p.duration_days, "postings": p.postings,
+                "feature1": p.feature1, "feature2": p.feature2, "recommended": p.recommended}
+
+    candidate = [fmt(p) for p in rows if (p.for_role or "").lower() == "candidate"]
+    recruiter = [fmt(p) for p in rows if (p.for_role or "").lower() == "recruiter"]
+    return {"status": "success", "candidate": candidate, "recruiter": recruiter}
+
+
 @plans_router.get("/current")
 def current_plan(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     sub = (db.query(UserSubscription, SubscriptionPlan)

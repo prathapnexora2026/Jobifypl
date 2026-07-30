@@ -220,8 +220,11 @@
   .jobcard .meta span{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:5px;}
   .jobcard .meta span svg{width:16px;height:16px;}
   .jobcard .acts{display:flex;gap:12px;}
-  .jobcard .acts button{flex:1;border-radius:12px;padding:12px;font-weight:800;font-size:14px;cursor:pointer;border:none;}
-  .jobcard .vd{background:#EEF2FF;color:var(--navy);} .jobcard .apply{background:var(--yellow);color:#111;} .jobcard .applied{background:#E7F7EE;color:#0E9F5A;display:flex;align-items:center;justify-content:center;gap:6px;} .jobcard .applied svg{width:16px;height:16px;}
+  .jobcard .acts button{flex:1;border-radius:14px;padding:14px 12px;font-weight:800;font-size:14.5px;cursor:pointer;border:none;transition:transform .06s;}
+  .jobcard .acts button:active{transform:translateY(1px);}
+  .jobcard .vd{background:#EEF2FF;color:var(--navy);}
+  .jobcard .apply{background:var(--yellow);color:#111;box-shadow:0 4px 12px rgba(245,168,0,.28);}
+  .jobcard .applied{background:#E7F7EE;color:#0E9F5A;display:flex;align-items:center;justify-content:center;gap:6px;} .jobcard .applied svg{width:16px;height:16px;}
   .share-ic{width:34px;height:34px;flex-shrink:0;border:none;background:#F1F5F9;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:var(--navy);align-self:flex-start;} .share-ic svg{width:17px;height:17px;}
   .alert-banner{background:var(--yellow);border-radius:18px;padding:20px;margin:0 16px 16px;color:#111;}
   .alert-banner .h{font-weight:800;font-size:16px;display:flex;align-items:center;gap:8px;} .alert-banner p{font-size:13px;margin:8px 0 12px;opacity:.9;}
@@ -238,8 +241,10 @@
   .app-card .meta span{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:5px;}
   .app-card .meta span svg{width:16px;height:16px;}
   .app-card .acts{display:flex;gap:12px;}
-  .app-card .acts button{flex:1;border-radius:12px;padding:11px;font-weight:800;font-size:13px;cursor:pointer;border:none;}
-  .app-card .sent{background:#EEF2FF;color:var(--navy);} .app-card .view{background:var(--yellow);color:#111;}
+  .app-card .acts button{flex:1;border-radius:14px;padding:14px 12px;font-weight:800;font-size:14.5px;cursor:pointer;border:none;transition:transform .06s;}
+  .app-card .acts button:active{transform:translateY(1px);}
+  .app-card .sent{background:#EEF2FF;color:var(--navy);}
+  .app-card .view{background:var(--yellow);color:#111;box-shadow:0 4px 12px rgba(245,168,0,.28);}
 
   /* application status */
   #s-track{background:#fff;}

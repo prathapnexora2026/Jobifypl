@@ -20,15 +20,18 @@
   #app-splash.hide{opacity:0;pointer-events:none;}
   /* First-time onboarding */
   #s-onboard.active{display:flex;flex-direction:column;background:#fff;min-height:100vh;}
-  .ob-wrap{flex:1;display:flex;flex-direction:column;padding:26px 22px 26px;}
+  .ob-wrap{flex:1;display:flex;flex-direction:column;padding:34px 24px 28px;}
   .ob-slides{flex:1;position:relative;overflow:hidden;}
   .ob-slide{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;text-align:center;}
   .ob-slide.on{display:flex;animation:obfade .4s ease;}
   @keyframes obfade{from{opacity:0;transform:translateX(14px);}to{opacity:1;transform:none;}}
-  .ob-imgcard{width:100%;max-width:340px;aspect-ratio:1/1;border:6px solid var(--yellow);border-radius:28px;overflow:hidden;background:#fff;margin:8px auto 0;box-shadow:0 10px 30px rgba(0,0,0,.08);}
-  .ob-imgcard img{width:100%;height:100%;object-fit:cover;}
-  .ob-slide h2{font-size:24px;font-weight:800;color:var(--navy,#12305a);margin:26px 20px 10px;line-height:1.25;}
-  .ob-slide p{color:var(--muted);font-size:15px;margin:0 24px;line-height:1.5;}
+  /* thick yellow frame -> white padding -> rounded image inside (matches design) */
+  .ob-imgcard{width:100%;max-width:330px;aspect-ratio:1/1;border:10px solid var(--yellow);
+    border-radius:34px;background:#fff;padding:10px;margin:14px auto 0;
+    box-shadow:0 14px 34px rgba(245,168,0,.18);}
+  .ob-imgcard img{width:100%;height:100%;object-fit:cover;border-radius:22px;display:block;}
+  .ob-slide h2{font-size:27px;font-weight:800;color:#152046;margin:34px 16px 12px;line-height:1.35;text-wrap:balance;}
+  .ob-slide p{color:#8A94A6;font-size:15px;margin:0 30px;line-height:1.6;}
   .ob-langhero{width:96px;height:96px;border-radius:50%;background:#FFF6E0;display:grid;place-items:center;color:var(--yellow);margin:20px auto 0;}
   .ob-langs{display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;margin:22px auto 0;}
   .ob-lang{padding:16px 18px;border:2px solid var(--line,#E5E7EB);border-radius:14px;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;gap:12px;background:#fff;}
@@ -1229,7 +1232,15 @@ async function siVerify(){
   }catch(e){ siMsg(e.message,"err"); }
 }
 function confirmLogout(){ document.getElementById("pop-logout").classList.add("show"); }
-function candLogout(){ localStorage.removeItem("token"); localStorage.removeItem("role"); location.reload(); }
+function candLogout(){
+  // Clear any in-flight payment state so logout doesn't re-trigger the
+  // "confirming payment" popup on reload.
+  try{ if(window._payuPoll) clearInterval(window._payuPoll); }catch(e){}
+  localStorage.removeItem("payu_pending");
+  localStorage.removeItem("upgradeReminded"); sessionStorage.clear();
+  localStorage.removeItem("token"); localStorage.removeItem("role");
+  location.reload();
+}
 
 /* ============ SIDEBAR ============ */
 function openSidebar(){ document.getElementById("sidebar-bg").classList.add("show"); document.getElementById("sidebar").classList.add("show");
@@ -1977,17 +1988,19 @@ async function resumePendingPayu(){
   const info=pend.info||{};
   showPayResult("pending", info);
   const started=Date.now();
-  const iv=setInterval(async()=>{
+  const iv=setInterval(async()=>{ window._payuPoll=iv;
     try{
       const s=await api("/plans/payment-status/"+encodeURIComponent(pend.ext));
       if(s.payment_status==="paid"||s.fulfilled){
-        clearInterval(iv); localStorage.removeItem("payu_pending");
+        clearInterval(iv); window._payuPoll=null; localStorage.removeItem("payu_pending");
         showPayResult("success", info);
-        loadWallet&&loadWallet();
+        // Refresh everything that shows the balance so it never shows stale/null.
+        (typeof loadWallet==="function")&&loadWallet();
+        (typeof loadHome==="function")&&loadHome();
         (typeof loadPlans==="function")&&loadPlans();
         (typeof loadWalletTransactions==="function")&&loadWalletTransactions();
       } else if(s.payment_status==="failed"){
-        clearInterval(iv); localStorage.removeItem("payu_pending");
+        clearInterval(iv); window._payuPoll=null; localStorage.removeItem("payu_pending");
         showPayResult("failed", info);
       }
     }catch(e){}

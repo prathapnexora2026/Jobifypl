@@ -832,7 +832,9 @@ async function recVerifyOtp(){
     if(d.role!=="recruiter"){ rMsg("This number is not a recruiter account.","err"); return; }
     localStorage.setItem("rec_token",d.token);
     // New / incomplete recruiter → onboarding first; otherwise straight to dashboard.
-    if(d.new_user || !d.onboarding_completed){ applyLang(); openOnboard(false); }
+    // A fresh login clears any previous "skipped" flag so a brand-new user still sees it once.
+    if(d.new_user) try{ localStorage.removeItem("rec_onboard_skipped"); }catch(e){}
+    if(recOnboardNeeded(d)){ applyLang(); openOnboard(false); }
     else { enterDash(); }
   }catch(e){ rMsg(e.message,"err"); }
 }
@@ -1873,7 +1875,11 @@ async function openOnboard(fromPost){
   }catch(e){}
   showScreen("s-onboard");
 }
-function skipOnboard(){ enterDash(); }
+// Remember the skip so the "Complete your profile" page doesn't nag on every
+// reload (e.g. after returning from a payment). They can still complete it later
+// from Edit Profile; posting a job also collects the details in Step 4.
+function skipOnboard(){ try{ localStorage.setItem("rec_onboard_skipped","1"); }catch(e){} enterDash(); }
+function recOnboardNeeded(p){ return p && !p.onboarding_completed && localStorage.getItem("rec_onboard_skipped")!=="1"; }
 async function saveOnboard(){
   const first=document.getElementById("ob-first").value.trim();
   const last=document.getElementById("ob-last").value.trim();
@@ -1897,7 +1903,7 @@ async function saveOnboard(){
 async function boot(){
   if(!token()){ applyLang(); return; }
   try{ const p=(await api("/recruiter/profile")).profile;
-    if(!p.onboarding_completed){ applyLang(); openOnboard(false); }
+    if(recOnboardNeeded(p)){ applyLang(); openOnboard(false); }
     else { enterDash(); }
   }catch(e){ enterDash(); }   // if profile fetch fails, fall back to dashboard
 }

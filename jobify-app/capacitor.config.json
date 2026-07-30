@@ -5,7 +5,14 @@
   "server": {
     "url": "https://jobifypl.pl/app.html",
     "cleartext": false,
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "allowNavigation": [
+      "secure.payu.com",
+      "*.payu.com",
+      "*.payu.pl",
+      "*.przelewy24.pl",
+      "*.p24.com"
+    ]
   },
   "plugins": {
     "SplashScreen": {

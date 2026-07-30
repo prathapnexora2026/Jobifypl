@@ -1961,7 +1961,10 @@ function showPayResult(state, info){
 function startPayuCheckout(url, ext, info){
   if(!url){ toast("Could not start payment"); return; }
   try{ localStorage.setItem("payu_pending", JSON.stringify({ext, info, ts:Date.now()})); }catch(e){}
-  window.location.href = url;   // go to PayU secure checkout
+  // allowNavigation in capacitor.config keeps PayU inside the app's WebView, so
+  // navigating here stays in-app; the return page lands back on /app.html in the
+  // SAME WebView (localStorage token intact = still logged in).
+  window.location.href = url;
 }
 
 /* On app (re)load, if a payment was in flight, show the pending popup and poll

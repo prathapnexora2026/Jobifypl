@@ -79,27 +79,36 @@ async def payu_notify(request: Request,
 
 @router.get("/return", response_class=HTMLResponse)
 def payu_return(ext: str = ""):
-    """Landing page after PayU checkout. Sends the user back to the SAME app they
-    paid from (recruiter vs candidate), so the pending-payment resume runs and
-    the wallet is credited — a recruiter must not land on the candidate app."""
-    # ext prefixes: recwallet-/recplan- => recruiter; wallet-/plan- => candidate.
+    """Landing page after PayU checkout.
+
+    In the mobile APK, PayU is opened in the Capacitor in-app Browser, so here we
+    just CLOSE that browser — Android returns to the still-logged-in app, which
+    resumes the pending payment and credits the wallet. In a plain web browser
+    (no Capacitor), we navigate back to the correct app page instead.
+    ext prefixes: recwallet-/recplan- => recruiter; wallet-/plan- => candidate."""
     is_recruiter = ext.startswith("rec")
     back = "/recruiter.html" if is_recruiter else "/app.html"
     return f"""<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Payment complete — JobifyPL</title>
-<style>body{{font-family:system-ui,Arial;text-align:center;padding:48px 20px;color:#12305a}}
-.b{{background:#0b63c5;color:#fff;border:none;border-radius:10px;padding:14px 22px;font-size:16px}}</style>
+<style>body{{font-family:system-ui,Arial;text-align:center;padding:60px 20px;color:#12305a}}
+.b{{background:#F5A800;color:#241c00;border:none;border-radius:12px;padding:15px 26px;font-size:16px;font-weight:700;margin-top:16px}}
+.sp{{width:36px;height:36px;border:3px solid #eee;border-top-color:#F5A800;border-radius:50%;margin:0 auto 18px;animation:s 1s linear infinite}}
+@keyframes s{{to{{transform:rotate(360deg)}}}}</style>
 </head><body>
+<div class="sp"></div>
 <h2>Payment received</h2>
 <p>Returning you to the JobifyPL app…</p>
 <button class="b" onclick="goBack()">Back to app</button>
 <script>
 var BACK={back!r};
-function goBack(){{ try{{window.close()}}catch(e){{}}; location.href=BACK; }}
-// If opened inside an in-app browser, signal the opener and close.
-try{{ if(window.opener){{ window.opener.postMessage({{payu:'done',ext:'{ext}'}}, '*'); }} }}catch(e){{}}
-// Auto-return to the correct app so the payment resume runs and credits the wallet.
-setTimeout(goBack, 1200);
+function goBack(){{
+  // Navigate back to the correct app page IN THE SAME WebView/tab. Because PayU
+  // is whitelisted in allowNavigation, this stays inside the app and the
+  // localStorage token is intact, so the user is still logged in. The app's
+  // resumePendingPayu() then polls status and credits the wallet.
+  location.href = BACK;
+}}
+setTimeout(goBack, 900);
 </script>
 </body></html>"""

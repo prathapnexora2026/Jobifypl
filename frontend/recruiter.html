@@ -1590,18 +1590,18 @@ function renderWizard(){
 }
 let _lastRenderedStep=null;
 // Step-4 fields depend on the hiring type (change #5):
-//  Company / Agency -> company email REQUIRED (no free mail); company name shown.
-//  Freelancer / Self-Hiring -> email OPTIONAL, any email allowed.
-function authIsCompany(){ return job.hiring_authority==='Company'||job.hiring_authority==='Agency'; }
+//  Company  -> Company Name shown + Company Email REQUIRED (no Gmail/Yahoo).
+//  Agency / Freelancer / Self-Hiring -> a normal "Email ID *" (any email, required).
+function authIsCompany(){ return job.hiring_authority==='Company'; }
 function authCompanyField(){
   if(!authIsCompany()) return "";
   return `<input placeholder="Company Name *" value="${esc(job.contact_company||"")}" oninput="job.contact_company=this.value">`;
 }
 function authEmailField(){
   if(authIsCompany()){
-    return `<input type="email" placeholder="Company Email * (no Gmail/Yahoo)" value="${esc(job.contact_email||"")}" oninput="job.contact_email=this.value">`;
+    return `<input type="email" placeholder="Company Email * (No Gmail/Yahoo allowed)" value="${esc(job.contact_email||"")}" oninput="job.contact_email=this.value">`;
   }
-  return `<input type="email" placeholder="Email (optional)" value="${esc(job.contact_email||"")}" oninput="job.contact_email=this.value">`;
+  return `<input type="email" placeholder="Email ID *" value="${esc(job.contact_email||"")}" oninput="job.contact_email=this.value">`;
 }
 function tgAuth(a){ job.hiring_authority=a;
   document.querySelectorAll(".authcard[data-auth]").forEach(el=>el.classList.toggle("on",el.getAttribute("data-auth")===a));
@@ -1747,11 +1747,12 @@ function validateStep(){
   if(wzStep===4){
     if(!job.hiring_authority){alert("Please choose who you are posting as");return false;}
     if(!job.contact_first_name||!job.contact_last_name){alert("Please enter contact first & last name");return false;}
+    const em=(job.contact_email||"").trim();
+    if(!em){alert("Please enter an email address");return false;}
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){alert("Please enter a valid email address");return false;}
     if(authIsCompany()){
       if(!job.contact_company){alert("Please enter the Company Name");return false;}
-      const em=(job.contact_email||"").trim();
-      if(!em){alert("A company email is required when posting as a Company/Agency");return false;}
-      if(/@(gmail|yahoo|hotmail|outlook|icloud)\./i.test(em)){alert("Please use a company email (Gmail/Yahoo/Hotmail etc. are not allowed for companies)");return false;}
+      if(/@(gmail|yahoo|hotmail|outlook|icloud|live|proton)\./i.test(em)){alert("Please use a company email — Gmail/Yahoo/Hotmail etc. are not allowed when posting as a Company");return false;}
     }
   }
   return true;

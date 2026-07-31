@@ -319,11 +319,17 @@ def dashboard(user: User = Depends(require_recruiter), db: Session = Depends(get
                    "postings": sub.posts_total or 0, "used": sub.posts_used or 0,
                    "remaining": max(0, (sub.posts_total or 0) - (sub.posts_used or 0)),
                    "expires": sub.end_date.strftime("%d %b, %Y") if sub.end_date else "N/A"}
+    # Per-job view breakdown for the "Profile Views" popup (most-viewed first).
+    views_by_job = [
+        {"title": j.title, "company": j.company_name or "", "views": j.views or 0}
+        for j in sorted(my_jobs_q, key=lambda x: (x.views or 0), reverse=True)
+    ]
     return {"status": "success",
             "welcome_name": user.full_name or "Recruiter",
             "actively_hiring": p.actively_hiring,
             "profile_views": total_views, "jobs_posted": jobs_posted,
             "interested_candidates": interested, "messages": messages,
+            "views_by_job": views_by_job,
             "package": package}
 
 
@@ -395,9 +401,21 @@ def update_application_status(application_id: int, status: str,
     row.status = status
     if status in ("shortlisted", "interview", "hired"):
         row.track_status = "recruiter_contacted"
-    # notify candidate
-    db.add(Notification(user_id=row.candidate_id, title="Application update",
-                        body=f"A recruiter marked your application as {status}."))
+    # Notify the candidate with a friendly, specific message — but NOT when the
+    # recruiter merely resets to 'applied' (un-shortlist), which shouldn't ping.
+    if status != "applied":
+        job = db.query(Job).filter(Job.id == row.job_id).first()
+        jt = job.title if job else "a job"
+        co = (job.company_name if job and job.company_name else "A recruiter")
+        msgs = {
+            "shortlisted": ("🎉 You've been shortlisted!", f"Great news — {co} shortlisted you for {jt}."),
+            "interview":   ("Interview stage", f"{co} moved you to the interview stage for {jt}."),
+            "hired":       ("You're hired! 🎉", f"{co} marked you as hired for {jt}. Congratulations!"),
+            "rejected":    ("Application update", f"Your application for {jt} was not selected this time."),
+        }
+        title, body = msgs.get(status, ("Application update", f"Your application for {jt} is now {status}."))
+        db.add(Notification(user_id=row.candidate_id, title=title, body=body,
+                            company=(job.company_name if job else None)))
     db.commit()
     return {"status": "success"}
 

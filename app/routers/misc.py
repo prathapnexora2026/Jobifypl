@@ -43,7 +43,8 @@ def delete_notification(nid: int, user: User = Depends(get_current_user), db: Se
 
 # ---------------- Chat (works for admin / recruiter / candidate) ----------------
 from app.services.chat import (
-    get_or_create_conversation, other_party_id, post_message, display_name, display_photo
+    get_or_create_conversation, get_or_create_admin_conversation,
+    other_party_id, post_message, display_name, display_photo
 )
 
 chat_router = APIRouter(prefix="/chat", tags=["chat"])
@@ -222,7 +223,10 @@ def start_support(user: User = Depends(get_current_user), db: Session = Depends(
                 pass
     if not admin or admin.id == user.id:
         raise HTTPException(404, "Support is unavailable right now")
-    conv = get_or_create_conversation(db, user.id, admin.id)
+    # Use the SAME admin-conversation helper the admin side uses (is_admin=True),
+    # so "Message Admin" opens the existing admin thread instead of creating a
+    # separate regular conversation.
+    conv = get_or_create_admin_conversation(db, admin.id, user.id)
     db.commit()
     return {"status": "success", "conversation_id": conv.id, "name": "Admin (JobifyPL)"}
 

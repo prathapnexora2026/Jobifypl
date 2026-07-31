@@ -875,6 +875,7 @@
   <div id="toast"></div>
 </div>
 
+<script src="crop.js"></script>
 <script>
 const API="";
 function esc(s){ if(s==null)return""; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -1265,8 +1266,10 @@ function renderLangChips(){ document.getElementById("cv-langs").innerHTML=LANGS.
 renderLangChips();
 function toggleLang(l){ if(cvLangs.has(l))cvLangs.delete(l); else cvLangs.add(l); renderLangChips(); }
 function toggleStudent(){ cvStudent=!cvStudent; const el=document.getElementById("cv-student"); el.classList.toggle("on",cvStudent); el.innerHTML=cvStudent?svg("check"):""; }
-function pickPhoto(){ document.getElementById("cv-photo-input").click(); }
-async function uploadPhoto(inp){ if(!inp.files[0])return; const fd=new FormData(); fd.append("file",inp.files[0]);
+function pickPhoto(){ const i=document.getElementById("cv-photo-input"); i.value=""; i.click(); }
+async function uploadPhoto(inp){ if(!inp.files[0])return;
+  const blob=await cropImageFile(inp.files[0]); if(!blob) return;   // user cancelled the crop
+  const fd=new FormData(); fd.append("file",blob,"photo.jpg");
   try{ const d=await api("/candidate/photo",{method:"POST",body:fd});
     let url=d.url||d.path||d.file||d.profile_photo; if(url&&!url.startsWith("/")) url="/uploads/"+url;
     document.getElementById("cv-photo").innerHTML=`<img src="${esc(url)}"><div class="cam" onclick="pickPhoto()">${svg("camera")}</div>`;
@@ -1652,11 +1655,38 @@ function renderApps(apps){
     <div class="top"><div class="logo">${svg("brief")}</div><div style="flex:1;">
       <h3>${esc(a.title)}</h3><div class="co">${esc(a.company_name||'')} • ${esc(a.job_type||'Regular Job')}</div></div></div>
     <div class="meta"><span>${svg("clock2")} ${esc(a.work_type||'')}</span><span>${svg("person")} ${esc(a.gender_pref||'Any')}</span><span>${svg("pin")} ${esc(a.location||'')}</span></div>
-    <div class="acts"><button class="sent" disabled>Application sent</button>
+    <div class="acts">${appStatusPill(a.status)}
       <button class="view" onclick="openTrack(${a.application_id})">View Application</button></div>
   </div>`).join("");
 }
+/* Status pill on an application card — reflects what the recruiter set. */
+function appStatusPill(status){
+  status=(status||'applied').toLowerCase();
+  const map={
+    applied:     ['Application sent','#EEF2F7','#475569'],
+    shortlisted: ['★ Shortlisted','#DCFCE7','#15803D'],
+    interview:   ['Interview stage','#DBEAFE','#1D4ED8'],
+    hired:       ['🎉 Hired','#DCFCE7','#15803D'],
+    rejected:    ['Not selected','#FEE2E2','#B91C1C'],
+  };
+  const m=map[status]||map.applied;
+  return `<button class="sent" disabled style="background:${m[1]};color:${m[2]};">${m[0]}</button>`;
+}
 function filterApps(q){ q=(q||"").toLowerCase(); renderApps(myApps.filter(a=>((a.title||"")+(a.company_name||"")+(a.location||"")).toLowerCase().includes(q))); }
+/* Prominent banner at the top of the application tracker for a recruiter update. */
+function appStatusBanner(status){
+  status=(status||'applied').toLowerCase();
+  const map={
+    shortlisted:["★ You've been shortlisted!","You stood out — the recruiter shortlisted your application.","#DCFCE7","#15803D"],
+    interview:["Interview stage","The recruiter moved you to the interview stage.","#DBEAFE","#1D4ED8"],
+    hired:["🎉 You're hired!","Congratulations! The recruiter marked you as hired.","#DCFCE7","#15803D"],
+    rejected:["Application closed","Not selected this time — keep applying, your next role is out there!","#FEF2F2","#B91C1C"],
+  };
+  const m=map[status]; if(!m) return "";
+  return `<div style="background:${m[2]};color:${m[3]};border-radius:12px;padding:12px 14px;margin-bottom:12px;">
+    <div style="font-weight:800;font-size:15px;">${m[0]}</div>
+    <div style="font-size:13px;margin-top:2px;opacity:.92;">${m[1]}</div></div>`;
+}
 function openTrack(appId){
   const a=myApps.find(x=>x.application_id===appId); if(!a){ toast("Not found"); return; }
   document.getElementById("track-jobcard").innerHTML=`<div class="track-jobcard">
@@ -1670,6 +1700,7 @@ function openTrack(appId){
   const step=(done,current,icon,title)=>`<div class="tstep ${done?'done':(current?'active':'')}"><div class="dot">${done?svg("check"):(current?svg(icon):'')}</div><div><h4>${title}</h4><p>${done?'Completed':(current?'Pending — waiting for recruiter…':'Not yet')}</p></div></div>`;
   document.getElementById("track-body").innerHTML=`
     <div class="th"><h2>Track Journey</h2><span class="id">ID: #${a.application_id}</span></div>
+    ${appStatusBanner(a.status)}
     ${step(true,false,'','Application sent')}
     ${step(seen, !seen && ts==="application_sent", 'eye','Recruiter seen')}
     ${step(contacted, seen && !contacted, 'call','Recruiter contacted')}

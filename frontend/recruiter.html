@@ -113,8 +113,8 @@
   .hiring{background:#FEF6DD;border:1.5px solid var(--yellow);border-radius:16px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
   .hiring h3{font-size:17px;font-weight:800;} .hiring p{color:#9A7B1E;font-size:13px;margin-top:2px;}
   .switch{width:58px;height:32px;border-radius:20px;background:var(--yellow);position:relative;cursor:pointer;transition:.2s;flex-shrink:0;border:none;}
-  .switch::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
-  .switch.off{background:#CBD5E1;} .switch.off::after{left:29px;}
+  .switch::after{content:"";position:absolute;top:3px;left:29px;width:26px;height:26px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+  .switch.off{background:#CBD5E1;} .switch.off::after{left:3px;}
   .welcome{margin:16px 4px 4px;color:#4b5563;font-size:16px;} .welcome b{display:block;font-size:22px;font-weight:800;color:#111;}
 
   /* plan-quota card (dashboard) — premium navy with yellow accents */
@@ -486,10 +486,10 @@
     <!-- page: HOME -->
     <div class="dash-page" id="p-home">
       <div class="stats">
-        <div class="stat blue"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="t" data-i18n="profileViews">Profile Views</div><div class="v" id="st-views">0</div></div>
-        <div class="stat yellow"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.3 2.9-5 6.5-5s6.5 1.7 6.5 5"/><path d="M16 5.2A3.2 3.2 0 0 1 16 11.5"/><path d="M17.5 15c2.4.4 4 1.9 4 5"/></svg></span></div></div><div class="t" data-i18n="jobsPosted">Jobs Posted</div><div class="v" id="st-jobs">0</div></div>
-        <div class="stat green"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 12.5h7"/><path d="M8.5 16h7"/></svg></span></div></div><div class="t" data-i18n="interested">Interested Candidates</div><div class="v" id="st-int">0</div></div>
-        <div class="stat teal"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></span></div></div><div class="t" data-i18n="messages">Messages</div><div class="v" id="st-msg">0</div></div>
+        <div class="stat blue" style="cursor:pointer;" onclick="openViewsPopup()"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="t" data-i18n="profileViews">Profile Views</div><div class="v" id="st-views">0</div></div>
+        <div class="stat yellow" style="cursor:pointer;" onclick="go('jobs')"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.3 2.9-5 6.5-5s6.5 1.7 6.5 5"/><path d="M16 5.2A3.2 3.2 0 0 1 16 11.5"/><path d="M17.5 15c2.4.4 4 1.9 4 5"/></svg></span></div></div><div class="t" data-i18n="jobsPosted">Jobs Posted</div><div class="v" id="st-jobs">0</div></div>
+        <div class="stat green" style="cursor:pointer;" onclick="go('apps')"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 12.5h7"/><path d="M8.5 16h7"/></svg></span></div></div><div class="t" data-i18n="interested">Interested Candidates</div><div class="v" id="st-int">0</div></div>
+        <div class="stat teal" style="cursor:pointer;" onclick="go('messages')"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></span></div></div><div class="t" data-i18n="messages">Messages</div><div class="v" id="st-msg">0</div></div>
       </div>
       <div class="sect">
         <h2 data-i18n="postJobs">Post Jobs</h2>
@@ -679,6 +679,7 @@
   </div>
 </div>
 
+<script src="crop.js"></script>
 <script>
 // ================= config =================
 const API = "";
@@ -922,6 +923,33 @@ function go(page,isBack){
 }
 async function loadHeaderAvatar(){ /* header avatar removed — bell-only header */ }
 let hiringOn=true;
+let recViewsByJob=[];
+/* Profile Views popup: the stat box is a COUNT (not a link), which confused the
+   client — so tapping it now explains what it means and breaks the number down
+   per job ("for this job, this many people viewed"). Views increment whenever a
+   candidate opens a job's details. */
+function openViewsPopup(){
+  const total=recViewsByJob.reduce((s,j)=>s+(j.views||0),0);
+  const box=document.getElementById("views-pop-body");
+  if(!recViewsByJob.length){
+    box.innerHTML=`<p style="color:#64748B;font-size:14px;margin:0;">No jobs posted yet. Once you post a job, you'll see how many candidates viewed it here.</p>`;
+  } else {
+    box.innerHTML=`
+      <p style="color:#64748B;font-size:13.5px;margin:0 0 12px;">This is how many times candidates opened your job posts. Tap counts update as more people view.</p>
+      ${recViewsByJob.map(j=>`
+        <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #F1F5F9;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;color:var(--navy);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(j.title||'Job')}</div>
+            ${j.company?`<div style="color:#94A3B8;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(j.company)}</div>`:''}
+          </div>
+          <div style="text-align:right;flex-shrink:0;"><div style="font-size:19px;font-weight:800;color:#2563EB;line-height:1;">${j.views||0}</div><div style="font-size:11px;color:#94A3B8;">views</div></div>
+        </div>`).join("")}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-weight:800;color:var(--navy);">
+        <span>Total</span><span style="color:#2563EB;">${total} views</span></div>`;
+  }
+  document.getElementById("pop-views").classList.add("show");
+}
+function closeViewsPopup(){ document.getElementById("pop-views").classList.remove("show"); }
 async function loadDashboard(){
   try{ const d=await api("/recruiter/dashboard");
     document.getElementById("dash-name").textContent=d.welcome_name||"Recruiter";
@@ -929,6 +957,7 @@ async function loadDashboard(){
     document.getElementById("st-jobs").textContent=d.jobs_posted||0;
     document.getElementById("st-int").textContent=d.interested_candidates||0;
     document.getElementById("st-msg").textContent=d.messages||0;
+    recViewsByJob=d.views_by_job||[];   // per-job breakdown for the Profile Views popup
     hiringOn=!!d.actively_hiring; document.getElementById("hiring-switch").classList.toggle("off",!hiringOn);
   }catch(e){ console.error(e); }
   refreshBellBadge();
@@ -1113,7 +1142,7 @@ function viewCV(idx){
       <div class="cv-doc-l">${ic(dd.type==='resume'?'doc':'card')}</div>
       <div style="flex:1;min-width:0;"><div class="cv-doc-name">${esc(dd.label||dd.type)}</div>
         <div class="cv-doc-file">${esc(dd.name||'')}</div></div>
-      <a class="btn ghost sm" href="${fileUrl(dd.file)}" target="_blank" rel="noopener">View</a>
+      <button class="btn ghost sm" onclick="recOpenDoc('${esc(dd.file)}','${esc(dd.label||dd.type||'Document')}')">View</button>
     </div>`).join(""):`<div style="color:var(--muted);font-size:13px;">No documents uploaded.</div>`;
   const box=document.getElementById("apps-list");
   box.innerHTML=`
@@ -1122,17 +1151,61 @@ function viewCV(idx){
       <div><div style="font-weight:800;font-size:19px;color:var(--navy);">${esc(a.name)}</div>
       <div style="color:var(--muted);font-size:13px;margin-top:2px;">${esc(a.qualification||'')}${a.nationality?(" · "+esc(a.nationality)):""}</div>
       <div style="margin-top:8px;"><span class="appl-badge">${esc(a.status||'applied')}</span></div></div></div>
-    ${a.resume?`<a class="cv-resume" href="${fileUrl(a.resume.file)}" target="_blank" rel="noopener">${ic('doc')} <div style="flex:1;"><div style="font-weight:800;">View Resume / CV</div><div style="font-size:12px;color:#C7D2E8;">${esc(a.resume.name||'Open the candidate resume')}</div></div><span class="svg-ic"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></a>`
+    ${a.resume?`<a class="cv-resume" onclick="recOpenDoc('${esc(a.resume.file)}','Resume / CV')" style="cursor:pointer;">${ic('doc')} <div style="flex:1;"><div style="font-weight:800;">View Resume / CV</div><div style="font-size:12px;color:#C7D2E8;">${esc(a.resume.name||'Open the candidate resume')}</div></div><span class="svg-ic"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></a>`
       :`<div class="cv-resume none">${ic('doc')} <div style="flex:1;"><div style="font-weight:800;">No resume uploaded</div><div style="font-size:12px;">The candidate has not attached a resume yet.</div></div></div>`}
     <div class="cv-sec"><h4>Candidate Details</h4>
       <div class="cv-grid">${rows.map(r=>`<div><div class="k">${esc(r[0])}</div><div class="v">${esc(r[1])}</div></div>`).join("")}</div></div>
     <div class="cv-sec"><h4>Documents (${docs.length})</h4>${docHtml}</div>
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button class="btn blue" style="flex:1;" onclick="recMessageCandidate(${a.candidate_id})">${ic('chat')} Message</button>
-      <button class="btn ghost" style="flex:1;" onclick="setAppStatus(${a.application_id},'shortlisted')">Shortlist</button>
+      ${['shortlisted','interview','hired'].includes((a.status||'').toLowerCase())
+        ? `<button class="btn" style="flex:1;background:#16A34A;color:#fff;border:none;" onclick="setAppStatus(${a.application_id},'applied')">✓ Shortlisted</button>`
+        : `<button class="btn ghost" style="flex:1;" onclick="setAppStatus(${a.application_id},'shortlisted')">Shortlist</button>`}
     </div>`;
 }
-async function setAppStatus(id,status){ try{ await api("/recruiter/applications/"+id+"/status?status="+status,{method:"PUT"}); alert("Marked "+status);}catch(e){alert(e.message);} }
+/* Open a candidate's document in a full-screen IN-APP viewer with a clear Back
+   button (client wanted an obvious "comeback" control). Handles images, PDFs and
+   docs. Keeps the app WebView intact, so Back returns to the candidate detail
+   view — not the dashboard (was BUG1). "Open ↗" hands off to the device browser. */
+let _recDocUrl="";
+function recOpenDoc(path,title){
+  let url=fileUrl(path);
+  if(url && url.startsWith("/")) url="https://jobifypl.pl"+url;
+  _recDocUrl=url;
+  document.getElementById("rec-docview-title").textContent=title||"Document";
+  const body=document.getElementById("rec-docview-body");
+  const isImg=/\.(png|jpe?g|gif|webp|bmp|heic|heif)$/i.test(path||"");
+  if(isImg){
+    body.style.background="#0b1220";
+    body.innerHTML=`<img src="${esc(url)}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;" onerror="this.parentNode.innerHTML='<div style=&quot;color:#94A3B8;padding:24px;text-align:center;font-size:14px;&quot;>Could not load this file. Tap <b>Open ↗</b> above to view it in your browser.</div>'">`;
+  } else {
+    body.style.background="#f1f2f5";
+    const gview="https://docs.google.com/viewer?embedded=true&url="+encodeURIComponent(url);
+    body.innerHTML=`<iframe src="${esc(gview)}" style="width:100%;height:100%;border:none;background:#fff;display:block;"></iframe>`;
+  }
+  document.getElementById("rec-docview").style.display="flex";
+}
+function recDocOpen(){ return document.getElementById("rec-docview").style.display==="flex"; }
+function recCloseDoc(){ const v=document.getElementById("rec-docview"); v.style.display="none"; document.getElementById("rec-docview-body").innerHTML=""; }
+function recDocExternal(){
+  const url=_recDocUrl; if(!url) return;
+  try{
+    const cap=window.Capacitor&&window.Capacitor.Plugins;
+    if(cap&&cap.Browser){ cap.Browser.open({url,presentationStyle:"popover",toolbarColor:"#2563EB"}); return; }
+  }catch(e){}
+  const w=window.open(url,"_blank");
+  if(!w){ window.location.href=url; }
+}
+async function setAppStatus(id,status){
+  try{
+    await api("/recruiter/applications/"+id+"/status?status="+status,{method:"PUT"});
+    // Reflect the new state locally so BOTH the candidate detail view and the
+    // applicants list update immediately (no full reload needed).
+    const idx=curApplicants.findIndex(x=>x.application_id===id);
+    if(idx>=0){ curApplicants[idx].status=status; viewCV(idx); }
+    _recToast(status==="shortlisted"?"Candidate shortlisted ✓":(status==="applied"?"Removed from shortlist":"Marked "+status));
+  }catch(e){ _recToast(e.message); }
+}
 
 // ---- messages (WhatsApp-style: list view <-> full chat view) ----
 let recConvs=[], recCurConv=null;
@@ -1147,7 +1220,7 @@ async function loadConvs(){
     if(!recConvs.length){ box.innerHTML=`<div class="empty">No conversations yet.</div>`; return; }
     box.innerHTML=recConvs.map(c=>`
       <div class="conv" onclick="openRecChat(${c.conversation_id})">
-        <div class="cav ${avClass(c.role)}">${esc(initials(c.name))}</div>
+        <div class="cav ${avClass(c.role)}">${c.photo?`<img src="${fileUrl(c.photo)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.replaceWith(document.createTextNode('${esc(initials(c.name))}'))">`:esc(initials(c.name))}</div>
         <div class="cbody">
           <div class="nm">${esc(c.name)} ${c.role?`<span class="role">${esc(c.role)}</span>`:""}</div>
           <div class="pv">${esc(c.last_message||"No messages yet")}</div>
@@ -1400,7 +1473,8 @@ async function saveRecProfile(){
 function recPickPhoto(){ const inp=document.getElementById("rec-photo-input"); inp.value=""; inp.click(); }
 async function recUploadPhoto(input){
   if(!input.files||!input.files[0]) return;
-  const fd=new FormData(); fd.append("file", input.files[0]); fd.append("kind","profile");
+  const blob=await cropImageFile(input.files[0]); if(!blob) return;   // user cancelled the crop
+  const fd=new FormData(); fd.append("file", blob, "photo.jpg"); fd.append("kind","profile");
   try{
     const r=await api("/recruiter/photo",{method:"POST",body:fd});
     if(r&&r.url){ document.getElementById("pp-av").src=fileUrl(r.url); loadDashboard&&loadDashboard(); }
@@ -1920,6 +1994,8 @@ hideSplash();
    Closes menus/popups, else goes back a page, else (on home) press-twice-to-exit. */
 let _recLastBack=0;
 function recHandleBack(){
+  // full-screen document viewer open? close it first (returns to candidate detail)
+  if(typeof recDocOpen==="function" && recDocOpen()){ recCloseDoc(); return; }
   // close any open menu / language menu / popup first
   const menu=document.getElementById("menu");
   if(menu&&menu.classList.contains("show")){ toggleMenu(false); return; }
@@ -2143,6 +2219,27 @@ document.addEventListener("DOMContentLoaded", recResumePendingPayu);
       <input id="cc-search" placeholder="Search country or code…" oninput="renderCCList(this.value)" style="width:100%;padding:12px;border:1px solid #E2E8F0;border-radius:10px;font-size:15px;">
     </div>
     <div id="cc-list" style="flex:1;overflow-y:auto;padding:6px 0;"></div>
+  </div>
+</div>
+
+<!-- recruiter: full-screen in-app document viewer (images + PDF + docs) -->
+<div id="rec-docview" style="position:fixed;inset:0;z-index:300;background:#f1f2f5;display:none;flex-direction:column;">
+  <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#12305a;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);">
+    <button onclick="recCloseDoc()" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:15px;font-weight:700;cursor:pointer;">
+      <span class="svg-ic" style="font-size:18px;"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span>Back
+    </button>
+    <div id="rec-docview-title" style="flex:1;min-width:0;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Document</div>
+    <button onclick="recDocExternal()" title="Open in browser" style="background:rgba(255,255,255,.16);color:#fff;border:none;border-radius:10px;padding:9px 13px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">Open ↗</button>
+  </div>
+  <div id="rec-docview-body" style="flex:1;min-height:0;position:relative;overflow:auto;display:flex;align-items:center;justify-content:center;"></div>
+</div>
+
+<!-- recruiter: Profile Views breakdown (per job) -->
+<div class="pop-bg" id="pop-views">
+  <div class="pop" style="max-width:400px;max-height:80vh;display:flex;flex-direction:column;">
+    <h3 style="margin:0 0 4px;">Profile Views</h3>
+    <div id="views-pop-body" style="flex:1;overflow-y:auto;margin-top:6px;"></div>
+    <button class="btn blue" style="margin-top:14px;" onclick="closeViewsPopup()">Close</button>
   </div>
 </div>
 

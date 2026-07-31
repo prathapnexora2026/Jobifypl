@@ -379,7 +379,7 @@
   .txn-card{background:#fff;border:1px solid #EEF0F3;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.04);}
   .txn-row1{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
   .txn-reason{font-weight:800;font-size:15px;color:var(--ink);flex:1;}
-  .txn-amt{font-size:17px;font-weight:800;white-space:nowrap;} .txn-amt.cr{color:var(--green);} .txn-amt.db{color:var(--red);}
+  .txn-amt{font-size:17px;font-weight:800;white-space:nowrap;} .txn-amt.cr{color:var(--green);} .txn-amt.db{color:#334155;}
   .txn-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;}
   .txn-badge{font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.5px;}
   .txn-badge.cr{background:#E6F7EC;color:#0E9F5A;} .txn-badge.db{background:#FDEBEC;color:#D6455D;}
@@ -1952,7 +1952,7 @@ function showPayResult(state, info){
     msg.textContent="Please wait while we confirm your payment.";
     amt.textContent=""; sub.textContent="This can take a few seconds. You can close this and check your wallet history.";
     // Never trap the user: always allow closing the pending popup.
-    prim.textContent="Close"; prim.disabled=false;
+    prim.textContent="Close"; prim.disabled=false; prim.onclick=closePayResult;
   } else if(state==="success"){
     icon.style.background="#E6F7EC"; icon.textContent="✅";
     title.textContent="Payment successful";
@@ -1961,12 +1961,14 @@ function showPayResult(state, info){
     amt.style.color="var(--green)";
     sub.textContent="A receipt is saved in your transactions.";
     prim.textContent="Done"; prim.disabled=false;
+    // Take the user back to where they started (Wallet or Plans), refreshed.
+    prim.onclick=function(){ closePayResult(); go(info.kind==="plan"?"s-plans":"s-wallet"); };
   } else if(state==="failed"){
     icon.style.background="#FDEBEC"; icon.textContent="❌";
     title.textContent="Payment not completed";
     msg.textContent="Your payment was cancelled or failed. No amount was deducted.";
     amt.textContent=""; sub.textContent="You can try again anytime.";
-    prim.textContent="Close"; prim.disabled=false;
+    prim.textContent="Close"; prim.disabled=false; prim.onclick=closePayResult;
   }
   bg.classList.add("show");
 }
@@ -1977,9 +1979,23 @@ function showPayResult(state, info){
 function startPayuCheckout(url, ext, info){
   if(!url){ toast("Could not start payment"); return; }
   try{ localStorage.setItem("payu_pending", JSON.stringify({ext, info, ts:Date.now()})); }catch(e){}
-  // allowNavigation in capacitor.config keeps PayU inside the app's WebView, so
-  // navigating here stays in-app; the return page lands back on /app.html in the
-  // SAME WebView (localStorage token intact = still logged in).
+  const cap = window.Capacitor && window.Capacitor.Plugins;
+  if(cap && cap.Browser){
+    // APK: open PayU in an in-app browser tab. The app WebView (app.html) stays
+    // alive + logged in the whole time, so minimizing/returning never dumps the
+    // user to the role picker. Closing the tab -> we poll + show the result here.
+    showPayResult("pending", info);
+    let handled=false;
+    const onDone=function(){ if(handled) return; handled=true;
+      try{ cap.Browser.removeAllListeners&&cap.Browser.removeAllListeners(); }catch(e){}
+      resumePendingPayu(); };
+    try{ cap.Browser.addListener("browserFinished", onDone); }catch(e){}
+    // Safety net: also resume when the app itself regains focus.
+    try{ if(cap.App) cap.App.addListener("resume", function(){ setTimeout(onDone,300); }); }catch(e){}
+    cap.Browser.open({ url: url, presentationStyle:"popover", toolbarColor:"#F5A800" });
+    return;
+  }
+  // Plain web (not the APK): navigate the current tab to PayU.
   window.location.href = url;
 }
 

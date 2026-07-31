@@ -1346,7 +1346,7 @@ function recTxnCard(t){
   return `<div style="background:#fff;border:1px solid #EEF0F3;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.04);">
     <div style="display:flex;justify-content:space-between;gap:12px;">
       <div style="font-weight:800;">${esc(t.reason||t.description||'Transaction')}</div>
-      <div style="font-weight:800;white-space:nowrap;color:${credit?'#22C55E':'#EF4444'};">${credit?'+':'−'}${Math.round(Math.abs(amt))} PLN</div>
+      <div style="font-weight:800;white-space:nowrap;color:${credit?'#22C55E':'#334155'};">${credit?'+':'−'}${Math.round(Math.abs(amt))} PLN</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center;">
       <span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;${credit?'background:#E6F7EC;color:#0E9F5A;':'background:#FDEBEC;color:#D6455D;'}">${credit?'CREDIT':'DEBIT'}</span>
@@ -1365,7 +1365,7 @@ async function loadPayments(){
     b.innerHTML=rows.map(t=>{
       const credit=(t.type||'').toLowerCase()==='credit';
       return `<tr><td>${esc(t.date||"")}</td><td>${esc(t.reason||t.description||"")}<br><small style="color:#94A3B8;">${esc(t.ref||'')}${t.payu_ref?(' · PayU '+esc(t.payu_ref)):''}</small></td>
-      <td style="color:${credit?'#22C55E':'#EF4444'};font-weight:700;">${credit?'+':'−'}${esc(t.amount)}</td>
+      <td style="color:${credit?'#22C55E':'#334155'};font-weight:700;">${credit?'+':'−'}${esc(t.amount)}</td>
       <td>${esc((t.method||'').toUpperCase()||'—')}</td>
       <td><span class="badge-active">${credit?'CREDIT':'DEBIT'}</span></td></tr>`;
     }).join("");
@@ -2049,6 +2049,8 @@ function recPayResult(state, info){
       sub.textContent="A receipt is saved in your activity history.";
     }
     prim.textContent="Done"; prim.disabled=false;
+    // Take the recruiter back to where they started (Plans or Wallet), refreshed.
+    prim.onclick=function(){ recClosePayResult(); railTo(info.kind==="plan"?"packages":"wallet"); };
   } else if(state==="failed"){
     icon.style.background="#FDEBEC"; icon.textContent="❌"; title.textContent="Payment not completed";
     msg.textContent="Your payment was cancelled or failed. No amount was deducted.";
@@ -2060,6 +2062,20 @@ function recPayResult(state, info){
 function recStartPayu(url, ext, info){
   if(!url){ _recToast("Could not start payment"); return; }
   try{ localStorage.setItem("rec_payu_pending", JSON.stringify({ext, info, ts:Date.now()})); }catch(e){}
+  const cap = window.Capacitor && window.Capacitor.Plugins;
+  if(cap && cap.Browser){
+    // APK: open PayU in an in-app tab so the recruiter dashboard WebView stays
+    // alive + logged in — minimizing or returning never dumps to the role picker.
+    recPayResult("pending", info);
+    let handled=false;
+    const onDone=function(){ if(handled) return; handled=true;
+      try{ cap.Browser.removeAllListeners&&cap.Browser.removeAllListeners(); }catch(e){}
+      recResumePendingPayu(); };
+    try{ cap.Browser.addListener("browserFinished", onDone); }catch(e){}
+    try{ if(cap.App) cap.App.addListener("resume", function(){ setTimeout(onDone,300); }); }catch(e){}
+    cap.Browser.open({ url: url, presentationStyle:"popover", toolbarColor:"#2563EB" });
+    return;
+  }
   window.location.href=url;
 }
 async function recResumePendingPayu(){

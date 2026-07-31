@@ -97,18 +97,19 @@ def payu_return(ext: str = ""):
 @keyframes s{{to{{transform:rotate(360deg)}}}}</style>
 </head><body>
 <div class="sp"></div>
-<h2>Payment received</h2>
-<p>Returning you to the JobifyPL app…</p>
-<button class="b" onclick="goBack()">Back to app</button>
+<h2>Payment received ✅</h2>
+<p>You can now return to the JobifyPL app — your wallet/plan updates automatically.</p>
+<button class="b" onclick="goBack()">Return to app</button>
 <script>
 var BACK={back!r};
 function goBack(){{
-  // Navigate back to the correct app page IN THE SAME WebView/tab. Because PayU
-  // is whitelisted in allowNavigation, this stays inside the app and the
-  // localStorage token is intact, so the user is still logged in. The app's
-  // resumePendingPayu() then polls status and credits the wallet.
-  location.href = BACK;
+  // 1) Try a deep link so Android brings the JobifyPL app to the foreground
+  //    (closing this in-app tab). The app's browserFinished/resume listener then
+  //    resumes the payment. 2) If that scheme isn't handled, fall back to
+  //    navigating this tab back to the app page.
+  try{{ window.location.href = "pl.jobifypl.app://payu-return"; }}catch(e){{}}
+  setTimeout(function(){{ location.href = BACK; }}, 600);
 }}
-setTimeout(goBack, 900);
+setTimeout(goBack, 800);
 </script>
 </body></html>"""

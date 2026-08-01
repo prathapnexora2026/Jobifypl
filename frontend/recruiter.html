@@ -389,9 +389,9 @@
         <button class="btn" id="r-send" style="margin-top:18px;" onclick="recSendOtp()">Send OTP</button>
         <div style="text-align:center;margin-top:14px;font-size:12px;color:#64748B;">
           By continuing you agree to our
-          <a href="/terms.html" target="_blank" style="color:#2563EB;text-decoration:underline;">Terms &amp; Conditions</a>
+          <a onclick="openLegal('/terms.html')" style="color:#2563EB;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</a>
           and
-          <a href="/privacy.html" target="_blank" style="color:#2563EB;text-decoration:underline;">Privacy Policy</a>.
+          <a onclick="openLegal('/privacy.html')" style="color:#2563EB;text-decoration:underline;cursor:pointer;">Privacy Policy</a>.
         </div>
       </div>
       <div id="l-phase-otp" style="display:none;">
@@ -488,7 +488,7 @@
       <div class="stats">
         <div class="stat blue" style="cursor:pointer;" onclick="openViewsPopup()"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg></span></div></div><div class="t" data-i18n="profileViews">Profile Views</div><div class="v" id="st-views">0</div></div>
         <div class="stat yellow" style="cursor:pointer;" onclick="go('jobs')"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.3 2.9-5 6.5-5s6.5 1.7 6.5 5"/><path d="M16 5.2A3.2 3.2 0 0 1 16 11.5"/><path d="M17.5 15c2.4.4 4 1.9 4 5"/></svg></span></div></div><div class="t" data-i18n="jobsPosted">Jobs Posted</div><div class="v" id="st-jobs">0</div></div>
-        <div class="stat green" style="cursor:pointer;" onclick="go('apps')"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 12.5h7"/><path d="M8.5 16h7"/></svg></span></div></div><div class="t" data-i18n="interested">Interested Candidates</div><div class="v" id="st-int">0</div></div>
+        <div class="stat green" style="cursor:pointer;" onclick="openAppliedPopup()"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 12.5h7"/><path d="M8.5 16h7"/></svg></span></div></div><div class="t" data-i18n="applied">Applied</div><div class="v" id="st-int">0</div></div>
         <div class="stat teal" style="cursor:pointer;" onclick="go('messages')"><div class="ring"><div class="dot"><span class="svg-ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></span></div></div><div class="t" data-i18n="messages">Messages</div><div class="v" id="st-msg">0</div></div>
       </div>
       <div class="sect">
@@ -741,9 +741,9 @@ function showScreen(id){ document.querySelectorAll(".screen").forEach(s=>s.class
 
 // ================= i18n (dashboard chrome) =================
 const I18N={
-  en:{hiring:"Actively Hiring",visible:"Visible to Candidates",welcome:"welcome ,",profileViews:"Profile Views",jobsPosted:"Jobs Posted",interested:"Interested Candidates",messages:"Messages",postJobs:"Post Jobs",postJobsDesc:"Curate the opportunities you want to revisit, compare comp, and stay alerted.",postAJob:"Post a Job",receivedApps:"Received Applications",recPackages:"Recruiter Packages",paymentHistory:"Payment History",postNewJob:"Post a New Job",postLive:"Post Live!",dashboard:"Dashboard",plans:"Plans",wallet:"Wallet",logout:"Logout"},
-  pl:{hiring:"Aktywnie zatrudniamy",visible:"Widoczne dla kandydatów",welcome:"Witamy ,",profileViews:"Wyświetlenia profilu",jobsPosted:"Opublikowane oferty pracy",interested:"Zainteresowani kandydaci",messages:"Wiadomości",postJobs:"Opublikuj oferty pracy",postJobsDesc:"Wybierz oferty, które chcesz ponownie rozważyć i bądź na bieżąco.",postAJob:"Dodaj ofertę pracy",receivedApps:"Otrzymane aplikacje",recPackages:"Pakiety rekrutera",paymentHistory:"Historia płatności",postNewJob:"Opublikuj nową ofertę",postLive:"Opublikowano!",dashboard:"Panel",plans:"Plany",wallet:"Portfel",logout:"Wyloguj"},
-  uk:{hiring:"Активно наймаємо",visible:"Видно кандидатам",welcome:"вітаємо ,",profileViews:"Перегляди профілю",jobsPosted:"Опубліковані вакансії",interested:"Зацікавлені кандидати",messages:"Повідомлення",postJobs:"Опублікувати вакансії",postJobsDesc:"Керуйте вакансіями та будьте в курсі.",postAJob:"Додати вакансію",receivedApps:"Отримані заявки",recPackages:"Пакети рекрутера",paymentHistory:"Історія платежів",postNewJob:"Опублікувати вакансію",postLive:"Опубліковано!",dashboard:"Панель",plans:"Плани",wallet:"Гаманець",logout:"Вийти"},
+  en:{hiring:"Actively Hiring",visible:"Visible to Candidates",welcome:"welcome ,",profileViews:"Profile Views",jobsPosted:"Jobs Posted",interested:"Interested Candidates",applied:"Applied",messages:"Messages",postJobs:"Post Jobs",postJobsDesc:"Curate the opportunities you want to revisit, compare comp, and stay alerted.",postAJob:"Post a Job",receivedApps:"Received Applications",recPackages:"Recruiter Packages",paymentHistory:"Payment History",postNewJob:"Post a New Job",postLive:"Post Live!",dashboard:"Dashboard",plans:"Plans",wallet:"Wallet",logout:"Logout"},
+  pl:{hiring:"Aktywnie zatrudniamy",visible:"Widoczne dla kandydatów",welcome:"Witamy ,",profileViews:"Wyświetlenia profilu",jobsPosted:"Opublikowane oferty pracy",interested:"Zainteresowani kandydaci",applied:"Zgłoszenia",messages:"Wiadomości",postJobs:"Opublikuj oferty pracy",postJobsDesc:"Wybierz oferty, które chcesz ponownie rozważyć i bądź na bieżąco.",postAJob:"Dodaj ofertę pracy",receivedApps:"Otrzymane aplikacje",recPackages:"Pakiety rekrutera",paymentHistory:"Historia płatności",postNewJob:"Opublikuj nową ofertę",postLive:"Opublikowano!",dashboard:"Panel",plans:"Plany",wallet:"Portfel",logout:"Wyloguj"},
+  uk:{hiring:"Активно наймаємо",visible:"Видно кандидатам",welcome:"вітаємо ,",profileViews:"Перегляди профілю",jobsPosted:"Опубліковані вакансії",interested:"Зацікавлені кандидати",applied:"Заявки",messages:"Повідомлення",postJobs:"Опублікувати вакансії",postJobsDesc:"Керуйте вакансіями та будьте в курсі.",postAJob:"Додати вакансію",receivedApps:"Отримані заявки",recPackages:"Пакети рекрутера",paymentHistory:"Історія платежів",postNewJob:"Опублікувати вакансію",postLive:"Опубліковано!",dashboard:"Панель",plans:"Плани",wallet:"Гаманець",logout:"Вийти"},
 };
 let LANG=localStorage.getItem("rec_lang")||"en";
 function T(key,fallback){ const t=I18N[LANG]||I18N.en; return t[key]||fallback||(I18N.en[key])||key; }
@@ -924,6 +924,7 @@ function go(page,isBack){
 async function loadHeaderAvatar(){ /* header avatar removed — bell-only header */ }
 let hiringOn=true;
 let recViewsByJob=[];
+let recAppliedByJob=[];
 /* Profile Views popup: the stat box is a COUNT (not a link), which confused the
    client — so tapping it now explains what it means and breaks the number down
    per job ("for this job, this many people viewed"). Views increment whenever a
@@ -950,14 +951,41 @@ function openViewsPopup(){
   document.getElementById("pop-views").classList.add("show");
 }
 function closeViewsPopup(){ document.getElementById("pop-views").classList.remove("show"); }
+/* Applied popup: renamed from "Interested". Shows how many candidates applied
+   per job; tapping a job opens that job's applicant list. */
+function openAppliedPopup(){
+  const total=recAppliedByJob.reduce((s,j)=>s+(j.applied||0),0);
+  const box=document.getElementById("applied-pop-body");
+  if(!recAppliedByJob.length){
+    box.innerHTML=`<p style="color:#64748B;font-size:14px;margin:0;">No jobs posted yet. Once you post a job and candidates apply, you'll see them here.</p>`;
+  } else {
+    box.innerHTML=`
+      <p style="color:#64748B;font-size:13.5px;margin:0 0 12px;">How many candidates applied to each job. Tap a job to see who applied.</p>
+      ${recAppliedByJob.map(j=>`
+        <div onclick="openAppliedJob(${j.job_id})" style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #F1F5F9;cursor:pointer;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;color:var(--navy);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(j.title||'Job')}</div>
+            ${j.company?`<div style="color:#94A3B8;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(j.company)}</div>`:''}
+          </div>
+          <div style="text-align:right;flex-shrink:0;"><div style="font-size:19px;font-weight:800;color:#16A34A;line-height:1;">${j.applied||0}</div><div style="font-size:11px;color:#94A3B8;">applied</div></div>
+          <span class="svg-ic" style="color:#CBD5E1;font-size:18px;"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span>
+        </div>`).join("")}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-weight:800;color:var(--navy);">
+        <span>Total</span><span style="color:#16A34A;">${total} applied</span></div>`;
+  }
+  document.getElementById("pop-applied").classList.add("show");
+}
+function closeAppliedPopup(){ document.getElementById("pop-applied").classList.remove("show"); }
+function openAppliedJob(jobId){ closeAppliedPopup(); const j=recAppliedByJob.find(x=>x.job_id===jobId); viewApplicants(jobId,(j&&j.title)||"Applicants"); }
 async function loadDashboard(){
   try{ const d=await api("/recruiter/dashboard");
     document.getElementById("dash-name").textContent=d.welcome_name||"Recruiter";
     document.getElementById("st-views").textContent=d.profile_views||0;
     document.getElementById("st-jobs").textContent=d.jobs_posted||0;
-    document.getElementById("st-int").textContent=d.interested_candidates||0;
+    document.getElementById("st-int").textContent=d.applied_total||0;
     document.getElementById("st-msg").textContent=d.messages||0;
     recViewsByJob=d.views_by_job||[];   // per-job breakdown for the Profile Views popup
+    recAppliedByJob=d.applied_by_job||[];   // per-job breakdown for the Applied popup
     hiringOn=!!d.actively_hiring; document.getElementById("hiring-switch").classList.toggle("off",!hiringOn);
   }catch(e){ console.error(e); }
   refreshBellBadge();
@@ -1162,6 +1190,19 @@ function viewCV(idx){
         ? `<button class="btn" style="flex:1;background:#16A34A;color:#fff;border:none;" onclick="setAppStatus(${a.application_id},'applied')">✓ Shortlisted</button>`
         : `<button class="btn ghost" style="flex:1;" onclick="setAppStatus(${a.application_id},'shortlisted')">Shortlist</button>`}
     </div>`;
+}
+/* Open a legal page (Terms / Privacy) reliably. A plain target="_blank" link
+   often does nothing inside the Android WebView, so we use the in-app browser
+   tab (Chrome Custom Tab) when available; on the web we open a new tab. */
+function openLegal(path){
+  let url=path;
+  if(url && url.startsWith("/")) url="https://jobifypl.pl"+url;
+  try{
+    const cap=window.Capacitor&&window.Capacitor.Plugins;
+    if(cap&&cap.Browser){ cap.Browser.open({url,presentationStyle:"popover",toolbarColor:"#2563EB"}); return; }
+  }catch(e){}
+  const w=window.open(url,"_blank");
+  if(!w){ window.location.href=url; }
 }
 /* Open a candidate's document in a full-screen IN-APP viewer with a clear Back
    button (client wanted an obvious "comeback" control). Handles images, PDFs and
@@ -1605,7 +1646,7 @@ function renderWizard(){
         </div>
         <div class="policy"><span class="pi svg-ic" style="font-size:18px;color:#E0A80D;"><svg viewBox="0 0 24 24"><path d="M12 3 22 20H2z"/><path d="M12 9v5"/><path d="M12 17.2v.1"/></svg></span><div class="pt"><span class="h">Important Policy Notice</span><br>
           <span id="fee-text">${job.charges_fee?`By choosing 'Yes', you agree this is shown to candidates and discouraged.`:`By choosing 'No', you acknowledge and agree that candidates will <b>not be charged any fees</b> under any circumstances.`}</span>
-          <br>Kindly review and accept the complete <b>Terms &amp; Conditions</b> prior to proceeding.</div></div>
+          <br>Kindly review and accept the complete <a onclick="openLegal('/terms.html')" style="color:#2563EB;text-decoration:underline;font-weight:800;cursor:pointer;">Terms &amp; Conditions</a> prior to proceeding.</div></div>
       </div>`;
     wireSheet("f-cat","Choose Work category",CATEGORIES,"category","Work Category");
     wireSheet("f-shift","Select",SHIFTS,"shift_timing","Shift Timings");
@@ -2240,6 +2281,15 @@ document.addEventListener("DOMContentLoaded", recResumePendingPayu);
     <h3 style="margin:0 0 4px;">Profile Views</h3>
     <div id="views-pop-body" style="flex:1;overflow-y:auto;margin-top:6px;"></div>
     <button class="btn blue" style="margin-top:14px;" onclick="closeViewsPopup()">Close</button>
+  </div>
+</div>
+
+<!-- recruiter: Applied breakdown (per job, tap a job to see applicants) -->
+<div class="pop-bg" id="pop-applied">
+  <div class="pop" style="max-width:400px;max-height:80vh;display:flex;flex-direction:column;">
+    <h3 style="margin:0 0 4px;">Applied Candidates</h3>
+    <div id="applied-pop-body" style="flex:1;overflow-y:auto;margin-top:6px;"></div>
+    <button class="btn blue" style="margin-top:14px;" onclick="closeAppliedPopup()">Close</button>
   </div>
 </div>
 

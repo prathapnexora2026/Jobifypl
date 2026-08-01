@@ -806,6 +806,39 @@
     </div>
   </div>
 
+  <!-- Share job (bottom sheet: Copy link + WhatsApp/Telegram/…) -->
+  <style>
+    .share-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1600;display:none;align-items:flex-end;justify-content:center;}
+    .share-bg.show{display:flex;}
+    .share-card{background:#fff;width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:10px 20px 26px;animation:shareUp .25s ease;}
+    @keyframes shareUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .share-handle{width:40px;height:4px;border-radius:2px;background:#E2E8F0;margin:6px auto 12px;}
+    .share-title{font-weight:800;font-size:18px;color:#12305a;text-align:center;}
+    .share-sub{color:#94A3B8;font-size:13px;text-align:center;margin:2px 0 16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .share-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 8px;margin-bottom:16px;}
+    .share-opt{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12px;color:#475569;cursor:pointer;font-weight:600;}
+    .share-opt .si{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:24px;font-weight:800;box-shadow:0 3px 8px rgba(0,0,0,.12);}
+    .share-copy{width:100%;padding:14px;border-radius:12px;border:2px dashed #CBD5E1;background:#F8FAFC;color:#12305a;font-weight:800;font-size:15px;cursor:pointer;}
+    .share-cancel{width:100%;padding:12px;margin-top:10px;background:none;border:none;color:#94A3B8;font-size:15px;font-weight:700;cursor:pointer;}
+  </style>
+  <div class="share-bg" id="share-bg" onclick="if(event.target.id==='share-bg')closeShare()">
+    <div class="share-card">
+      <div class="share-handle"></div>
+      <div class="share-title">Share this job</div>
+      <div class="share-sub" id="share-sub"></div>
+      <div class="share-grid">
+        <div class="share-opt" onclick="shareTo('whatsapp')"><span class="si" style="background:#25D366;">💬</span>WhatsApp</div>
+        <div class="share-opt" onclick="shareTo('telegram')"><span class="si" style="background:#229ED9;">✈️</span>Telegram</div>
+        <div class="share-opt" onclick="shareTo('facebook')"><span class="si" style="background:#1877F2;color:#fff;">f</span>Facebook</div>
+        <div class="share-opt" onclick="shareTo('x')"><span class="si" style="background:#000;color:#fff;">𝕏</span>X</div>
+        <div class="share-opt" onclick="shareTo('email')"><span class="si" style="background:#EA4335;">✉️</span>Email</div>
+        <div class="share-opt" onclick="shareTo('more')"><span class="si" style="background:#64748B;color:#fff;">⋯</span>More</div>
+      </div>
+      <button class="share-copy" onclick="shareTo('copy')">🔗 Copy link</button>
+      <button class="share-cancel" onclick="closeShare()">Cancel</button>
+    </div>
+  </div>
+
   <!-- topup popup -->
   <div class="pop-bg" id="pop-topup">
     <div class="pop">
@@ -895,17 +928,79 @@ function toast(t){ const el=document.getElementById("toast"); el.textContent=t; 
 function fileUrl(p){ if(!p)return ""; p=String(p); if(/^https?:\/\//.test(p))return p; return p.startsWith("/")?API+p:API+"/uploads/"+p; }
 /* Recruiter/candidate avatar: real photo URL, or "" so callers render the default SVG avatar. */
 function avatarSrc(photo){ return fileUrl(photo); }
-/* Share a job via native share (Capacitor → Web Share → clipboard fallback). */
-async function shareJob(id,title,company){
+/* Share a job. Opens a bottom-sheet with Copy link + WhatsApp/Telegram/…
+   The link is a smart landing page (https://jobifypl.pl/job/ID) that opens the
+   app if installed (else prompts to download). */
+let _shareCtx={url:"",text:"",title:""};
+function shareJob(id,title,company){
   const url="https://jobifypl.pl/job/"+id;
-  const text=(title||"Job")+(company?(" at "+company):"")+" — "+url;
+  const text=(title||"Job")+(company?(" at "+company):"")+" — a job on JobifyPL";
+  _shareCtx={url,text,title:title||"Job on JobifyPL"};
+  document.getElementById("share-sub").textContent=(title||"Job")+(company?(" · "+company):"");
+  document.getElementById("share-bg").classList.add("show");
+}
+function closeShare(){ document.getElementById("share-bg").classList.remove("show"); }
+function shareOpenExternal(u){
+  if(!u) return;
+  try{ const cap=window.Capacitor&&window.Capacitor.Plugins; if(cap&&cap.Browser){ cap.Browser.open({url:u}); return; } }catch(e){}
+  const w=window.open(u,"_blank"); if(!w){ window.location.href=u; }
+}
+function shareTo(kind){
+  const c=_shareCtx, u=encodeURIComponent(c.url), t=encodeURIComponent(c.text), tt=encodeURIComponent(c.title);
+  if(kind==="copy"){ shareCopy(); return; }
+  if(kind==="more"){
+    if(navigator.share){ navigator.share({title:c.title,text:c.text,url:c.url}).catch(()=>{}); closeShare(); return; }
+    shareCopy(); return;
+  }
+  if(kind==="email"){ closeShare(); window.location.href="mailto:?subject="+tt+"&body="+encodeURIComponent(c.text+"\n\n"+c.url); return; }
+  let target="";
+  if(kind==="whatsapp") target="https://wa.me/?text="+encodeURIComponent(c.text+" "+c.url);
+  else if(kind==="telegram") target="https://t.me/share/url?url="+u+"&text="+t;
+  else if(kind==="facebook") target="https://www.facebook.com/sharer/sharer.php?u="+u;
+  else if(kind==="x") target="https://twitter.com/intent/tweet?text="+t+"&url="+u;
+  closeShare(); shareOpenExternal(target);
+}
+function shareCopy(){
+  const v=_shareCtx.url;
+  const ok=()=>{ toast("Link copied"); closeShare(); };
   try{
-    if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Share){
-      await window.Capacitor.Plugins.Share.share({title:title||"Job on JobifyPL",text,url}); return;
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(v).then(ok).catch(()=>shareCopyFallback(v)); return; }
+  }catch(e){}
+  shareCopyFallback(v);
+}
+function shareCopyFallback(v){
+  const ta=document.createElement("textarea"); ta.value=v; ta.style.position="fixed"; ta.style.opacity="0";
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); toast("Link copied"); }catch(e){ toast("Couldn't copy"); }
+  ta.remove(); closeShare();
+}
+
+/* ===== Shared-job deep links (pl.jobifypl.app://job/ID) ===== */
+function parseJobDeepLink(url){
+  if(!url) return null;
+  const m=String(url).match(/job[\/=](\d+)/i);
+  return m?parseInt(m[1]):null;
+}
+async function openSharedJob(id){
+  if(!id) return;
+  if(!token()){ localStorage.setItem("pending_job",String(id)); return; }  // log in first
+  try{ const d=await api("/jobs/"+id); const j=d.job; if(!j){ toast("Job not found"); return; }
+    if(j.applied) appliedIds.add(j.id); jdBack="s-home"; jdShow(j);
+  }catch(e){ toast(e.message); }
+}
+function resumePendingJob(){
+  const id=localStorage.getItem("pending_job");
+  if(id){ localStorage.removeItem("pending_job"); openSharedJob(parseInt(id)); }
+}
+function handleDeepLink(url){ const id=parseJobDeepLink(url); if(id) openSharedJob(id); }
+function setupDeepLinks(){
+  try{
+    const cap=window.Capacitor&&window.Capacitor.Plugins;
+    if(cap&&cap.App){
+      cap.App.addListener("appUrlOpen",function(data){ handleDeepLink(data&&data.url); });
+      cap.App.getLaunchUrl&&cap.App.getLaunchUrl().then(function(res){ if(res&&res.url) handleDeepLink(res.url); }).catch(function(){});
     }
-    if(navigator.share){ await navigator.share({title:title||"Job on JobifyPL",text,url}); return; }
-    await navigator.clipboard.writeText(text); toast("Link copied");
-  }catch(e){ /* user cancelled share — ignore */ }
+  }catch(e){}
 }
 
 /* ============ ICONS (inline SVG, Ionicons-style outline) ============ */
@@ -1234,7 +1329,7 @@ async function siVerify(){
   try{ const d=await api("/auth/verify-otp",{method:"POST",body:{phone:authPhone,code,role:"candidate"}});
     if(d.role!=="candidate"){ siMsg("This number is not a candidate account.","err"); return; }
     localStorage.setItem("token",d.token); localStorage.setItem("role",d.role);
-    if(d.new_user||!d.onboarding_completed){ cvBackScreen="s-signin"; go("s-cv"); } else { go("s-home"); }
+    if(d.new_user||!d.onboarding_completed){ cvBackScreen="s-signin"; go("s-cv"); } else { go("s-home"); resumePendingJob(); }
   }catch(e){ siMsg(e.message,"err"); }
 }
 function confirmLogout(){ document.getElementById("pop-logout").classList.add("show"); }
@@ -1525,6 +1620,7 @@ function goPlansOnboarding(){
 function skipPlansOnboarding(){
   sessionStorage.removeItem("fromOnboarding");
   go("s-home");
+  resumePendingJob();   // open a shared job saved before this new user signed up
 }
 
 /* ============ HOME ============ */
@@ -2084,6 +2180,8 @@ async function bootApp(){
     startOnboarding();
   }
   resumePendingPayu();
+  setupDeepLinks();                 // handle a shared job link that launched the app
+  if(token()) resumePendingJob();   // open any job saved before a prior login
   hideSplash();
 }
 // Fade out the launch splash once the app is ready.

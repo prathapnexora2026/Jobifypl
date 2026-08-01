@@ -302,6 +302,15 @@ def dashboard(user: User = Depends(require_recruiter), db: Session = Depends(get
     if job_ids:
         interested = db.query(JobApplication).filter(
             JobApplication.job_id.in_(job_ids), JobApplication.interested == True).count()
+    # Applied counts per job (drives the renamed "Applied" stat box + its popup).
+    applied_counts = {}
+    if job_ids:
+        from sqlalchemy import func
+        for jid, cnt in (db.query(JobApplication.job_id, func.count(JobApplication.id))
+                         .filter(JobApplication.job_id.in_(job_ids), JobApplication.applied == True)
+                         .group_by(JobApplication.job_id).all()):
+            applied_counts[jid] = cnt
+    applied_total = sum(applied_counts.values())
     # unread message count (conversations where this recruiter is a party)
     from app.models import Conversation, Message
     convs = db.query(Conversation).filter(
@@ -321,15 +330,21 @@ def dashboard(user: User = Depends(require_recruiter), db: Session = Depends(get
                    "expires": sub.end_date.strftime("%d %b, %Y") if sub.end_date else "N/A"}
     # Per-job view breakdown for the "Profile Views" popup (most-viewed first).
     views_by_job = [
-        {"title": j.title, "company": j.company_name or "", "views": j.views or 0}
+        {"job_id": j.id, "title": j.title, "company": j.company_name or "", "views": j.views or 0}
         for j in sorted(my_jobs_q, key=lambda x: (x.views or 0), reverse=True)
+    ]
+    # Per-job applied breakdown for the "Applied" popup (most-applied first).
+    applied_by_job = [
+        {"job_id": j.id, "title": j.title, "company": j.company_name or "", "applied": applied_counts.get(j.id, 0)}
+        for j in sorted(my_jobs_q, key=lambda x: applied_counts.get(x.id, 0), reverse=True)
     ]
     return {"status": "success",
             "welcome_name": user.full_name or "Recruiter",
             "actively_hiring": p.actively_hiring,
             "profile_views": total_views, "jobs_posted": jobs_posted,
             "interested_candidates": interested, "messages": messages,
-            "views_by_job": views_by_job,
+            "applied_total": applied_total,
+            "views_by_job": views_by_job, "applied_by_job": applied_by_job,
             "package": package}
 
 

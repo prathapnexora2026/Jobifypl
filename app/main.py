@@ -5,12 +5,15 @@ On Render:  uvicorn app.main:app --host 0.0.0.0 --port $PORT
 """
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+import html
+
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
 
-from app.database import Base, engine
+from app.database import Base, engine, get_db
 from app import models  # noqa: F401 - ensure models are registered
 from app.routers import auth, candidate, jobs, recruiter, wallet, misc, admin, payu_router
 
@@ -93,6 +96,86 @@ def download_apk():
                 filename="JobifyPL.apk",
             )
     raise HTTPException(status_code=404, detail="APK not available yet")
+
+
+# ---- Shared job link landing page ----------------------------------------
+# A candidate shares https://jobifypl.pl/job/<id>. Opening that link should:
+#   • show a rich preview (OG tags) in WhatsApp / social,
+#   • open the installed app straight to the job (Android intent:// with the
+#     pl.jobifypl.app:// deep link the app already handles), and
+#   • if the app isn't installed, fall back to the download page.
+# Registered BEFORE the "/" static mount so it takes precedence.
+@app.get("/job/{job_id}", response_class=HTMLResponse)
+def job_share_landing(job_id: int, db: Session = Depends(get_db)):
+    job = db.query(models.Job).filter(models.Job.id == job_id).first()
+    title = html.escape((job.title if job else "Job on JobifyPL") or "Job on JobifyPL")
+    company = html.escape((job.company_name if job and job.company_name else "JobifyPL"))
+    location = html.escape((job.location if job and job.location else "") or "")
+    jtype = html.escape((job.job_type if job and job.job_type else "Job") or "Job")
+    desc = html.escape(
+        f"{job.title} at {job.company_name or 'JobifyPL'}"
+        + (f" · {job.location}" if job and job.location else "")
+        if job else "View this job on JobifyPL"
+    )
+    page = _JOB_LANDING_HTML
+    for k, v in {
+        "__JOBID__": str(job_id), "__TITLE__": title, "__COMPANY__": company,
+        "__LOC__": location, "__JTYPE__": jtype, "__DESC__": desc,
+    }.items():
+        page = page.replace(k, v)
+    return HTMLResponse(page)
+
+
+_JOB_LANDING_HTML = """<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__ · JobifyPL</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="__TITLE__">
+<meta property="og:description" content="__DESC__">
+<meta property="og:url" content="https://jobifypl.pl/job/__JOBID__">
+<meta property="og:image" content="https://jobifypl.pl/assets/logo/jobifyPLlogo.png">
+<meta name="twitter:card" content="summary">
+<style>
+*{box-sizing:border-box} body{margin:0;font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;
+background:linear-gradient(160deg,#12305a,#1b4b8f);min-height:100vh;display:flex;align-items:center;
+justify-content:center;padding:24px;color:#12305a}
+.card{background:#fff;border-radius:22px;max-width:400px;width:100%;padding:28px 24px;
+box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center}
+.logo{height:44px;margin-bottom:16px}
+.tag{display:inline-block;background:#EEF2F8;color:#1b4b8f;font-size:12px;font-weight:700;
+padding:5px 12px;border-radius:20px;margin-bottom:12px}
+h1{font-size:22px;margin:6px 0 4px;line-height:1.25}
+.co{color:#475569;font-size:14px;margin-bottom:2px;font-weight:600}
+.loc{color:#94A3B8;font-size:13px;margin-bottom:20px}
+.btn{display:block;width:100%;padding:15px;border-radius:14px;font-size:16px;font-weight:800;
+border:none;cursor:pointer;text-decoration:none;margin-top:12px}
+.btn.primary{background:#F5A800;color:#241c00}
+.btn.ghost{background:#EEF2F8;color:#1b4b8f}
+.hint{color:#94A3B8;font-size:12px;margin-top:18px;line-height:1.5}
+</style></head><body>
+<div class="card">
+  <img class="logo" src="https://jobifypl.pl/assets/logo/jobifyPLlogo.png" alt="JobifyPL" onerror="this.style.display='none'">
+  <div class="tag">__JTYPE__</div>
+  <h1>__TITLE__</h1>
+  <div class="co">__COMPANY__</div>
+  <div class="loc">__LOC__</div>
+  <a class="btn primary" id="openApp" href="#">Open in App</a>
+  <a class="btn ghost" href="https://jobifypl.pl/">Download the App</a>
+  <div class="hint">Tap <b>Open in App</b> to view this job in JobifyPL. Don't have the app yet? Tap <b>Download the App</b> to get started.</div>
+</div>
+<script>
+(function(){
+  var JOBID=__JOBID__, FALLBACK="https://jobifypl.pl/";
+  var isAndroid=/Android/i.test(navigator.userAgent);
+  var deep=isAndroid
+    ? "intent://job/"+JOBID+"#Intent;scheme=pl.jobifypl.app;package=pl.jobifypl.app;S.browser_fallback_url="+encodeURIComponent(FALLBACK)+";end"
+    : "pl.jobifypl.app://job/"+JOBID;
+  document.getElementById("openApp").href=deep;
+  // On Android, try to open the app automatically (installed -> app; not -> fallback).
+  if(isAndroid){ setTimeout(function(){ try{ window.location.href=deep; }catch(e){} }, 400); }
+})();
+</script>
+</body></html>"""
 
 
 # Serve the frontend directory (index.html, recruiter.html, assets).

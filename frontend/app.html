@@ -145,7 +145,10 @@
   #toast.show{opacity:1;}
 
   /* role */
-  #s-role{background:#fff;display:flex;flex-direction:column;}
+  #s-role{background:#fff;}
+  /* display:flex only on .active — otherwise it beats .screen{display:none} and
+     the role picker never hides (it would stack under the login/home screens). */
+  #s-role.active{display:flex;flex-direction:column;}
   .role-hero{text-align:center;padding:34px 24px 6px;flex-shrink:0;}
   .role-hero img{width:118px;margin:0 auto;}
   .role-hero h1,.role-hero p{display:none;}

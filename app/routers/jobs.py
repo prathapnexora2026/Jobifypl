@@ -160,7 +160,9 @@ def my_applications(user: User = Depends(get_current_user), db: Session = Depend
     )
     return {"status": "success", "applications": [
         {"application_id": a.id, "status": a.status, "track_status": a.track_status,
-         "job_id": j.id, "recruiter_id": j.recruiter_id, "title": j.title,
+         "job_id": j.id, "recruiter_id": j.recruiter_id,
+         "title": j.title, "position": j.position,
+         "recruiter_photo": _recruiter_photo(db, j.recruiter_id),
          "company_name": j.company_name or "Self-Hiring",
          "location": j.location, "job_type": j.job_type, "gender_pref": j.gender_pref,
          "work_type": j.work_type}

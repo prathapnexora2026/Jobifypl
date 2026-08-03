@@ -145,17 +145,17 @@
   #toast.show{opacity:1;}
 
   /* role */
-  #s-role{background:linear-gradient(180deg,#FFF8E1,#FDEBA8);}
-  .role-hero{text-align:center;padding:44px 24px 20px;}
-  .role-hero img{width:150px;margin:0 auto 18px;}
-  .role-hero h1{font-size:28px;font-weight:900;color:#111;line-height:1.15;}
-  .role-hero p{color:#6b5b1e;margin-top:8px;font-size:15px;}
-  .role-cards{background:#fff;border-radius:26px 26px 0 0;margin-top:16px;padding:26px 20px 40px;min-height:44vh;}
-  .role-cards h2{text-align:center;font-size:19px;font-weight:800;margin-bottom:20px;color:var(--navy);}
-  .rolecard{display:flex;align-items:center;gap:16px;background:#F7F8FA;border:1.5px solid #EEF0F3;border-radius:18px;padding:18px;margin-bottom:16px;cursor:pointer;}
-  .rolecard:active{border-color:var(--yellow);}
-  .rolecard .ic{width:64px;height:64px;border-radius:16px;background:var(--yellow-soft);display:grid;place-items:center;flex-shrink:0;color:var(--yellow-d);}
-  .rolecard h3{font-size:17px;font-weight:800;color:var(--navy);} .rolecard p{color:var(--muted);font-size:13px;margin-top:2px;}
+  #s-role{background:#fff;display:flex;flex-direction:column;}
+  .role-hero{text-align:center;padding:34px 24px 6px;flex-shrink:0;}
+  .role-hero img{width:118px;margin:0 auto;}
+  .role-hero h1,.role-hero p{display:none;}
+  .role-cards{flex:1;background:#fff;padding:16px 22px 40px;display:flex;flex-direction:column;justify-content:center;}
+  .role-cards h2{text-align:center;font-size:24px;font-weight:900;margin-bottom:26px;color:#111;}
+  .rolecard{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid #EEF0F3;border-radius:20px;padding:15px;margin-bottom:18px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.07);transition:transform .1s;}
+  .rolecard:active{transform:scale(.99);border-color:var(--yellow);}
+  .rolecard .ic{width:98px;height:98px;border-radius:18px;overflow:hidden;flex-shrink:0;position:relative;background:#EEF2F8;display:grid;place-items:center;color:var(--yellow-d);}
+  .rolecard .ic>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .rolecard h3{font-size:20px;font-weight:800;color:#111;} .rolecard p{color:var(--muted);font-size:14px;margin-top:4px;line-height:1.35;}
   .rolecard .arrow{margin-left:auto;color:var(--yellow-d);display:flex;}
 
   /* signin */
@@ -215,6 +215,10 @@
   .jobcard{background:#fff;border:1px solid #EEF0F3;border-radius:18px;padding:16px;margin:0 16px 16px;box-shadow:0 4px 14px rgba(0,0,0,.04);}
   .jobcard .top{display:flex;gap:12px;align-items:flex-start;}
   .jobcard .logo{width:52px;height:52px;border-radius:14px;object-fit:cover;flex-shrink:0;background:#EEF2F8;display:grid;place-items:center;color:var(--navy);}
+  /* Company/recruiter photos: always fill the rounded box, cropped & centered
+     (portrait uploads used to render tall & overflow the box). */
+  .jobcard .logo,.app-card .logo,.jd-card .logo{position:relative;overflow:hidden;}
+  .jobcard .logo>img,.app-card .logo>img,.jd-card .logo>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
   .jobcard h3{font-size:17px;font-weight:800;color:var(--navy);} .jobcard .co{color:var(--muted);font-size:13px;margin-top:1px;}
   .jobcard .meta{display:flex;flex-wrap:wrap;gap:14px;margin:12px 0;}
   .jobcard .meta span{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:5px;}
@@ -462,17 +466,17 @@
   <!-- ROLE -->
   <div class="screen active" id="s-role">
     <div class="role-hero">
-      <img src="/assets/logo/mascot.png" onerror="this.style.display='none'">
-      <h1>Find your dream job<br>in Poland</h1>
-      <p>Trusted by 10k+ community</p>
+      <img src="/assets/logo/jobifyPLlogo.png" onerror="this.style.display='none'">
     </div>
     <div class="role-cards">
       <h2>Choose your role</h2>
       <div class="rolecard" onclick="chooseRole('candidate')">
-        <div class="ic" data-ic="person"></div><div><h3>I want a job</h3><p>Find trusted jobs and grow your career</p></div><div class="arrow" data-ic="chevron"></div>
+        <div class="ic" data-ic="person"><img src="/assets/role/candidate.jpg" alt="" onerror="this.style.display='none'"></div>
+        <div><h3>I want a job</h3><p>Find trusted jobs and grow your career</p></div>
       </div>
       <div class="rolecard" onclick="chooseRole('recruiter')">
-        <div class="ic" data-ic="business"></div><div><h3>I want to hire</h3><p>Hire skilled candidates quickly &amp; easily</p></div><div class="arrow" data-ic="chevron"></div>
+        <div class="ic" data-ic="business"><img src="/assets/role/recruiter.jpg" alt="" onerror="this.style.display='none'"></div>
+        <div><h3>I want to hire</h3><p>Hire skilled candidates quickly &amp; easily</p></div>
       </div>
     </div>
   </div>
@@ -495,9 +499,9 @@
         <button class="linkbtn" onclick="go('s-role')">Change role</button>
         <div style="text-align:center;margin-top:14px;font-size:12px;color:#8A94A6;">
           By continuing you agree to our
-          <a href="/terms.html" target="_blank" style="color:#1B4B8F;text-decoration:underline;">Terms &amp; Conditions</a>
+          <a onclick="openLegal('/terms.html')" style="color:#1B4B8F;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</a>
           and
-          <a href="/privacy.html" target="_blank" style="color:#1B4B8F;text-decoration:underline;">Privacy Policy</a>.
+          <a onclick="openLegal('/privacy.html')" style="color:#1B4B8F;text-decoration:underline;cursor:pointer;">Privacy Policy</a>.
         </div>
       </div>
       <div id="si-otp" style="display:none;">
@@ -558,7 +562,7 @@
       <button class="add-more" onclick="addExtraDoc()"><span data-ic="plus"></span> Add More Documents</button>
       <div class="gdpr">
         In accordance with Regulation (EU) 2016/679 (GDPR), acting on behalf of Jobify Team sp. z o.o. / Jobify Services sp. z o.o., we inform you that we process the personal data you provide for recruitment purposes. You can withdraw your consent at any time; this will not affect the lawfulness of processing carried out before withdrawal.
-        <div class="agree" onclick="toggleAgree()"><div class="checkbox" id="doc-agree" style="width:24px;height:24px;"></div><span>I agree to the terms and conditions</span></div>
+        <div class="agree" onclick="toggleAgree()"><div class="checkbox" id="doc-agree" style="width:24px;height:24px;"></div><span>I agree to the <a onclick="event.stopPropagation();openLegal('/terms.html')" style="color:#1B4B8F;text-decoration:underline;font-weight:700;cursor:pointer;">terms and conditions</a></span></div>
       </div>
       <button class="btn grey" id="doc-submit" style="margin:22px 0 10px;" onclick="submitDocs()">Submit Application</button>
       <button class="linkbtn" onclick="goPlansOnboarding()">Skip for now</button>
@@ -1462,6 +1466,13 @@ function absDocUrl(path){
   if(u && u.startsWith("/")) u="https://jobifypl.pl"+u;
   return u;
 }
+/* Open a legal page (Terms / Privacy) reliably. A plain target="_blank" link
+   often does nothing inside the Android WebView, so use the in-app browser tab. */
+function openLegal(path){
+  let u=path; if(u && u.startsWith("/")) u="https://jobifypl.pl"+u;
+  try{ const cap=window.Capacitor&&window.Capacitor.Plugins; if(cap&&cap.Browser){ cap.Browser.open({url:u,presentationStyle:"popover",toolbarColor:"#F5A800"}); return; } }catch(e){}
+  const w=window.open(u,"_blank"); if(!w){ window.location.href=u; }
+}
 /* Open a document. Images preview inline; PDFs/others open in the device
    browser via a system-browser open (reliable in the Android WebView). */
 function openDocExternal(url){
@@ -1747,13 +1758,17 @@ async function loadApps(){
 function renderApps(apps){
   const box=document.getElementById("apps-list");
   if(!apps.length){ box.innerHTML=`<div class="empty"><div class="ei">${svg("doc")}</div><div>No applications found</div><p style="color:var(--muted);font-weight:400;margin-top:6px;">Apply to jobs from the Home tab.</p></div>`; return; }
-  box.innerHTML=apps.map(a=>`<div class="app-card">
-    <div class="top"><div class="logo">${svg("brief")}</div><div style="flex:1;">
-      <h3>${esc(a.title)}</h3><div class="co">${esc(a.company_name||'')} • ${esc(a.job_type||'Regular Job')}</div></div></div>
+  box.innerHTML=apps.map(a=>{
+    const av=avatarSrc(a.recruiter_photo);
+    const logo=av?`<img src="${av}">`:svg("brief");
+    return `<div class="app-card">
+    <div class="top"><div class="logo">${logo}</div><div style="flex:1;">
+      <h3>${esc(a.position||a.title)}</h3><div class="co">${esc(a.company_name||'')} • ${esc(a.job_type||'Regular Job')}</div></div></div>
     <div class="meta"><span>${svg("clock2")} ${esc(a.work_type||'')}</span><span>${svg("person")} ${esc(a.gender_pref||'Any')}</span><span>${svg("pin")} ${esc(a.location||'')}</span></div>
     <div class="acts">${appStatusPill(a.status)}
       <button class="view" onclick="openTrack(${a.application_id})">View Application</button></div>
-  </div>`).join("");
+  </div>`;
+  }).join("");
 }
 /* Status pill on an application card — reflects what the recruiter set. */
 function appStatusPill(status){
@@ -1787,7 +1802,7 @@ function openTrack(appId){
   const a=myApps.find(x=>x.application_id===appId); if(!a){ toast("Not found"); return; }
   document.getElementById("track-jobcard").innerHTML=`<div class="track-jobcard">
     <div class="tt"><div class="logo">${svg("brief")}</div><div class="tag">${esc(a.job_type||'Full Time')}</div></div>
-    <h3>${esc(a.title)}</h3><div class="co">${esc(a.company_name||'')} • ${esc(a.location||'')}</div>
+    <h3>${esc(a.position||a.title)}</h3><div class="co">${esc(a.company_name||'')} • ${esc(a.location||'')}</div>
     <div class="m"><span>${svg("person")} ${esc(a.gender_pref||'Any')}</span><span>${svg("pin")} ${esc(a.location||'')}</span></div></div>`;
   const ts=a.track_status||"application_sent";
   const seen=ts==="recruiter_seen"||ts==="recruiter_contacted";
@@ -2422,8 +2437,16 @@ function closeUpgrade(){ document.getElementById("pop-upgrade").classList.remove
 
 /* ============ BOOT ============ */
 paintIcons(document);
-if(token()&&localStorage.getItem("role")==="candidate"){ go("s-home"); }
-else if(token()&&localStorage.getItem("role")==="recruiter"){ window.location.href="recruiter.html"; }
+/* Session persistence: send an already-signed-in user straight into their own
+   app and skip the role picker (which looked like being asked to log in again).
+   Recruiters live on recruiter.html and use the "rec_token" key; candidates stay
+   here and use "token". The launch splash still covers this, so there's no flash.
+   Only a real logout (which clears the token) brings back the login flow. */
+if(localStorage.getItem("rec_token") && !token()){
+  location.replace("recruiter.html");            // logged-in recruiter -> their dashboard
+} else if(token()){
+  go("s-home");                                  // logged-in candidate -> their home
+}
 </script>
 </body>
 </html>

@@ -325,16 +325,13 @@
   .empty{text-align:center;color:var(--muted);padding:26px;}
   .loading{text-align:center;color:var(--muted);padding:26px;}
 
-  /* language switcher — slim sticky tab on the right edge (out of the way) */
-  .lang{position:fixed;top:50%;right:0;transform:translateY(-50%);width:34px;height:64px;
-    border-radius:12px 0 0 12px;background:#111827;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:2px;font-size:16px;cursor:pointer;z-index:45;box-shadow:-3px 3px 14px rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12);border-right:none;}
-  .lang .flag{font-size:18px;line-height:1;} .lang .tag{font-size:9px;letter-spacing:.5px;opacity:.8;}
-  .lang.hide{display:none;}
-  .lang-menu{position:fixed;top:50%;right:40px;transform:translateY(-50%);background:#111827;color:#fff;border-radius:14px;padding:8px;z-index:46;display:none;min-width:170px;box-shadow:0 10px 30px rgba(0,0,0,.4);}
-  .lang-menu.show{display:block;} .lang-menu a{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:9px;cursor:pointer;color:#fff;}
-  .lang-menu a:hover{background:rgba(255,255,255,.08);}
-  .lang-menu a .flag{font-size:18px;}
+  /* Language chooser — now lives on the Profile page (sticky right-edge tab removed). */
+  .lang-opts{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+  .lang-opt{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid #E2E8F0;border-radius:12px;background:#fff;font-size:15px;font-weight:700;color:var(--navy);cursor:pointer;text-align:left;width:100%;}
+  .lang-opt .flag{font-size:20px;line-height:1;}
+  .lang-opt .tick{margin-left:auto;color:#16A34A;font-weight:800;display:none;}
+  .lang-opt.on{border-color:var(--yellow);background:#FFFBEB;}
+  .lang-opt.on .tick{display:inline;}
 
   /* inline SVG icons (Ionicons-style, stroke-based) */
   .svg-ic{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;line-height:0;}
@@ -613,6 +610,15 @@
         <label>Company email <span style="font-weight:400;color:#9AA1AC;">(no gmail/yahoo)</span></label><input id="ep-email" type="email" />
         <button class="btn" style="margin-top:22px;" onclick="saveRecProfile()">Save Changes</button>
       </div>
+      <div class="sect">
+        <h2 style="font-size:20px;display:inline-flex;align-items:center;gap:8px;"><span class="svg-ic" style="font-size:20px;color:#111;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/></svg></span> Language</h2>
+        <div class="desc">Choose the language for the whole app. You can change it anytime.</div>
+        <div class="lang-opts">
+          <button class="lang-opt" data-l="en" onclick="setLang('en')"><span class="flag">🇬🇧</span> English <span class="tick">✓</span></button>
+          <button class="lang-opt" data-l="pl" onclick="setLang('pl')"><span class="flag">🇵🇱</span> Polski <span class="tick">✓</span></button>
+          <button class="lang-opt" data-l="uk" onclick="setLang('uk')"><span class="flag">🇺🇦</span> Українська <span class="tick">✓</span></button>
+        </div>
+      </div>
     </div>
 
     <!-- page: NOTIFICATIONS -->
@@ -668,15 +674,8 @@
   <!-- bottom-sheet picker -->
   <div class="sheet-bg" id="sheet-bg" onclick="closeSheet(event)"><div class="sheet" id="sheet"></div></div>
 
-  <!-- language switcher (slim sticky tab on right edge) -->
-  <div class="lang" id="lang-tab" title="Language" onclick="document.getElementById('lang-menu').classList.toggle('show')">
-    <span class="flag" id="lang-flag">🇬🇧</span><span class="tag">文A</span><span id="lang-label" style="display:none;"></span>
-  </div>
-  <div class="lang-menu" id="lang-menu">
-    <a onclick="setLang('en')"><span class="flag">🇬🇧</span> English</a>
-    <a onclick="setLang('pl')"><span class="flag">🇵🇱</span> Polish</a>
-    <a onclick="setLang('uk')"><span class="flag">🇺🇦</span> Ukrainian</a>
-  </div>
+  <!-- Language is now chosen once at onboarding and changed from Profile > Language
+       (the old sticky right-edge tab was removed at the client's request). -->
 </div>
 
 <script src="crop.js"></script>
@@ -745,17 +744,23 @@ const I18N={
   pl:{hiring:"Aktywnie zatrudniamy",visible:"Widoczne dla kandydatów",welcome:"Witamy ,",profileViews:"Wyświetlenia profilu",jobsPosted:"Opublikowane oferty pracy",interested:"Zainteresowani kandydaci",applied:"Zgłoszenia",messages:"Wiadomości",postJobs:"Opublikuj oferty pracy",postJobsDesc:"Wybierz oferty, które chcesz ponownie rozważyć i bądź na bieżąco.",postAJob:"Dodaj ofertę pracy",receivedApps:"Otrzymane aplikacje",recPackages:"Pakiety rekrutera",paymentHistory:"Historia płatności",postNewJob:"Opublikuj nową ofertę",postLive:"Opublikowano!",dashboard:"Panel",plans:"Plany",wallet:"Portfel",logout:"Wyloguj"},
   uk:{hiring:"Активно наймаємо",visible:"Видно кандидатам",welcome:"вітаємо ,",profileViews:"Перегляди профілю",jobsPosted:"Опубліковані вакансії",interested:"Зацікавлені кандидати",applied:"Заявки",messages:"Повідомлення",postJobs:"Опублікувати вакансії",postJobsDesc:"Керуйте вакансіями та будьте в курсі.",postAJob:"Додати вакансію",receivedApps:"Отримані заявки",recPackages:"Пакети рекрутера",paymentHistory:"Історія платежів",postNewJob:"Опублікувати вакансію",postLive:"Опубліковано!",dashboard:"Панель",plans:"Плани",wallet:"Гаманець",logout:"Вийти"},
 };
-let LANG=localStorage.getItem("rec_lang")||"en";
+// Prefer a language explicitly chosen in the recruiter app; otherwise fall back
+// to the one picked at first-launch onboarding (stored under "lang"), so the
+// choice carries across the whole app for recruiters too.
+let LANG=localStorage.getItem("rec_lang")||localStorage.getItem("lang")||"en";
 function T(key,fallback){ const t=I18N[LANG]||I18N.en; return t[key]||fallback||(I18N.en[key])||key; }
 function applyLang(){
   const t=I18N[LANG]||I18N.en;
   document.querySelectorAll("[data-i18n]").forEach(el=>{ if(t[el.dataset.i18n]) el.textContent=t[el.dataset.i18n]; });
   document.querySelectorAll("[data-i18n-ph]").forEach(el=>{ if(t[el.dataset.i18nPh]) el.placeholder=t[el.dataset.i18nPh]; });
   const flags={en:"🇬🇧",pl:"🇵🇱",uk:"🇺🇦"};
-  document.getElementById("lang-flag").textContent=flags[LANG];
+  const lf=document.getElementById("lang-flag"); if(lf) lf.textContent=flags[LANG];   // legacy tab (removed) — guarded
+  markLangOptions();
   buildRail();
 }
-function setLang(l){ LANG=l; localStorage.setItem("rec_lang",l); document.getElementById("lang-menu").classList.remove("show"); applyLang(); }
+/* Highlight the currently selected language row on the Profile > Language card. */
+function markLangOptions(){ document.querySelectorAll(".lang-opt").forEach(b=>b.classList.toggle("on", b.dataset.l===LANG)); }
+function setLang(l){ LANG=l; localStorage.setItem("rec_lang",l); localStorage.setItem("lang",l); /* keep app-wide choice in sync */ const m=document.getElementById("lang-menu"); if(m) m.classList.remove("show"); applyLang(); if(typeof _recToast==="function") _recToast("Language updated"); }
 
 // ================= LOGIN =================
 let recPhone="";
@@ -1252,7 +1257,7 @@ async function setAppStatus(id,status){
 let recConvs=[], recCurConv=null;
 function avClass(role){ role=(role||"").toLowerCase(); return role==="admin"?"admin":(role==="candidate"?"cand":(role==="recruiter"?"rec":"")); }
 function initials(name){ return (name||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase()||"?"; }
-function langTab(show){ const t=document.getElementById("lang-tab"); if(t) t.classList.toggle("hide",!show); if(!show) document.getElementById("lang-menu").classList.remove("show"); }
+function langTab(show){ const t=document.getElementById("lang-tab"); if(t) t.classList.toggle("hide",!show); if(!show){ const m=document.getElementById("lang-menu"); if(m) m.classList.remove("show"); } }
 function showMsgList(){ document.getElementById("msg-list-view").style.display="block"; document.getElementById("msg-chat-view").style.display="none"; recCurConv=null; langTab(true); updateBackBtn(); }
 async function loadConvs(){
   showMsgList();

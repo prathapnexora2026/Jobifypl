@@ -87,6 +87,10 @@
   .badge{background:rgba(255,210,61,.5);color:#111;padding:4px 10px;border-radius:20px;font-size:12px;white-space:nowrap;}
   .userrow{display:flex;align-items:center;gap:12px;padding:10px 0;}
   .rimg{width:46px;height:46px;border-radius:50%;background:#e2e8f0;object-fit:cover;display:grid;place-items:center;}
+  /* User/recruiter photos always fill their box, cropped & centered (portrait
+     uploads used to render tall and break the row). */
+  .rimg,.avatar-sq,.conv-av,.avatar-lg{position:relative;overflow:hidden;}
+  .rimg>img,.avatar-sq>img,.conv-av>img,.avatar-lg>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 
   /* ===== dashboard calendar ===== */
   .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}

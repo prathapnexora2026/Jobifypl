@@ -162,14 +162,16 @@
   .rolecard .arrow{margin-left:auto;color:var(--yellow-d);display:flex;}
 
   /* signin */
-  #s-signin{background:linear-gradient(180deg,#FFF8E1 0%,#FDEBA8 55%,#FCEFB6 100%);min-height:100vh;}
-  .signin-hero{text-align:center;padding:36px 24px 16px;}
-  .signin-hero img{width:180px;margin:0 auto 16px;}
-  .signin-hero h1{font-size:30px;font-weight:900;color:#111;line-height:1.15;}
-  .signin-card{background:#fff;border-radius:24px;margin:6px 16px 20px;padding:24px;box-shadow:0 -4px 20px rgba(0,0,0,.05);}
+  #s-signin{background:linear-gradient(180deg,#FDF3C4 0%,#FBE38A 62%,#FCEFB6 100%);min-height:100vh;}
+  /* display:flex only on .active (else it beats .screen{display:none} and stacks) */
+  #s-signin.active{display:flex;flex-direction:column;}
+  .signin-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 26px 20px;text-align:center;}
+  .signin-hero img{width:180px;margin-bottom:26px;}
+  .signin-hero h1{font-size:30px;font-weight:900;line-height:1.12;color:#111;}
+  .signin-card{background:#fff;border-radius:22px;margin:0 16px 20px;padding:26px 22px 24px;box-shadow:0 -6px 26px rgba(0,0,0,.07);}
   .keepme{display:flex;align-items:center;gap:10px;margin-top:16px;color:#374151;font-size:15px;cursor:pointer;}
   .keepme input{width:20px;height:20px;accent-color:var(--yellow);}
-  .signin-card h2{font-size:21px;font-weight:800;} .signin-card .subt{color:var(--muted);margin:4px 0 6px;font-size:14px;}
+  .signin-card h2{font-size:23px;font-weight:800;} .signin-card .subt{color:var(--muted);margin:6px 0 4px;font-size:15px;}
   .otp{display:flex;gap:8px;margin-top:6px;width:100%;} .otp input{flex:1 1 0;min-width:0;width:0;text-align:center;font-size:20px;font-weight:800;padding:14px 0;border:1px solid var(--line);border-radius:10px;outline:none;-webkit-appearance:none;}
   .otp input:focus{border-color:var(--yellow);}
   .msg{margin-top:12px;padding:11px;border-radius:10px;font-size:13.5px;display:none;} .msg.show{display:block;}

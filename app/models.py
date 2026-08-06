@@ -230,6 +230,9 @@ class Payment(Base):
     # "wallet_topup" or "plan"
     purpose = Column(String(20))
     plan_id = Column(Integer, ForeignKey("subscription_plans.id"), nullable=True)
+    # Coupon applied to this payment (redeemed only when the payment is fulfilled).
+    coupon_id = Column(Integer, ForeignKey("coupons.id"), nullable=True)
+    coupon_discount = Column(Float, default=0)   # PLN discounted by the coupon
     # pending / paid / failed / canceled
     status = Column(String(20), default="pending", index=True)
     # Guard so the notify webhook can't credit the same payment twice.

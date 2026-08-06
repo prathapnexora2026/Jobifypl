@@ -179,23 +179,29 @@ def current_plan(user: User = Depends(get_current_user), db: Session = Depends(g
 
 class PurchaseIn(BaseModel):
     plan_id: int
+    coupon_code: str | None = None
 
 
 @plans_router.post("/purchase")
 def purchase(body: PurchaseIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Buy a plan using WALLET balance (option 1: pay from wallet)."""
+    from app.routers.coupons import apply_plan_coupon, redeem_coupon
     plan = db.query(SubscriptionPlan).filter(
         SubscriptionPlan.id == body.plan_id, SubscriptionPlan.is_active == True).first()
     if not plan:
         raise HTTPException(404, "Plan not found")
+    final_price, coupon, discount = apply_plan_coupon(db, user, plan.price, body.coupon_code)
     w = _get_wallet(db, user.id)
-    if w.balance < plan.price:
+    if w.balance < final_price:
         raise HTTPException(400, "Insufficient wallet balance. Please top up.")
-    w.balance -= plan.price
-    w.total_spent += plan.price
-    db.add(WalletTransaction(user_id=user.id, amount=plan.price, type="debit",
-                            reason=f"Subscription: {plan.name}"))
+    if final_price > 0:
+        w.balance -= final_price
+        w.total_spent += final_price
+        reason = f"Subscription: {plan.name}" + (f" (coupon {coupon.code})" if coupon else "")
+        db.add(WalletTransaction(user_id=user.id, amount=final_price, type="debit", reason=reason))
     activate_plan(db, user.id, plan, "wallet")
+    if coupon:
+        redeem_coupon(db, coupon, user, "plan", discount)
     db.commit()
     return {"status": "success", "msg": f"{plan.name} activated", "balance": w.balance}
 
@@ -207,28 +213,46 @@ def plan_checkout(body: PurchaseIn, request: Request,
 
     Returns a PayU redirect URL; the plan is activated later by the verified
     notify webhook. Falls back to instant activation if PayU is disabled."""
+    from app.routers.coupons import apply_plan_coupon, redeem_coupon
     plan = db.query(SubscriptionPlan).filter(
         SubscriptionPlan.id == body.plan_id, SubscriptionPlan.is_active == True).first()
     if not plan:
         raise HTTPException(404, "Plan not found")
 
+    final_price, coupon, discount = apply_plan_coupon(db, user, plan.price, body.coupon_code)
+
+    # ZERO-CHARGE: a 100% (or fully-covering) coupon makes the plan free — activate
+    # it right here and NEVER open the payment gateway.
+    if final_price <= 0.009:
+        db.add(WalletTransaction(user_id=user.id, amount=0, type="debit",
+                                reason=f"Subscription: {plan.name} (FREE via {coupon.code})" if coupon
+                                else f"Subscription: {plan.name} (free)"))
+        activate_plan(db, user.id, plan, "coupon")
+        if coupon:
+            redeem_coupon(db, coupon, user, "plan", discount)
+        db.commit()
+        return {"status": "success", "paid": True, "free": True, "msg": f"{plan.name} activated"}
+
     if not settings.PAYU_ENABLED:
         w = _get_wallet(db, user.id)
-        w.total_spent += plan.price
-        db.add(WalletTransaction(user_id=user.id, amount=plan.price, type="debit",
+        w.total_spent += final_price
+        db.add(WalletTransaction(user_id=user.id, amount=final_price, type="debit",
                                 reason=f"Subscription (test): {plan.name}"))
         activate_plan(db, user.id, plan, "test")
+        if coupon:
+            redeem_coupon(db, coupon, user, "plan", discount)
         db.commit()
         return {"status": "success", "paid": True, "msg": f"{plan.name} activated"}
 
     ext = payu.new_ext_order_id("plan", user.id)
-    pay = Payment(user_id=user.id, ext_order_id=ext, amount=plan.price,
+    pay = Payment(user_id=user.id, ext_order_id=ext, amount=final_price,
                   currency=plan.currency or "PLN", purpose="plan", plan_id=plan.id,
+                  coupon_id=(coupon.id if coupon else None), coupon_discount=discount,
                   status="pending")
     db.add(pay); db.commit()
     try:
         res = payu.create_order(
-            ext_order_id=ext, amount_pln=plan.price,
+            ext_order_id=ext, amount_pln=final_price,
             description=f"JobifyPL plan: {plan.name}",
             buyer_email=user.email or "", buyer_phone=user.phone or "",
             customer_ip=(request.client.host if request.client else "127.0.0.1"))
@@ -290,22 +314,32 @@ def _fulfil_payment(db: Session, pay: Payment):
     elif pay.purpose == "plan" and pay.plan_id:
         plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == pay.plan_id).first()
         if plan:
+            paid = pay.amount if pay.amount is not None else plan.price   # discounted amount if a coupon applied
             wal = db.query(Wallet).filter(Wallet.user_id == pay.user_id).first()
             if wal:
-                wal.total_spent += plan.price
-            db.add(WalletTransaction(user_id=pay.user_id, amount=plan.price, type="debit",
-                                    reason=f"Subscription: {plan.name}", method="payu",
-                                    payu_ref=pay.payu_order_id))
+                wal.total_spent += paid
+            note = f"Subscription: {plan.name}" + (" (coupon)" if pay.coupon_id else "")
+            db.add(WalletTransaction(user_id=pay.user_id, amount=paid, type="debit",
+                                    reason=note, method="payu", payu_ref=pay.payu_order_id))
             activate_plan(db, pay.user_id, plan, "payu")
     elif pay.purpose == "rec_plan" and pay.plan_id:
         plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == pay.plan_id).first()
         if plan:
+            paid = pay.amount if pay.amount is not None else plan.price
             wal = db.query(Wallet).filter(Wallet.user_id == pay.user_id).first()
             if wal:
-                wal.total_spent += plan.price
-            db.add(WalletTransaction(user_id=pay.user_id, amount=plan.price, type="debit",
-                                    reason=f"{plan.name} Plan", method="payu",
-                                    payu_ref=pay.payu_order_id))
+                wal.total_spent += paid
+            note = f"{plan.name} Plan" + (" (coupon)" if pay.coupon_id else "")
+            db.add(WalletTransaction(user_id=pay.user_id, amount=paid, type="debit",
+                                    reason=note, method="payu", payu_ref=pay.payu_order_id))
             from app.routers.recruiter import activate_recruiter_package
             activate_recruiter_package(db, pay.user_id, plan)
+    # Redeem an applied coupon exactly once, now that the payment is confirmed.
+    if pay.coupon_id and pay.purpose in ("plan", "rec_plan"):
+        from app.models import Coupon
+        from app.routers.coupons import redeem_coupon
+        coupon = db.query(Coupon).filter(Coupon.id == pay.coupon_id).first()
+        buyer = db.query(User).filter(User.id == pay.user_id).first()
+        if coupon and buyer:
+            redeem_coupon(db, coupon, buyer, "plan", pay.coupon_discount or 0)
     db.commit()

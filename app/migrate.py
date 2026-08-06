@@ -41,5 +41,8 @@ def run_migrations():
             _add_column(conn, "messages", "deleted_for", "TEXT")
             # jobs: monthly cost when accommodation is Paid (change #6)
             _add_column(conn, "jobs", "accommodation_amount", "INTEGER")
+            # payments: coupon applied (redeemed on fulfilment) + PLN discounted
+            _add_column(conn, "payments", "coupon_id", "INTEGER")
+            _add_column(conn, "payments", "coupon_discount", "FLOAT DEFAULT 0")
     except Exception as e:
         print(f"[migrate] skipped: {e}")

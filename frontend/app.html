@@ -2317,21 +2317,40 @@ async function loadPlans(){
       ${isActive
         ? `<div class="plan-feat" style="color:var(--green);">${svg("check-done")}<span>Active${activeEnd?(' · valid till '+fmtDate(activeEnd)):''}</span></div>
            <button class="plan-buy" style="background:#E6F7EC;color:#0E9F5A;" disabled>Currently Enrolled</button>`
-        : `<div class="plan-input"><div class="il">Have a referral code?</div><input id="ref-${p.id}" placeholder="Enter code" oninput="applyRef(${p.id},${p.price},'${esc(p.currency||'PLN')}')"><div class="disc" id="disc-${p.id}" style="display:none;">10% Discount Applied!</div></div>
+        : `<div class="plan-input"><div class="il">Have a coupon code?</div>
+             <div style="display:flex;gap:6px;"><input id="ref-${p.id}" placeholder="JPL___" style="flex:1;text-transform:uppercase;"><button class="btn" style="width:auto;padding:0 16px;margin:0;font-size:14px;" onclick="applyCoupon(${p.id},${p.price},'${esc(p.currency||'PLN')}')">Apply</button></div>
+             <div class="disc" id="disc-${p.id}" style="display:none;margin-top:6px;"></div></div>
            <button class="plan-buy" onclick="buyPlan(${p.id},this)">Buy Now</button>`}
     </div>`;}).join("");
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
-function applyRef(id,price,cur){
-  const has=document.getElementById("ref-"+id).value.trim().length>0;
+let _planCoupons={};   // planId -> {code, new_charge}
+async function applyCoupon(id,price,cur){
+  const code=document.getElementById("ref-"+id).value.trim().toUpperCase();
   const disc=document.getElementById("disc-"+id); const pp=document.getElementById("plan-price-"+id);
-  if(has){ disc.style.display="block"; pp.innerHTML=`<span style="text-decoration:line-through;color:var(--slate);font-size:14px;">${Math.round(price)} ${cur}</span> <span style="color:var(--green);">${(price*0.9).toFixed(2)} ${cur}</span>`; }
-  else{ disc.style.display="none"; pp.textContent=`${Math.round(price)} ${cur}`; }
+  if(!code){ delete _planCoupons[id]; disc.style.display="none"; pp.textContent=`${Math.round(price)} ${cur}`; return; }
+  try{
+    const r=await api("/coupons/validate",{method:"POST",body:{code,context:"plan",amount:price}});
+    _planCoupons[id]={code:r.code, new_charge:r.new_charge};
+    disc.style.display="block"; disc.style.color="var(--green)";
+    disc.textContent = r.new_charge<=0 ? `✓ ${r.code} — this plan is FREE!` : `✓ ${r.code} applied`;
+    const strike=`<span style="text-decoration:line-through;color:var(--slate);font-size:14px;">${Math.round(price)} ${cur}</span>`;
+    pp.innerHTML = r.new_charge<=0 ? `${strike} <span style="color:var(--green);">FREE</span>`
+                                   : `${strike} <span style="color:var(--green);">${r.new_charge.toFixed(2)} ${cur}</span>`;
+  }catch(e){
+    delete _planCoupons[id];
+    disc.style.display="block"; disc.style.color="var(--red)"; disc.textContent=e.message;
+    pp.textContent=`${Math.round(price)} ${cur}`;
+  }
 }
 /* Buy Now → ask HOW to pay: from wallet, or directly via PayU. */
 let _payPlanId=null;
+let _payCoupon=null;
 function buyPlan(id,btn){
   _payPlanId=id;
+  _payCoupon=(_planCoupons[id]&&_planCoupons[id].code)||null;
+  // 100%-off coupon → plan is free → activate directly, skip the payment choice.
+  if(_planCoupons[id] && _planCoupons[id].new_charge<=0){ payDirect(); return; }
   document.getElementById("pop-paychoice").classList.add("show");
 }
 function closePayChoice(){ document.getElementById("pop-paychoice").classList.remove("show"); }
@@ -2339,7 +2358,7 @@ function closePayChoice(){ document.getElementById("pop-paychoice").classList.re
 async function payFromWallet(){
   const id=_payPlanId; closePayChoice();
   try{
-    await api("/plans/purchase",{method:"POST",body:{plan_id:id}});
+    await api("/plans/purchase",{method:"POST",body:{plan_id:id, coupon_code:_payCoupon}});
     showPayResult("success",{kind:"plan"});
     loadPlans(); loadWallet&&loadWallet();
   }
@@ -2349,8 +2368,8 @@ async function payFromWallet(){
 async function payDirect(){
   const id=_payPlanId; closePayChoice();
   try{
-    const r=await api("/plans/checkout",{method:"POST",body:{plan_id:id}});
-    if(r.paid){ showPayResult("success",{kind:"plan"}); loadPlans(); return; }   // test-mode instant
+    const r=await api("/plans/checkout",{method:"POST",body:{plan_id:id, coupon_code:_payCoupon}});
+    if(r.paid){ showPayResult("success",{kind:"plan"}); loadPlans(); loadWallet&&loadWallet(); return; }   // free-coupon or test-mode instant
     startPayuCheckout(r.redirect_url, r.ext_order_id, {kind:"plan"});
   }catch(e){ toast(e.message); }
 }

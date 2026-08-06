@@ -140,9 +140,12 @@ user_router = APIRouter(prefix="/coupons", tags=["coupons"])
 
 def validate_coupon(db: Session, code: str, user: User, context: str, amount: float):
     """Validate a coupon for this user + context ('plan' or 'wallet') and a base
-    amount. Returns (coupon, discount, new_charge). Raises HTTPException if invalid.
-      • percent -> new_charge = amount - discount (they pay less)
-      • credit  -> discount = free credit added; new_charge = amount (unchanged)."""
+    amount. Returns (coupon, discount, new_charge, free_credit). Raises on invalid.
+
+      • percent (plan/wallet)  -> new_charge = amount - amount*pct%   (they pay less)
+      • credit  on a PLAN      -> fixed discount off the price: new_charge = amount - value
+      • credit  on the WALLET  -> free credit: free_credit = value, new_charge = 0
+    """
     code = (code or "").strip().upper()
     c = db.query(Coupon).filter(Coupon.code == code).first()
     if not c or not c.active:
@@ -161,14 +164,20 @@ def validate_coupon(db: Session, code: str, user: User, context: str, amount: fl
         raise HTTPException(400, "You have already used this coupon")
 
     amount = float(amount or 0)
-    if c.discount_type == "credit":
-        discount = float(c.discount_value or 0)          # free credit
-        new_charge = amount
-    else:  # percent
-        pct = max(0.0, min(100.0, float(c.discount_value or 0)))
+    value = float(c.discount_value or 0)
+    free_credit = 0.0
+    if c.discount_type == "percent":
+        pct = max(0.0, min(100.0, value))
         discount = round(amount * pct / 100.0, 2)
         new_charge = round(max(0.0, amount - discount), 2)
-    return c, discount, new_charge
+    elif context == "wallet":           # credit on wallet = free standalone credit
+        free_credit = value
+        discount = value
+        new_charge = 0.0
+    else:                               # credit on a plan = fixed amount off the price
+        discount = round(min(amount, value), 2)
+        new_charge = round(max(0.0, amount - discount), 2)
+    return c, discount, new_charge, free_credit
 
 
 def redeem_coupon(db: Session, coupon: Coupon, user: User, context: str, discount_amount: float):
@@ -177,6 +186,17 @@ def redeem_coupon(db: Session, coupon: Coupon, user: User, context: str, discoun
     db.add(CouponRedemption(coupon_id=coupon.id, user_id=user.id, role=_role_str(user),
                             context=context, discount_amount=round(float(discount_amount or 0), 2)))
     coupon.used_count = (coupon.used_count or 0) + 1
+
+
+def apply_plan_coupon(db: Session, user: User, plan_price: float, code):
+    """Resolve a coupon for a PLAN purchase. Returns (final_price, coupon, discount).
+    No code -> (plan_price, None, 0). Raises HTTPException if the code is invalid.
+    (Plan coupons are percent or fixed-amount discounts; final_price can be 0 for
+    a 100%/full discount, in which case the caller must skip the payment gateway.)"""
+    if not code or not str(code).strip():
+        return round(float(plan_price or 0), 2), None, 0.0
+    coupon, discount, new_charge, _free = validate_coupon(db, code, user, "plan", float(plan_price or 0))
+    return new_charge, coupon, discount
 
 
 class ValidateIn(BaseModel):
@@ -189,7 +209,25 @@ class ValidateIn(BaseModel):
 def validate(body: ValidateIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Preview a coupon before checkout (no redemption happens here)."""
     ctx = body.context if body.context in ("plan", "wallet") else "plan"
-    c, discount, new_charge = validate_coupon(db, body.code, user, ctx, body.amount)
+    c, discount, new_charge, free_credit = validate_coupon(db, body.code, user, ctx, body.amount)
     return {"status": "success", "code": c.code, "label": c.label or "",
             "discount_type": c.discount_type, "discount_value": c.discount_value,
-            "discount": discount, "new_charge": new_charge}
+            "discount": discount, "new_charge": new_charge, "free_credit": free_credit}
+
+
+class RedeemWalletIn(BaseModel):
+    code: str
+
+
+@user_router.post("/redeem-wallet")
+def redeem_wallet(body: RedeemWalletIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Redeem a free-credit ('credit') coupon straight into the wallet — no payment.
+    Percent coupons aren't redeemable this way (they discount a plan/top-up instead)."""
+    c, discount, new_charge, free_credit = validate_coupon(db, body.code, user, "wallet", 0)
+    if c.discount_type != "credit" or free_credit <= 0:
+        raise HTTPException(400, "This code isn't a free-credit coupon — use it while buying a plan.")
+    from app.routers.wallet import credit_wallet
+    w = credit_wallet(db, user.id, free_credit, f"Coupon {c.code}")
+    redeem_coupon(db, c, user, "wallet", free_credit)
+    db.commit()
+    return {"status": "success", "credited": free_credit, "code": c.code, "balance": w.balance}

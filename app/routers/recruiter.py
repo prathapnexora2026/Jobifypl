@@ -472,21 +472,25 @@ def packages(user: User = Depends(require_recruiter), db: Session = Depends(get_
 
 class BuyIn(BaseModel):
     plan_id: int
+    coupon_code: str | None = None
 
 
 @router.post("/packages/buy")
 def buy_package(body: BuyIn, user: User = Depends(require_recruiter), db: Session = Depends(get_db)):
+    from app.routers.coupons import apply_plan_coupon, redeem_coupon
     plan = db.query(SubscriptionPlan).filter(
         SubscriptionPlan.id == body.plan_id, SubscriptionPlan.for_role == "recruiter").first()
     if not plan:
         raise HTTPException(404, "Package not found")
+    final_price, coupon, discount = apply_plan_coupon(db, user, plan.price, body.coupon_code)
     w = _wallet(db, user.id)
-    if w.balance < plan.price:
-        raise HTTPException(400, f"Insufficient wallet balance. Need {plan.price} PLN, top up first.")
-    w.balance -= plan.price
-    w.total_spent += plan.price
-    db.add(WalletTransaction(user_id=user.id, amount=plan.price, type="debit",
-                            reason=f"{plan.name} Plan ({plan.duration_days} Days)"))
+    if w.balance < final_price:
+        raise HTTPException(400, f"Insufficient wallet balance. Need {final_price} PLN, top up first.")
+    if final_price > 0:
+        w.balance -= final_price
+        w.total_spent += final_price
+        reason = f"{plan.name} Plan ({plan.duration_days} Days)" + (f" (coupon {coupon.code})" if coupon else "")
+        db.add(WalletTransaction(user_id=user.id, amount=final_price, type="debit", reason=reason))
     # deactivate old, activate new
     db.query(UserSubscription).filter(
         UserSubscription.user_id == user.id, UserSubscription.status == "active"
@@ -498,6 +502,8 @@ def buy_package(body: BuyIn, user: User = Depends(require_recruiter), db: Sessio
     p = user.recruiter_profile
     if p:
         p.can_post_jobs = True
+    if coupon:
+        redeem_coupon(db, coupon, user, "plan", discount)
     db.commit()
     return {"status": "success", "msg": f"{plan.name} activated", "balance": w.balance,
             "plan_name": plan.name, "posts_total": plan.postings or 0, "posts_used": 0}
@@ -602,27 +608,47 @@ def rec_package_checkout(body: BuyIn, user: User = Depends(require_recruiter),
                          db: Session = Depends(get_db)):
     """Buy a recruiter package by paying DIRECTLY via PayU. Package activates
     after the verified webhook. Falls back to instant activate in test mode."""
+    from app.routers.coupons import apply_plan_coupon, redeem_coupon
     plan = db.query(SubscriptionPlan).filter(
         SubscriptionPlan.id == body.plan_id, SubscriptionPlan.for_role == "recruiter").first()
     if not plan:
         raise HTTPException(404, "Package not found")
+
+    final_price, coupon, discount = apply_plan_coupon(db, user, plan.price, body.coupon_code)
+
+    # ZERO-CHARGE: a 100% (or fully-covering) coupon makes it free — activate here,
+    # never open the payment gateway.
+    if final_price <= 0.009:
+        db.add(WalletTransaction(user_id=user.id, amount=0, type="debit",
+                                reason=f"{plan.name} Plan (FREE via {coupon.code})" if coupon
+                                else f"{plan.name} Plan (free)"))
+        activate_recruiter_package(db, user.id, plan)
+        if coupon:
+            redeem_coupon(db, coupon, user, "plan", discount)
+        db.commit()
+        return {"status": "success", "paid": True, "free": True, "plan_name": plan.name,
+                "posts_total": plan.postings or 0}
+
     if not _settings.PAYU_ENABLED:
         w = _wallet(db, user.id)
-        w.total_spent += plan.price
-        db.add(WalletTransaction(user_id=user.id, amount=plan.price, type="debit",
+        w.total_spent += final_price
+        db.add(WalletTransaction(user_id=user.id, amount=final_price, type="debit",
                                 reason=f"{plan.name} Plan (test)"))
         activate_recruiter_package(db, user.id, plan)
+        if coupon:
+            redeem_coupon(db, coupon, user, "plan", discount)
         db.commit()
         return {"status": "success", "paid": True, "plan_name": plan.name,
                 "posts_total": plan.postings or 0}
     ext = _payu.new_ext_order_id("recplan", user.id)
-    pay = _Payment(user_id=user.id, ext_order_id=ext, amount=plan.price,
+    pay = _Payment(user_id=user.id, ext_order_id=ext, amount=final_price,
                    currency=plan.currency or "PLN", purpose="rec_plan", plan_id=plan.id,
+                   coupon_id=(coupon.id if coupon else None), coupon_discount=discount,
                    status="pending")
     db.add(pay); db.commit()
     try:
         res = _payu.create_order(
-            ext_order_id=ext, amount_pln=plan.price,
+            ext_order_id=ext, amount_pln=final_price,
             description=f"JobifyPL recruiter package: {plan.name}",
             buyer_email=user.email or "", buyer_phone=user.phone or "")
     except Exception as e:

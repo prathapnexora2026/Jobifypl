@@ -1415,22 +1415,35 @@ async function loadPackages(){
       <div class="feats">${(p.features||[]).map(f=>`<div class="feat"><span class="ck">✓</span> ${esc(f)}</div>`).join("")}</div>
       ${cur
         ? `<button class="choose current" disabled>CURRENT PLAN</button>`
-        : `<button class="choose" onclick="buyPackage(${p.id})">Switch to ${esc(p.name)}</button>`}</div>`;
+        : `<button class="choose" onclick="buyPackage(${p.id},${p.price})">Switch to ${esc(p.name)}</button>`}</div>`;
     }).join("");
     box.innerHTML=html;
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
 // Buy a package: ask how to pay (wallet or direct via PayU), then activate.
-let _recBuyPlanId=null;
-function buyPackage(id){
-  _recBuyPlanId=id;
+let _recBuyPlanId=null, _recBuyPlanPrice=0, _recCoupon=null;
+function buyPackage(id, price){
+  _recBuyPlanId=id; _recBuyPlanPrice=price||0; _recCoupon=null;
+  const inp=document.getElementById("rec-coupon"); if(inp) inp.value="";
+  const msg=document.getElementById("rec-coupon-msg"); if(msg){ msg.style.display="none"; }
   document.getElementById("rec-pop-paychoice").classList.add("show");
+}
+async function recApplyCoupon(){
+  const code=(document.getElementById("rec-coupon").value||"").trim().toUpperCase();
+  const msg=document.getElementById("rec-coupon-msg");
+  if(!code){ _recCoupon=null; msg.style.display="none"; return; }
+  try{
+    const r=await api("/coupons/validate",{method:"POST",body:{code,context:"plan",amount:_recBuyPlanPrice}});
+    _recCoupon=r.code;
+    msg.style.display="block"; msg.style.color="#16A34A";
+    msg.textContent = r.new_charge<=0 ? `✓ ${r.code} — this package is FREE!` : `✓ ${r.code} applied — you pay ${r.new_charge.toFixed(2)} PLN`;
+  }catch(e){ _recCoupon=null; msg.style.display="block"; msg.style.color="#B91C1C"; msg.textContent=e.message; }
 }
 function recClosePayChoice(){ document.getElementById("rec-pop-paychoice").classList.remove("show"); }
 async function recPayPlanWallet(){
   const id=_recBuyPlanId; recClosePayChoice();
   try{
-    const r=await api("/recruiter/packages/buy",{method:"POST",body:{plan_id:id}});
+    const r=await api("/recruiter/packages/buy",{method:"POST",body:{plan_id:id, coupon_code:_recCoupon}});
     recPayResult("success",{kind:"plan", plan_name:r.plan_name, posts_total:r.posts_total});
     loadPackages(); loadQuotaCard&&loadQuotaCard();
   }catch(e){
@@ -1441,7 +1454,7 @@ async function recPayPlanWallet(){
 async function recPayPlanDirect(){
   const id=_recBuyPlanId; recClosePayChoice();
   try{
-    const r=await api("/recruiter/packages/checkout",{method:"POST",body:{plan_id:id}});
+    const r=await api("/recruiter/packages/checkout",{method:"POST",body:{plan_id:id, coupon_code:_recCoupon}});
     if(r.paid){ recPayResult("success",{kind:"plan", plan_name:r.plan_name, posts_total:r.posts_total}); loadPackages(); loadQuotaCard&&loadQuotaCard(); return; }
     recStartPayu(r.redirect_url, r.ext_order_id, {kind:"plan", plan_name:r.plan_name, posts_total:r.posts_total});
   }catch(e){ _recToast(e.message); }
@@ -2330,6 +2343,14 @@ document.addEventListener("DOMContentLoaded", recResumePendingPayu);
   <div class="pop">
     <h3>Choose payment method</h3>
     <p>Pay for this package from your wallet, or pay directly.</p>
+    <div style="text-align:left;margin:4px 0 14px;">
+      <label style="font-size:13px;color:#64748B;font-weight:700;">Have a coupon code?</label>
+      <div style="display:flex;gap:6px;margin-top:5px;">
+        <input id="rec-coupon" placeholder="JPL___" style="flex:1;text-transform:uppercase;padding:11px;border:1px solid #E2E8F0;border-radius:10px;">
+        <button class="btn" style="width:auto;padding:0 16px;margin:0;background:#EEF2F7;color:#111;" onclick="recApplyCoupon()">Apply</button>
+      </div>
+      <div id="rec-coupon-msg" style="display:none;font-size:13px;margin-top:6px;"></div>
+    </div>
     <button class="btn blue" onclick="recPayPlanWallet()">Pay from Wallet</button>
     <button class="btn" style="background:#F1F5F9;color:#111;margin-top:10px;" onclick="recPayPlanDirect()">Pay Directly</button>
     <button class="later" onclick="recClosePayChoice()">Cancel</button>

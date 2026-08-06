@@ -149,8 +149,8 @@
   /* display:flex only on .active — otherwise it beats .screen{display:none} and
      the role picker never hides (it would stack under the login/home screens). */
   #s-role.active{display:flex;flex-direction:column;}
-  .role-hero{text-align:center;padding:34px 24px 6px;flex-shrink:0;}
-  .role-hero img{width:118px;margin:0 auto;}
+  .role-hero{text-align:center;padding:64px 24px 10px;flex-shrink:0;}
+  .role-hero img{width:210px;margin:0 auto;}
   .role-hero h1,.role-hero p{display:none;}
   .role-cards{flex:1;background:#fff;padding:16px 22px 40px;display:flex;flex-direction:column;justify-content:center;}
   .role-cards h2{text-align:center;font-size:24px;font-weight:900;margin-bottom:26px;color:#111;}
@@ -164,9 +164,11 @@
   /* signin */
   #s-signin{background:linear-gradient(180deg,#FFF8E1 0%,#FDEBA8 55%,#FCEFB6 100%);min-height:100vh;}
   .signin-hero{text-align:center;padding:36px 24px 16px;}
-  .signin-hero img{width:150px;margin:0 auto 16px;}
-  .signin-hero h1{font-size:26px;font-weight:900;color:#111;line-height:1.15;}
+  .signin-hero img{width:180px;margin:0 auto 16px;}
+  .signin-hero h1{font-size:30px;font-weight:900;color:#111;line-height:1.15;}
   .signin-card{background:#fff;border-radius:24px;margin:6px 16px 20px;padding:24px;box-shadow:0 -4px 20px rgba(0,0,0,.05);}
+  .keepme{display:flex;align-items:center;gap:10px;margin-top:16px;color:#374151;font-size:15px;cursor:pointer;}
+  .keepme input{width:20px;height:20px;accent-color:var(--yellow);}
   .signin-card h2{font-size:21px;font-weight:800;} .signin-card .subt{color:var(--muted);margin:4px 0 6px;font-size:14px;}
   .otp{display:flex;gap:8px;margin-top:6px;width:100%;} .otp input{flex:1 1 0;min-width:0;width:0;text-align:center;font-size:20px;font-weight:800;padding:14px 0;border:1px solid var(--line);border-radius:10px;outline:none;-webkit-appearance:none;}
   .otp input:focus{border-color:var(--yellow);}
@@ -486,7 +488,7 @@
 
   <!-- SIGN IN -->
   <div class="screen" id="s-signin">
-    <div class="signin-hero"><img src="/assets/logo/mascot.png" onerror="this.style.display='none'"><h1>Login to continue<br>your Job Search</h1></div>
+    <div class="signin-hero"><img src="/assets/logo/mascot.png" onerror="this.style.display='none'"><h1>Login to continue your Job Search</h1></div>
     <div class="signin-card">
       <div id="si-phone">
         <h2>Sign in to your account</h2><div class="subt">Enter your mobile number to continue</div>
@@ -498,11 +500,12 @@
           </div>
           <input class="inp" id="si-num" type="tel" inputmode="numeric" placeholder="512 345 678" style="flex:1;margin:0;">
         </div>
+        <label class="keepme"><input type="checkbox" id="si-keep" checked> Keep me signed in</label>
         <button class="btn" style="margin-top:18px;" id="si-send" onclick="siSend()">Send OTP</button>
         <button class="linkbtn" onclick="go('s-role')">Change role</button>
         <div style="text-align:center;margin-top:14px;font-size:12px;color:#8A94A6;">
           By continuing you agree to our
-          <a onclick="openLegal('/terms.html')" style="color:#1B4B8F;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</a>
+          <a onclick="openLegal('/terms-candidate.html')" style="color:#1B4B8F;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</a>
           and
           <a onclick="openLegal('/privacy.html')" style="color:#1B4B8F;text-decoration:underline;cursor:pointer;">Privacy Policy</a>.
         </div>
@@ -565,7 +568,7 @@
       <button class="add-more" onclick="addExtraDoc()"><span data-ic="plus"></span> Add More Documents</button>
       <div class="gdpr">
         In accordance with Regulation (EU) 2016/679 (GDPR), acting on behalf of Jobify Team sp. z o.o. / Jobify Services sp. z o.o., we inform you that we process the personal data you provide for recruitment purposes. You can withdraw your consent at any time; this will not affect the lawfulness of processing carried out before withdrawal.
-        <div class="agree" onclick="toggleAgree()"><div class="checkbox" id="doc-agree" style="width:24px;height:24px;"></div><span>I agree to the <a onclick="event.stopPropagation();openLegal('/terms.html')" style="color:#1B4B8F;text-decoration:underline;font-weight:700;cursor:pointer;">terms and conditions</a></span></div>
+        <div class="agree" onclick="toggleAgree()"><div class="checkbox" id="doc-agree" style="width:24px;height:24px;"></div><span>I agree to the <a onclick="event.stopPropagation();openLegal('/terms-candidate.html')" style="color:#1B4B8F;text-decoration:underline;font-weight:700;cursor:pointer;">terms and conditions</a></span></div>
       </div>
       <button class="btn grey" id="doc-submit" style="margin:22px 0 10px;" onclick="submitDocs()">Submit Application</button>
       <button class="linkbtn" onclick="goPlansOnboarding()">Skip for now</button>
@@ -810,6 +813,25 @@
         <button class="cancel" onclick="document.getElementById('pop-logout').classList.remove('show')">Cancel</button>
         <button class="danger" onclick="candLogout()">Logout</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Candidate: Work Permit notice (shown when applying to a job that needs a permit) -->
+  <div class="pop-bg" id="pop-cand-permit">
+    <div class="pop" style="max-width:430px;max-height:86vh;display:flex;flex-direction:column;">
+      <h3 style="margin:0 0 8px;">⚠️ Work Permit Notice</h3>
+      <div style="overflow-y:auto;text-align:left;font-size:14px;color:#334155;line-height:1.55;">
+        <p style="margin:0 0 10px;">This job requires a valid work permit.</p>
+        <p style="margin:0 0 10px;">If a government work permit fee applies, it is <b>not</b> collected by Jobify PL. Any applicable fee must be paid directly to the employer or recruiting company using their official invoice or designated business bank account.</p>
+        <p style="margin:0 0 4px;font-weight:700;color:#111;">Before making any payment, ensure that:</p>
+        <ul style="margin:0 0 10px;padding-left:20px;">
+          <li>You understand the purpose of the fee.</li>
+          <li>You receive an official invoice or payment receipt from the employer or recruiter.</li>
+        </ul>
+        <p style="margin:0;color:#64748B;">Jobify PL does not collect, receive, process, or refund work permit-related payments and is not responsible for any payment transactions between candidates and employers.</p>
+      </div>
+      <button class="btn" style="margin-top:14px;" onclick="confirmCandPermit()">I Understand — Continue</button>
+      <button class="linkbtn" style="margin-top:8px;" onclick="cancelCandPermit()">Cancel</button>
     </div>
   </div>
 
@@ -1709,12 +1731,26 @@ function jdShow(j){
     : `<button class="btn" style="flex:1;" onclick="applyFromDetail(${j.id})">Apply Now</button>`;
   go("s-jobdetail");
 }
-async function applyFromDetail(id){
+/* Jobs that require a work permit show a notice before applying (client rule). */
+function jobNeedsPermit(id){ const j=allJobs.find(x=>x.id===id); return !!(j&&j.need_work_permit); }
+let _pendingApply=null;
+function showCandPermit(){ document.getElementById("pop-cand-permit").classList.add("show"); }
+function confirmCandPermit(){ document.getElementById("pop-cand-permit").classList.remove("show"); const f=_pendingApply; _pendingApply=null; if(f) f(); }
+function cancelCandPermit(){ document.getElementById("pop-cand-permit").classList.remove("show"); _pendingApply=null; }
+function applyFromDetail(id){
+  if(jobNeedsPermit(id)){ _pendingApply=()=>doApplyFromDetail(id); showCandPermit(); return; }
+  doApplyFromDetail(id);
+}
+async function doApplyFromDetail(id){
   try{ await api("/jobs/"+id+"/apply",{method:"POST"}); appliedIds.add(id); const j=allJobs.find(x=>x.id===id); if(j)j.applied=true; toast("Applied");
     document.getElementById("jd-foot").innerHTML=`<button class="btn outline" style="flex:1;" disabled>Applied</button>`;
   }catch(e){ if(/plan|upgrade|premium|subscrib/i.test(e.message)) openUpgrade(); else toast(e.message); }
 }
-async function applyJob(id,btn){
+function applyJob(id,btn){
+  if(jobNeedsPermit(id)){ _pendingApply=()=>doApplyJob(id,btn); showCandPermit(); return; }
+  doApplyJob(id,btn);
+}
+async function doApplyJob(id,btn){
   btn.disabled=true; btn.textContent="Applying…";
   try{ await api("/jobs/"+id+"/apply",{method:"POST"}); appliedIds.add(id); const j=allJobs.find(x=>x.id===id); if(j)j.applied=true;
     btn.outerHTML=`<button class="applied" disabled>Applied</button>`; toast("Applied");

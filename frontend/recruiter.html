@@ -66,8 +66,8 @@
   /* ===================== LOGIN ===================== */
   #s-login{background:linear-gradient(180deg,var(--yellow-hero1) 0%,var(--yellow-hero2) 62%,#FCEFB6 100%);min-height:100vh;}
   .login-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 26px 20px;text-align:center;}
-  .login-hero img{width:190px;margin-bottom:26px;}
-  .login-hero h1{font-size:34px;font-weight:900;line-height:1.12;color:#111;}
+  .login-hero img{width:180px;margin-bottom:26px;}
+  .login-hero h1{font-size:30px;font-weight:900;line-height:1.12;color:#111;}
   .login-card{background:#fff;border-radius:22px;margin:0 16px 20px;padding:26px 22px 24px;box-shadow:0 -6px 26px rgba(0,0,0,.07);}
   .login-card h2{font-size:23px;font-weight:800;}
   .login-card .sub{color:var(--muted);margin:6px 0 4px;font-size:15px;}
@@ -374,7 +374,7 @@
       <div id="l-phase-phone">
         <h2>Sign in to your account</h2>
         <div class="sub">Enter your mobile number to continue</div>
-        <label>Mobile number</label>
+        <label>Mobile Number</label>
         <div class="phone-row">
           <div class="ccpick" id="rec-cc" onclick="openCCPicker()">
             <span class="ccflag" id="rec-cc-flag">🇵🇱</span><span class="ccdial" id="rec-cc-dial">+48</span>
@@ -384,9 +384,10 @@
         </div>
         <label class="keepme"><input type="checkbox" id="r-keep" checked> Keep me signed in</label>
         <button class="btn" id="r-send" style="margin-top:18px;" onclick="recSendOtp()">Send OTP</button>
+        <button class="linkbtn" onclick="window.location.href='app.html'">Change role</button>
         <div style="text-align:center;margin-top:14px;font-size:12px;color:#64748B;">
           By continuing you agree to our
-          <a onclick="openLegal('/terms.html')" style="color:#2563EB;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</a>
+          <a onclick="openLegal('/terms-recruiter.html')" style="color:#2563EB;text-decoration:underline;cursor:pointer;">Terms &amp; Conditions</a>
           and
           <a onclick="openLegal('/privacy.html')" style="color:#2563EB;text-decoration:underline;cursor:pointer;">Privacy Policy</a>.
         </div>
@@ -1651,7 +1652,7 @@ function renderWizard(){
         </div>
         <div class="policy"><span class="pi svg-ic" style="font-size:18px;color:#E0A80D;"><svg viewBox="0 0 24 24"><path d="M12 3 22 20H2z"/><path d="M12 9v5"/><path d="M12 17.2v.1"/></svg></span><div class="pt"><span class="h">Important Policy Notice</span><br>
           <span id="fee-text">${job.charges_fee?`By choosing 'Yes', you agree this is shown to candidates and discouraged.`:`By choosing 'No', you acknowledge and agree that candidates will <b>not be charged any fees</b> under any circumstances.`}</span>
-          <br>Kindly review and accept the complete <a onclick="openLegal('/terms.html')" style="color:#2563EB;text-decoration:underline;font-weight:800;cursor:pointer;">Terms &amp; Conditions</a> prior to proceeding.</div></div>
+          <br>Kindly review and accept the complete <a onclick="openLegal('/terms-recruiter.html')" style="color:#2563EB;text-decoration:underline;font-weight:800;cursor:pointer;">Terms &amp; Conditions</a> prior to proceeding.</div></div>
       </div>`;
     wireSheet("f-cat","Choose Work category",CATEGORIES,"category","Work Category");
     wireSheet("f-shift","Select",SHIFTS,"shift_timing","Shift Timings");
@@ -1823,7 +1824,13 @@ async function _addSearchOpt(v){
 }
 // in-place toggles (no re-render → page keeps its scroll position)
 function tgJoin(btn){ job.joining=(job.joining==='Immediate Joining'?'':'Immediate Joining'); btn.classList.toggle("on",job.joining==='Immediate Joining'); }
-function tgPermit(btn){ job.need_work_permit=!job.need_work_permit; btn.classList.toggle("on",job.need_work_permit); }
+let _permitBtn=null;
+function tgPermit(btn){
+  if(!job.need_work_permit){ _permitBtn=btn; document.getElementById("pop-permit").classList.add("show"); }  // confirm before enabling
+  else { job.need_work_permit=false; btn.classList.remove("on"); }
+}
+function confirmPermit(){ job.need_work_permit=true; if(_permitBtn) _permitBtn.classList.add("on"); document.getElementById("pop-permit").classList.remove("show"); }
+function cancelPermit(){ job.need_work_permit=false; if(_permitBtn) _permitBtn.classList.remove("on"); document.getElementById("pop-permit").classList.remove("show"); }
 function tgAcc(v){ job.accommodation=(job.accommodation===v?'':v);
   document.getElementById("f-accfree").classList.toggle("on",job.accommodation==='Free');
   document.getElementById("f-accpaid").classList.toggle("on",job.accommodation==='Paid');
@@ -2278,6 +2285,26 @@ document.addEventListener("DOMContentLoaded", recResumePendingPayu);
     <button onclick="recDocExternal()" title="Open in browser" style="background:rgba(255,255,255,.16);color:#fff;border:none;border-radius:10px;padding:9px 13px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">Open ↗</button>
   </div>
   <div id="rec-docview-body" style="flex:1;min-height:0;position:relative;overflow:auto;display:flex;align-items:center;justify-content:center;"></div>
+</div>
+
+<!-- recruiter: Work Permit notice (shown when "Need Work Permit" is selected) -->
+<div class="pop-bg" id="pop-permit">
+  <div class="pop" style="max-width:430px;max-height:86vh;display:flex;flex-direction:column;">
+    <h3 style="margin:0 0 8px;">⚠️ Work Permit Notice</h3>
+    <div style="overflow-y:auto;text-align:left;font-size:14px;color:#334155;line-height:1.55;">
+      <p style="margin:0 0 10px;">This position requires a valid work permit.</p>
+      <p style="margin:0 0 10px;">If a government work permit fee applies, Jobify PL will <b>not</b> collect, process, or manage any payment related to the work permit.</p>
+      <p style="margin:0 0 10px;">Any applicable fee must be collected directly by your company through your official invoice or designated business bank account, in accordance with applicable laws.</p>
+      <p style="margin:0 0 4px;font-weight:700;color:var(--navy);">By selecting "Need Work Permit", you confirm that:</p>
+      <ul style="margin:0 0 6px;padding-left:20px;">
+        <li>Your company is responsible for handling all work permit-related payments and documentation.</li>
+        <li>Jobify PL is not involved in collecting or processing these payments.</li>
+        <li>You will clearly inform candidates of any applicable government fees before requesting payment.</li>
+      </ul>
+    </div>
+    <button class="btn blue" style="margin-top:14px;" onclick="confirmPermit()">I Confirm</button>
+    <button class="later" onclick="cancelPermit()">Cancel</button>
+  </div>
 </div>
 
 <!-- recruiter: Profile Views breakdown (per job) -->

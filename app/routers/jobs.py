@@ -41,6 +41,7 @@ def _job_dict(j: Job, applied=False, interested=False, db=None):
         "openings": j.openings, "is_premium": j.is_premium, "status": j.status,
         "accommodation": j.accommodation, "accommodation_amount": j.accommodation_amount,
         "charges_fee": bool(j.charges_fee),
+        "need_work_permit": bool(getattr(j, "need_work_permit", False)),
         "recruiter_id": j.recruiter_id,
         "recruiter_photo": _recruiter_photo(db, j.recruiter_id) if db is not None else None,
         "applied": applied, "interested": interested,

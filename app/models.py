@@ -310,3 +310,36 @@ class CustomOption(Base):
     value = Column(String(120))
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=now)
+
+
+class Coupon(Base):
+    """Admin-created discount / free-credit coupon. Code format: JPL + 3 random
+    digits (e.g. JPL482). Redeemable by candidates and/or recruiters on plan
+    purchases and/or wallet top-ups."""
+    __tablename__ = "coupons"
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(12), unique=True, index=True)     # e.g. "JPL482"
+    label = Column(String(80))                             # campaign name (Promo / Holiday / ...)
+    discount_type = Column(String(10), default="percent")  # "percent" | "credit"
+    discount_value = Column(Float, default=0)              # 50 => 50% off ; or 25 => 25 PLN free credit
+    applies_to = Column(String(10), default="both")        # "plan" | "wallet" | "both"
+    for_role = Column(String(12), default="both")          # "candidate" | "recruiter" | "both"
+    max_uses = Column(Integer, nullable=True)              # total redemption cap (None = unlimited)
+    used_count = Column(Integer, default=0)
+    once_per_user = Column(Boolean, default=True)
+    active = Column(Boolean, default=True)
+    expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=now)
+
+
+class CouponRedemption(Base):
+    """One row per successful coupon use — powers per-coupon analytics
+    (how many candidates vs recruiters used each code, and totals)."""
+    __tablename__ = "coupon_redemptions"
+    id = Column(Integer, primary_key=True, index=True)
+    coupon_id = Column(Integer, ForeignKey("coupons.id"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    role = Column(String(12))                             # candidate | recruiter (for stats)
+    context = Column(String(12))                          # "plan" | "wallet"
+    discount_amount = Column(Float, default=0)            # PLN discounted or credited
+    created_at = Column(DateTime, default=now)

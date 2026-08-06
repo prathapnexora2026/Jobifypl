@@ -346,6 +346,7 @@
     <div class="navitem"    data-page="apps"   onclick="go('apps')"><span class="ic">📄</span> Applications</div>
     <div class="navitem"    data-page="messages" onclick="go('messages')"><span class="ic">✉️</span> Messages</div>
     <div class="navitem"    data-page="plans"  onclick="go('plans')"><span class="ic">🪪</span> Plans</div>
+    <div class="navitem"    data-page="coupons" onclick="go('coupons')"><span class="ic">🎟️</span> Coupons</div>
     <div class="navitem"    data-page="payments" onclick="go('payments')"><span class="ic">💵</span> Payments</div>
     <div class="navitem"    data-page="options" onclick="go('options')"><span class="ic">🏙️</span> Cities & Languages</div>
     <div class="navitem"    data-page="logs"   onclick="go('logs')"><span class="ic">📞</span> Contacted info</div>
@@ -490,6 +491,21 @@
         <button class="tab" data-ptab="candidate" onclick="planTab('candidate')">Candidates</button>
       </div></div>
       <div class="plans-grid" id="plans-grid"><div class="loading">Loading…</div></div>
+    </div>
+
+    <!-- COUPONS -->
+    <div class="page" id="page-coupons">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div><h2 class="page-title" style="margin-bottom:2px;">Coupons</h2>
+          <p style="color:var(--muted);">Create discount &amp; free-credit codes (format <b>JPL</b> + 3 digits) and track who used them.</p></div>
+        <button class="btn-sm btn-blue" style="padding:12px 20px;" onclick="openCouponModal()">+ Create Coupon</button>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <div class="tbl-wrap"><table><thead><tr>
+          <th>Code</th><th>Campaign</th><th>Discount</th><th>Applies to</th><th>For</th>
+          <th>Used</th><th>Candidates</th><th>Recruiters</th><th>Status</th><th>Actions</th>
+        </tr></thead><tbody id="coupons-body"><tr><td colspan="10" class="loading">Loading…</td></tr></tbody></table></div>
+      </div>
     </div>
 
     <!-- PAYMENTS -->
@@ -660,6 +676,45 @@
   </div>
 </div></div>
 
+<div class="modal-bg" id="modal-coupon"><div class="modal">
+  <button class="x" onclick="closeModal('modal-coupon')">&times;</button>
+  <h3>Create Coupon</h3>
+  <p style="color:#64748B;margin:-6px 0 14px;font-size:13px;">A unique code (JPL + 3 digits) is generated automatically, or set your own below.</p>
+  <label>Campaign / label</label><input id="cp-label" placeholder="e.g. Holiday 2026, Promo" />
+  <div class="row">
+    <div><label>Type</label>
+      <select id="cp-type" onchange="cpTypeHint()">
+        <option value="percent">Percentage discount (%)</option>
+        <option value="credit">Free wallet credit (PLN)</option>
+      </select>
+    </div>
+    <div><label id="cp-val-lbl">Value (%)</label><input id="cp-value" type="number" min="1" placeholder="e.g. 50" /></div>
+  </div>
+  <div class="row">
+    <div><label>Applies to</label>
+      <select id="cp-applies"><option value="both">Plans &amp; Wallet</option><option value="plan">Plan purchase</option><option value="wallet">Wallet top-up</option></select>
+    </div>
+    <div><label>For</label>
+      <select id="cp-role"><option value="both">Everyone</option><option value="candidate">Candidates</option><option value="recruiter">Recruiters</option></select>
+    </div>
+  </div>
+  <div class="row">
+    <div><label>Total use limit <span style="color:#9AA1AC;font-weight:400;">(blank = unlimited)</span></label><input id="cp-max" type="number" min="1" placeholder="e.g. 100" /></div>
+    <div><label>Expires on <span style="color:#9AA1AC;font-weight:400;">(optional)</span></label><input id="cp-exp" type="date" /></div>
+  </div>
+  <label class="ck" style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;"><input type="checkbox" id="cp-once" checked style="width:18px;height:18px;"> One use per person</label>
+  <label style="margin-top:12px;">Custom code <span style="color:#9AA1AC;font-weight:400;">(optional — leave blank to auto-generate)</span></label>
+  <input id="cp-code" placeholder="JPL___" style="text-transform:uppercase;" />
+  <div id="cp-err" style="color:#B91C1C;font-size:13px;margin-top:10px;display:none;"></div>
+  <button class="btn amber" style="margin-top:18px;" onclick="createCoupon()">Create Coupon</button>
+</div></div>
+
+<div class="modal-bg" id="modal-redemptions"><div class="modal">
+  <button class="x" onclick="closeModal('modal-redemptions')">&times;</button>
+  <h3 id="red-title">Redemptions</h3>
+  <div id="red-body" style="margin-top:12px;"><div class="loading">Loading…</div></div>
+</div></div>
+
 <div class="modal-bg" id="modal-confirm"><div class="modal" style="max-width:400px;text-align:center;">
   <div style="width:66px;height:66px;border-radius:50%;background:#FEE2E2;color:var(--red);display:grid;place-items:center;font-size:30px;margin:0 auto 16px;">⚠️</div>
   <h3 id="confirm-title">Are you sure?</h3>
@@ -691,6 +746,82 @@ async function api(path, opts={}){
   return data;
 }
 function fmtDate(iso){ if(!iso) return "—"; const d=new Date(iso); return d.toLocaleDateString()+" "+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+
+// ---------- COUPONS ----------
+async function loadCoupons(){
+  const b=document.getElementById("coupons-body");
+  b.innerHTML=`<tr><td colspan="10" class="loading">Loading…</td></tr>`;
+  try{ const d=await api("/admin/coupons"); const cs=d.coupons||[];
+    if(!cs.length){ b.innerHTML=`<tr><td colspan="10" class="empty" style="text-align:center;padding:24px;">No coupons yet. Click “+ Create Coupon”.</td></tr>`; return; }
+    b.innerHTML=cs.map(c=>{
+      const disc=c.discount_type==="percent"?`${c.discount_value}% off`:`${c.discount_value} PLN credit`;
+      const used=c.max_uses!=null?`${c.used_count}/${c.max_uses}`:`${c.used_count}`;
+      const status=c.active
+        ? `<span style="background:#DCFCE7;color:#15803D;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">Active</span>`
+        : `<span style="background:#F1F5F9;color:#64748B;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;">Off</span>`;
+      return `<tr>
+        <td><b style="letter-spacing:1px;">${esc(c.code)}</b></td>
+        <td>${esc(c.label||"—")}</td>
+        <td>${esc(disc)}</td>
+        <td style="text-transform:capitalize;">${esc(c.applies_to)}</td>
+        <td style="text-transform:capitalize;">${esc(c.for_role)}</td>
+        <td>${esc(used)}</td>
+        <td>${c.candidate_uses}</td>
+        <td>${c.recruiter_uses}</td>
+        <td>${status}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn-sm" style="background:#EEF2F7;" onclick="viewRedemptions(${c.id},'${esc(c.code)}')" title="Who used it">👁</button>
+          <button class="btn-sm" style="background:#EEF2F7;" onclick="toggleCoupon(${c.id})" title="Enable / disable">${c.active?'⏸':'▶'}</button>
+          <button class="btn-sm" style="background:#FEE2E2;color:#B91C1C;" onclick="deleteCoupon(${c.id},'${esc(c.code)}')" title="Delete">🗑</button>
+        </td>
+      </tr>`;
+    }).join("");
+  }catch(e){ b.innerHTML=`<tr><td colspan="10" class="empty">${esc(e.message)}</td></tr>`; }
+}
+function cpTypeHint(){ document.getElementById("cp-val-lbl").textContent = document.getElementById("cp-type").value==="percent" ? "Value (%)" : "Credit (PLN)"; }
+function openCouponModal(){
+  ["cp-label","cp-value","cp-max","cp-exp","cp-code"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("cp-type").value="percent";
+  document.getElementById("cp-applies").value="both";
+  document.getElementById("cp-role").value="both";
+  document.getElementById("cp-once").checked=true;
+  document.getElementById("cp-err").style.display="none";
+  cpTypeHint();
+  document.getElementById("modal-coupon").classList.add("show");
+}
+async function createCoupon(){
+  const err=document.getElementById("cp-err");
+  const body={
+    label:document.getElementById("cp-label").value.trim(),
+    discount_type:document.getElementById("cp-type").value,
+    discount_value:parseFloat(document.getElementById("cp-value").value)||0,
+    applies_to:document.getElementById("cp-applies").value,
+    for_role:document.getElementById("cp-role").value,
+    max_uses:document.getElementById("cp-max").value?parseInt(document.getElementById("cp-max").value):null,
+    once_per_user:document.getElementById("cp-once").checked,
+    expires_at:document.getElementById("cp-exp").value||null,
+    code:document.getElementById("cp-code").value.trim().toUpperCase()||null,
+  };
+  if(!(body.discount_value>0)){ err.textContent="Enter a value greater than 0."; err.style.display="block"; return; }
+  try{ await api("/admin/coupons",{method:"POST",body}); closeModal("modal-coupon"); loadCoupons(); }
+  catch(e){ err.textContent=e.message; err.style.display="block"; }
+}
+async function toggleCoupon(id){ try{ await api("/admin/coupons/"+id+"/toggle",{method:"PUT"}); loadCoupons(); }catch(e){ alert(e.message); } }
+async function deleteCoupon(id,code){
+  if(!confirm(`Delete coupon ${code}? This also removes its usage records.`)) return;
+  try{ await api("/admin/coupons/"+id,{method:"DELETE"}); loadCoupons(); }catch(e){ alert(e.message); }
+}
+async function viewRedemptions(id,code){
+  document.getElementById("red-title").textContent="Redemptions — "+code;
+  const body=document.getElementById("red-body"); body.innerHTML=`<div class="loading">Loading…</div>`;
+  document.getElementById("modal-redemptions").classList.add("show");
+  try{ const d=await api("/admin/coupons/"+id+"/redemptions"); const r=d.redemptions||[];
+    if(!r.length){ body.innerHTML=`<div class="empty" style="padding:20px;text-align:center;">No one has used this coupon yet.</div>`; return; }
+    body.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>User</th><th>Role</th><th>On</th><th>Benefit</th><th>Date</th></tr></thead><tbody>${
+      r.map(x=>`<tr><td>${esc(x.user)}</td><td style="text-transform:capitalize;">${esc(x.role)}</td><td style="text-transform:capitalize;">${esc(x.context)}</td><td>${x.discount} PLN</td><td>${x.at?new Date(x.at).toLocaleDateString():''}</td></tr>`).join("")
+    }</tbody></table></div>`;
+  }catch(e){ body.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+}
 
 // ---------- LOGIN ----------
 let adminPhone="";
@@ -748,6 +879,7 @@ function go(page){
   if(page==="apps") loadApps();
   if(page==="messages") loadMessages();
   if(page==="plans") loadPlans();
+  if(page==="coupons") loadCoupons();
   if(page==="payments") loadPayments();
   if(page==="options") loadOptions();
   if(page==="logs") loadLogs();

@@ -2159,6 +2159,18 @@ async function recDoTopup(){
     recStartPayu(r.redirect_url, r.ext_order_id, {amount:amt, kind:"wallet"});
   }catch(e){ _recToast(e.message); }
 }
+async function recRedeemWalletCoupon(){
+  const code=(document.getElementById("rec-wallet-coupon").value||"").trim().toUpperCase();
+  const msg=document.getElementById("rec-wallet-coupon-msg");
+  if(!code){ return; }
+  try{
+    const r=await api("/coupons/redeem-wallet",{method:"POST",body:{code}});
+    msg.style.display="block"; msg.style.color="#16A34A";
+    msg.textContent=`✓ ${r.credited} PLN added! New balance: ${r.balance.toFixed(2)} PLN`;
+    document.getElementById("rec-wallet-coupon").value="";
+    loadWallet&&loadWallet(); loadHeaderWallet&&loadHeaderWallet();
+  }catch(e){ msg.style.display="block"; msg.style.color="#B91C1C"; msg.textContent=e.message; }
+}
 
 /* result popup */
 function recClosePayResult(){ document.getElementById("rec-pop-result").classList.remove("show"); }
@@ -2273,7 +2285,14 @@ document.addEventListener("DOMContentLoaded", recResumePendingPayu);
       <button class="btn" style="flex:1;background:#F1F5F9;color:#111;" onclick="document.getElementById('rec-topup-amt').value=500">500</button>
     </div>
     <button class="btn blue" onclick="recDoTopup()">Add Money</button>
-    <button class="later" onclick="closeRecTopup()">Cancel</button>
+    <div style="border-top:1px solid #EEF0F3;margin:16px 0 10px;"></div>
+    <div style="font-size:13px;color:#64748B;font-weight:700;text-align:left;margin-bottom:6px;">Have a free-credit coupon?</div>
+    <div style="display:flex;gap:6px;">
+      <input class="inp" id="rec-wallet-coupon" placeholder="JPL___" style="flex:1;margin:0;text-transform:uppercase;">
+      <button class="btn" style="width:auto;padding:0 18px;margin:0;background:#EEF2F7;color:#111;" onclick="recRedeemWalletCoupon()">Redeem</button>
+    </div>
+    <div id="rec-wallet-coupon-msg" style="display:none;font-size:13px;margin-top:8px;"></div>
+    <button class="later" style="margin-top:12px;" onclick="closeRecTopup()">Cancel</button>
   </div>
 </div>
 

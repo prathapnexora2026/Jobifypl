@@ -882,7 +882,14 @@
         <button class="btn outline" style="flex:1;padding:12px;" onclick="document.getElementById('topup-amt').value=200">200</button>
       </div>
       <button class="btn" onclick="doTopup()">Add Money</button>
-      <button class="later" onclick="document.getElementById('pop-topup').classList.remove('show')">Cancel</button>
+      <div style="border-top:1px solid #EEF0F3;margin:16px 0 10px;"></div>
+      <div style="font-size:13px;color:var(--muted);font-weight:700;text-align:left;margin-bottom:6px;">Have a free-credit coupon?</div>
+      <div style="display:flex;gap:6px;">
+        <input class="inp" id="wallet-coupon" placeholder="JPL___" style="flex:1;margin:0;text-transform:uppercase;">
+        <button class="btn" style="width:auto;padding:0 18px;margin:0;" onclick="redeemWalletCoupon()">Redeem</button>
+      </div>
+      <div id="wallet-coupon-msg" style="display:none;font-size:13px;margin-top:8px;"></div>
+      <button class="later" style="margin-top:12px;" onclick="document.getElementById('pop-topup').classList.remove('show')">Cancel</button>
     </div>
   </div>
 
@@ -2118,6 +2125,18 @@ async function doTopup(){
     // Real PayU: remember what we're paying for, then open checkout.
     startPayuCheckout(r.redirect_url, r.ext_order_id, {amount:amt, kind:"wallet"});
   }catch(e){ toast(e.message); }
+}
+async function redeemWalletCoupon(){
+  const code=(document.getElementById("wallet-coupon").value||"").trim().toUpperCase();
+  const msg=document.getElementById("wallet-coupon-msg");
+  if(!code){ return; }
+  try{
+    const r=await api("/coupons/redeem-wallet",{method:"POST",body:{code}});
+    msg.style.display="block"; msg.style.color="var(--green)";
+    msg.textContent=`✓ ${r.credited} PLN added! New balance: ${r.balance.toFixed(2)} PLN`;
+    document.getElementById("wallet-coupon").value="";
+    loadWallet&&loadWallet();
+  }catch(e){ msg.style.display="block"; msg.style.color="var(--red)"; msg.textContent=e.message; }
 }
 
 /* ---- Payment result popup (branded) ---- */

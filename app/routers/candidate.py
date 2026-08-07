@@ -61,9 +61,20 @@ def get_profile(user: User = Depends(require_candidate), db: Session = Depends(g
             "email": p.email or user.email, "profile_photo": p.profile_photo,
             "status_label": p.status_label,
             "onboarding_completed": p.onboarding_completed,
+            "docs_step_done": bool(getattr(p, "docs_step_done", False)),
             "phone": user.phone,
         },
     }
+
+
+@router.post("/onboarding/docs-done")
+def mark_docs_done(user: User = Depends(require_candidate), db: Session = Depends(get_db)):
+    """Mark the documents onboarding step as finished (submitted or skipped), so a
+    candidate who quit mid-upload resumes there — not stuck — on next open."""
+    p = user.candidate_profile or CandidateProfile(user_id=user.id)
+    p.docs_step_done = True
+    db.add(p); db.commit()
+    return {"status": "success"}
 
 
 @router.post("/profile")

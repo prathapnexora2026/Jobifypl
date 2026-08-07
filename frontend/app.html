@@ -1367,8 +1367,19 @@ async function siVerify(){
   try{ const d=await api("/auth/verify-otp",{method:"POST",body:{phone:authPhone,code,role:"candidate"}});
     if(d.role!=="candidate"){ siMsg("This number is not a candidate account.","err"); return; }
     localStorage.setItem("token",d.token); localStorage.setItem("role",d.role);
-    if(d.new_user||!d.onboarding_completed){ cvBackScreen="s-signin"; go("s-cv"); } else { go("s-home"); resumePendingJob(); }
+    goAfterCandidateAuth();
   }catch(e){ siMsg(e.message,"err"); }
+}
+/* Route a signed-in candidate to the right place: CV not done -> CV builder;
+   CV done but documents step not finished -> RESUME the documents step (this is
+   why quitting mid-upload no longer strands the user at home); else -> home. */
+async function goAfterCandidateAuth(){
+  try{
+    const p=(await api("/candidate/profile")).profile;
+    if(!p.onboarding_completed){ cvBackScreen="s-signin"; go("s-cv"); return; }
+    if(!p.docs_step_done){ docsBackScreen="s-home"; go("s-docs"); if(typeof renderDocBlocks==="function") renderDocBlocks(); return; }
+    go("s-home"); resumePendingJob(); if(typeof maybeRemindUpgrade==="function") maybeRemindUpgrade();
+  }catch(e){ go("s-home"); }
 }
 function confirmLogout(){ document.getElementById("pop-logout").classList.add("show"); }
 function candLogout(){
@@ -1658,7 +1669,10 @@ async function submitDocs(){
   setTimeout(()=>goPlansOnboarding(), 800);
 }
 // Show the Plans page during first-time onboarding, with a "Skip" that goes home.
+// Reached from BOTH "Submit Application" and "Skip for now" — so this is where the
+// documents step is marked finished (a candidate won't be sent back to it again).
 function goPlansOnboarding(){
+  api("/candidate/onboarding/docs-done",{method:"POST"}).catch(()=>{});
   sessionStorage.setItem("fromOnboarding","1");
   go("s-plans");
 }
@@ -2244,11 +2258,9 @@ async function resumePendingPayu(){
 async function bootApp(){
   applyLanguage(localStorage.getItem("lang")||"en");   // restore chosen language
   if(token()){
-    // logged in — go to the dashboard, not the role picker
-    go("s-home");
-    // Free-tier reminder (#2): if the user has no active plan, nudge them to
-    // upgrade so they can apply for jobs. Shown once per app launch.
-    maybeRemindUpgrade();
+    // Logged in — route to home OR resume an unfinished onboarding step (CV /
+    // documents). maybeRemindUpgrade fires inside, only when landing on home.
+    goAfterCandidateAuth();
   } else if(!onboardingDone()){
     // First-ever launch (not logged in, never onboarded) -> show the 3 intro
     // slides + language picker BEFORE the role picker. Shown only once.
@@ -2523,9 +2535,9 @@ paintIcons(document);
    Only a real logout (which clears the token) brings back the login flow. */
 if(localStorage.getItem("rec_token") && !token()){
   location.replace("recruiter.html");            // logged-in recruiter -> their dashboard
-} else if(token()){
-  go("s-home");                                  // logged-in candidate -> their home
 }
+// A logged-in candidate is routed by bootApp -> goAfterCandidateAuth (home, or
+// resume an unfinished CV/documents step). The launch splash covers the boot.
 </script>
 </body>
 </html>

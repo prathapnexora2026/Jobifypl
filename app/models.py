@@ -58,7 +58,8 @@ class CandidateProfile(Base):
     languages = Column(Text)          # comma-separated chips
     email = Column(String(160))
     status_label = Column(String(40), default="Active Looking")
-    onboarding_completed = Column(Boolean, default=False)
+    onboarding_completed = Column(Boolean, default=False)   # CV/profile step done
+    docs_step_done = Column(Boolean, default=False)          # documents step submitted OR skipped
 
     user = relationship("User", back_populates="candidate_profile")
 

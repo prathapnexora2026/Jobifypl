@@ -44,5 +44,7 @@ def run_migrations():
             # payments: coupon applied (redeemed on fulfilment) + PLN discounted
             _add_column(conn, "payments", "coupon_id", "INTEGER")
             _add_column(conn, "payments", "coupon_discount", "FLOAT DEFAULT 0")
+            # candidate: documents onboarding step done (submitted or skipped)
+            _add_column(conn, "candidate_profiles", "docs_step_done", "BOOLEAN DEFAULT FALSE")
     except Exception as e:
         print(f"[migrate] skipped: {e}")

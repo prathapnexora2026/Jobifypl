@@ -451,7 +451,7 @@
         <div class="chat-side">
           <div class="chat-side-head"><h3>Chatbox</h3><span style="color:#94A3B8;font-size:20px;">⋯</span></div>
           <div class="chat-search"><span style="color:#94A3B8;">🔍</span>
-            <input id="conv-search" placeholder="Search" oninput="renderConvs()"></div>
+            <input id="conv-search" placeholder="Search chats or find a user to message…" oninput="renderConvs()"></div>
           <div class="conv-scroll" id="conv-list"><div class="loading">Loading…</div></div>
         </div>
         <!-- chat pane -->
@@ -1478,7 +1478,7 @@ function askDelete(kind,id,label){
 }
 
 // ---------- MESSAGES / CHAT (premium 2-pane) ----------
-let curConv=null, allConvs=[];
+let curConv=null, allConvs=[], allUsersForMsg=[];
 function convAvatar(c){
   const isAdmin=(c.role||"").toLowerCase()==="admin";
   const initials=(c.name||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
@@ -1488,13 +1488,14 @@ function convAvatar(c){
 async function loadMessages(){
   try{ const d=await api("/admin/chat/conversations"); allConvs=d.conversations||[]; renderConvs(); }
   catch(e){ document.getElementById("conv-list").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  // Load all users too, so the admin can search + start a chat with anyone.
+  try{ const u=await api("/admin/users"); allUsersForMsg=(u.users||[]).filter(x=>(x.type||"").toLowerCase()!=="admin"); }catch(e){}
 }
 function renderConvs(){
-  const q=(document.getElementById("conv-search").value||"").toLowerCase();
+  const q=(document.getElementById("conv-search").value||"").toLowerCase().trim();
   const list=allConvs.filter(c=>(c.name||"").toLowerCase().includes(q));
   const el=document.getElementById("conv-list");
-  if(!list.length){ el.innerHTML=`<div class="empty">${q?"No matches":"No conversations yet"}</div>`; return; }
-  el.innerHTML=list.map(c=>`
+  let html=list.map(c=>`
     <div class="conv-item ${curConv===c.conversation_id?'on':''}" onclick="openChat(${c.conversation_id})">
       ${convAvatar(c)}
       <div class="conv-meta">
@@ -1503,6 +1504,23 @@ function renderConvs(){
       </div>
       ${c.unread?`<span class="conv-unread">${c.unread}</span>`:""}
     </div>`).join("");
+  // While searching, also offer to START A NEW CHAT with any matching user.
+  // Clicking opens the existing thread if there is one, else creates it.
+  if(q){
+    const users=allUsersForMsg.filter(u=>((u.name||"")+" "+(u.phone||"")+" "+(u.email||"")).toLowerCase().includes(q)).slice(0,25);
+    if(users.length){
+      html+=`<div style="padding:12px 14px 4px;font-size:11px;font-weight:800;color:#94A3B8;letter-spacing:.5px;">START A NEW CHAT</div>`;
+      html+=users.map(u=>{
+        const initials=((u.name||u.phone||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("")||"?").toUpperCase();
+        return `<div class="conv-item" onclick="messageUser(${u.id})">
+          <div class="conv-av">${esc(initials)}</div>
+          <div class="conv-meta"><div class="cn">${esc(u.name||u.phone)}<span class="rl">${esc(u.type||"")}</span></div>
+          <div class="lm">${esc(u.phone||u.email||"")}</div></div>
+        </div>`;
+      }).join("");
+    }
+  }
+  el.innerHTML = html || `<div class="empty">${q?"No matches — try a name or phone":"No conversations yet"}</div>`;
 }
 async function openChat(cid){
   curConv=cid;

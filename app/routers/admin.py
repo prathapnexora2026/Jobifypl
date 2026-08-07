@@ -305,6 +305,48 @@ def admin_add_wallet_candidate(user_id: int, body: AddWalletIn,
     return {"status": "success", "balance": w.balance}
 
 
+class GrantPlanIn(BaseModel):
+    plan_id: int
+
+
+@router.post("/user/{user_id}/grant-plan")
+def admin_grant_plan(user_id: int, body: GrantPlanIn,
+                     db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    """Admin manually activates a subscription plan for a user (e.g. they paid
+    outside the app). Expires any current active plan, then activates the new one
+    — no money moves. Works for candidates and recruiters."""
+    u = db.query(User).filter(User.id == user_id).first()
+    if not u:
+        raise HTTPException(404, "User not found")
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == body.plan_id).first()
+    if not plan:
+        raise HTTPException(404, "Plan not found")
+    # expire any current active subscription
+    db.query(UserSubscription).filter(
+        UserSubscription.user_id == user_id, UserSubscription.status == "active"
+    ).update({"status": "expired"})
+    start = dt.datetime.utcnow()
+    end = start + dt.timedelta(days=plan.duration_days or 30)
+    db.add(UserSubscription(user_id=user_id, plan_id=plan.id, start_date=start, end_date=end,
+                            status="active", posts_total=plan.postings or 0, posts_used=0))
+    if u.role == Role.recruiter and u.recruiter_profile:
+        u.recruiter_profile.can_post_jobs = True
+    db.add(Notification(user_id=user_id, title="Plan activated",
+                        body=f"An admin activated your {plan.name} plan."))
+    db.commit()
+    return {"status": "success", "plan_name": plan.name}
+
+
+@router.post("/user/{user_id}/revoke-plan")
+def admin_revoke_plan(user_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    """Admin expires the user's current active plan (removes access)."""
+    n = db.query(UserSubscription).filter(
+        UserSubscription.user_id == user_id, UserSubscription.status == "active"
+    ).update({"status": "expired"})
+    db.commit()
+    return {"status": "success", "revoked": n}
+
+
 @router.delete("/user/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
     u = db.query(User).filter(User.id == user_id).first()

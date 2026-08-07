@@ -1024,11 +1024,13 @@ async function openDetail(type,id){
   try{
     if(type==="Candidate"){
       const d=(await api("/admin/candidate/"+id)).data;
-      detailState={type:"Candidate", d, tab:"info"};
+      detailState={type:"Candidate", d, tab:"info", id};
     } else {
       const d=(await api("/admin/recruiter/"+id)).data;
-      detailState={type:"Recruiter", d, tab:"info"};
+      detailState={type:"Recruiter", d, tab:"info", id};
     }
+    // Plans for this role, so the admin can manually grant/change access.
+    try{ const pj=await api("/admin/plans?role="+(type==="Candidate"?"candidate":"recruiter")); detailState.plans=pj.plans||[]; }catch(e){ detailState.plans=[]; }
     renderDetail();
   }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
@@ -1152,21 +1154,58 @@ function renderRecTab(d,tab){
 
 function renderPlanTab(d,cls,badge){
   const plan=d.current_plan;
-  if(!plan) return `<div class="empty">No active subscription plan.</div>`;
-  const feats=(plan.features||"").split("\n").map(f=>f.trim()).filter(Boolean);
-  return `<div class="plan-card-big ${cls}">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
-      <div><span class="plan-badge">${badge}</span><h3 style="font-size:24px;font-weight:800;margin:0;">${esc(plan.name)}</h3></div>
-      <div style="text-align:right;"><div style="font-size:30px;font-weight:800;">${esc(plan.price)} ${esc(plan.currency||"")}</div>
-        ${plan.duration_days?`<small style="opacity:.8;">Validity ${esc(plan.duration_days)} Days</small>`:""}</div>
+  const planBlock = !plan
+    ? `<div class="empty">No active subscription plan.</div>`
+    : `<div class="plan-card-big ${cls}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+          <div><span class="plan-badge">${badge}</span><h3 style="font-size:24px;font-weight:800;margin:0;">${esc(plan.name)}</h3></div>
+          <div style="text-align:right;"><div style="font-size:30px;font-weight:800;">${esc(plan.price)} ${esc(plan.currency||"")}</div>
+            ${plan.duration_days?`<small style="opacity:.8;">Validity ${esc(plan.duration_days)} Days</small>`:""}</div>
+        </div>
+        ${(plan.features||"").split("\n").map(f=>f.trim()).filter(Boolean).length?`<div class="plan-feats"><small style="opacity:.8;width:100%;">Plan Details</small>
+          ${(plan.features||"").split("\n").map(f=>f.trim()).filter(Boolean).map(f=>`<span>• ${esc(f)}</span>`).join("")}</div>`:""}
+        ${(plan.start_date||plan.end_date)?`<div class="plan-dates">
+          ${plan.start_date?`<div><small>Plan Starts</small><span style="font-weight:700;">${esc(fmtDate(plan.start_date))}</span></div>`:""}
+          ${plan.end_date?`<div><small>Plan Ends</small><span style="font-weight:700;color:#FFC107;">${esc(fmtDate(plan.end_date))}</span></div>`:""}
+        </div>`:""}
+      </div>`;
+  return planBlock + adminPlanActions(d);
+}
+/* Admin Actions: manually grant / change / revoke a plan (e.g. user paid outside
+   the app). No money moves — it just activates the subscription. */
+function adminPlanActions(d){
+  const plans=(detailState&&detailState.plans)||[];
+  const opts=plans.map(p=>`<option value="${p.id}">${esc(p.name)} — ${esc(p.price)} ${esc(p.currency||'PLN')}</option>`).join("");
+  const status=d.current_plan
+    ? `<span style="background:#DCFCE7;color:#15803D;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700;">✓ Has active plan: ${esc(d.current_plan.name)}</span>`
+    : `<span style="background:#FEF3C7;color:#92400E;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700;">No active plan</span>`;
+  return `<div class="card" style="margin-top:16px;">
+    <h3 style="margin:0 0 8px;">⚙️ Admin Actions</h3>
+    <div style="margin-bottom:12px;">${status}</div>
+    <p style="color:#64748B;font-size:13px;margin:0 0 10px;">Grant plan access manually (e.g. the user paid outside the app). This activates the plan — no payment is taken.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <select id="grant-plan-sel" style="flex:1;min-width:200px;padding:10px;border:1px solid #E2E8F0;border-radius:10px;">${opts||'<option value="">No plans configured</option>'}</select>
+      <button class="btn-sm btn-blue" onclick="grantPlan()">Grant / Activate</button>
+      ${d.current_plan?`<button class="btn-sm" style="background:#FEE2E2;color:#B91C1C;" onclick="revokePlan()">Revoke current</button>`:''}
     </div>
-    ${feats.length?`<div class="plan-feats"><small style="opacity:.8;width:100%;">Plan Details</small>
-      ${feats.map(f=>`<span>• ${esc(f)}</span>`).join("")}</div>`:""}
-    ${(plan.start_date||plan.end_date)?`<div class="plan-dates">
-      ${plan.start_date?`<div><small>Plan Starts</small><span style="font-weight:700;">${esc(fmtDate(plan.start_date))}</span></div>`:""}
-      ${plan.end_date?`<div><small>Plan Ends</small><span style="font-weight:700;color:#FFC107;">${esc(fmtDate(plan.end_date))}</span></div>`:""}
-    </div>`:""}
   </div>`;
+}
+async function grantPlan(){
+  const sel=document.getElementById("grant-plan-sel"); const pid=sel&&sel.value;
+  const uid=detailState&&detailState.id;
+  if(!pid){ alert("No plan selected"); return; }
+  if(!confirm("Activate this plan for the user? No payment will be taken.")) return;
+  try{ const r=await api("/admin/user/"+uid+"/grant-plan",{method:"POST",body:{plan_id:parseInt(pid)}});
+    alert("Activated: "+r.plan_name);
+    openDetail(detailState.type, uid);
+  }catch(e){ alert(e.message); }
+}
+async function revokePlan(){
+  const uid=detailState&&detailState.id;
+  if(!confirm("Revoke this user's current plan access?")) return;
+  try{ await api("/admin/user/"+uid+"/revoke-plan",{method:"POST"});
+    alert("Plan access revoked."); openDetail(detailState.type, uid);
+  }catch(e){ alert(e.message); }
 }
 
 // Admin manually credits a recruiter's wallet (real admin-issued credit).

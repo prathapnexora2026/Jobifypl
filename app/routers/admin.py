@@ -205,7 +205,22 @@ def candidate_detail(user_id: int, db: Session = Depends(get_db), admin: User = 
             "applications_count": len(applied_jobs),
             "applied_jobs": applied_jobs,
             "current_plan": plan_out,
+            "permissions": _candidate_permissions(cp, plan_out is not None),
         },
+    }
+
+
+def _candidate_permissions(cp, has_plan: bool) -> dict:
+    """Effective candidate permissions: default to the plan (ON when they have an
+    active plan), unless an admin override forces it on/off."""
+    def eff(ov):
+        return bool(ov) if ov is not None else has_plan
+    pv = getattr(cp, "perm_view", None) if cp else None
+    pa = getattr(cp, "perm_apply", None) if cp else None
+    return {
+        "has_plan": has_plan,
+        "view":  {"effective": eff(pv), "override": pv},
+        "apply": {"effective": eff(pa), "override": pa},
     }
 
 
@@ -335,6 +350,33 @@ def admin_grant_plan(user_id: int, body: GrantPlanIn,
                         body=f"An admin activated your {plan.name} plan."))
     db.commit()
     return {"status": "success", "plan_name": plan.name}
+
+
+class PermIn(BaseModel):
+    which: str       # "view" | "apply"
+    value: str       # "on" | "off" | "auto"  (auto = follow the plan)
+
+
+@router.post("/candidate/{user_id}/permissions")
+def admin_set_permission(user_id: int, body: PermIn,
+                         db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    """Override (or reset to plan-default) a candidate's View Details / Apply for
+    Jobs permission. 'auto' clears the override so it follows the plan again."""
+    u = db.query(User).filter(User.id == user_id, User.role == Role.candidate).first()
+    if not u:
+        raise HTTPException(404, "Candidate not found")
+    cp = u.candidate_profile or CandidateProfile(user_id=user_id)
+    val = {"on": True, "off": False, "auto": None}.get(body.value)
+    if body.value not in ("on", "off", "auto"):
+        raise HTTPException(400, "value must be on, off or auto")
+    if body.which == "view":
+        cp.perm_view = val
+    elif body.which == "apply":
+        cp.perm_apply = val
+    else:
+        raise HTTPException(400, "which must be view or apply")
+    db.add(cp); db.commit()
+    return {"status": "success"}
 
 
 @router.post("/user/{user_id}/revoke-plan")

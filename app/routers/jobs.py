@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import (
     User, Role, Job, JobApplication, Notification, RecruiterProfile, UserSubscription,
+    CandidateProfile,
 )
 from app.security import get_current_user, get_optional_user
 
@@ -23,6 +24,16 @@ def _candidate_has_active_plan(db, user_id) -> bool:
            .filter((UserSubscription.end_date == None) | (UserSubscription.end_date >= now))
            .first())
     return sub is not None
+
+
+def _candidate_can_apply(db, user_id) -> bool:
+    """Effective 'Apply for Jobs' permission: an admin override wins; otherwise it
+    follows the plan (True when there's an active subscription)."""
+    cp = db.query(CandidateProfile).filter(CandidateProfile.user_id == user_id).first()
+    override = cp.perm_apply if cp else None
+    if override is not None:
+        return bool(override)
+    return _candidate_has_active_plan(db, user_id)
 
 
 def _recruiter_photo(db, recruiter_id):
@@ -111,8 +122,9 @@ def job_detail(job_id: int, db: Session = Depends(get_db),
 def apply_job(job_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if user.role != Role.candidate:
         raise HTTPException(403, "Only candidates can apply")
-    # PAYWALL: viewing is free, but applying needs an active plan (min 25 PLN).
-    if not _candidate_has_active_plan(db, user.id):
+    # PAYWALL: viewing is free, but applying needs an active plan (or an admin
+    # override granting the "Apply for Jobs" permission).
+    if not _candidate_can_apply(db, user.id):
         raise HTTPException(402, "Buy a plan to apply for jobs.")
     job = db.query(Job).filter(Job.id == job_id, Job.status == "open").first()
     if not job:

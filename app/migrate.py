@@ -46,5 +46,8 @@ def run_migrations():
             _add_column(conn, "payments", "coupon_discount", "FLOAT DEFAULT 0")
             # candidate: documents onboarding step done (submitted or skipped)
             _add_column(conn, "candidate_profiles", "docs_step_done", "BOOLEAN DEFAULT FALSE")
+            # candidate: admin permission overrides (view details / apply for jobs)
+            _add_column(conn, "candidate_profiles", "perm_view", "BOOLEAN")
+            _add_column(conn, "candidate_profiles", "perm_apply", "BOOLEAN")
     except Exception as e:
         print(f"[migrate] skipped: {e}")

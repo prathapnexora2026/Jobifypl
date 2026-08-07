@@ -60,6 +60,9 @@ class CandidateProfile(Base):
     status_label = Column(String(40), default="Active Looking")
     onboarding_completed = Column(Boolean, default=False)   # CV/profile step done
     docs_step_done = Column(Boolean, default=False)          # documents step submitted OR skipped
+    # Admin permission overrides (None = follow the plan; True/False = forced).
+    perm_view = Column(Boolean, nullable=True)              # "View Details"
+    perm_apply = Column(Boolean, nullable=True)            # "Apply for Jobs"
 
     user = relationship("User", back_populates="candidate_profile")
 

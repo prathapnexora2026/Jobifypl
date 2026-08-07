@@ -1056,8 +1056,8 @@ function renderDetail(){
     : `<div class="avatar-lg">${fallback}</div>`;
 
   const tabs = isCand
-    ? [["info","Overview"],["jobs","Applied Jobs"],["plan","Subscription"]]
-    : [["info","Recruiter Info"],["jobs","Jobs Posted"],["plan","Business Plan"]];
+    ? [["info","Overview"],["jobs","Applied Jobs"],["plan","Subscription"],["actions","Actions"]]
+    : [["info","Recruiter Info"],["jobs","Jobs Posted"],["plan","Business Plan"],["actions","Actions"]];
 
   box.innerHTML = `
     <div class="profile-card">
@@ -1117,7 +1117,47 @@ function renderCandTab(d,tab){
         <td style="text-align:right;"><span class="jstatus">${esc(j.status||j.current_status||"Applied")}</span></td></tr>`).join("")
         :'<tr><td colspan="5" class="empty">No applications yet.</td></tr>'}</tbody></table></div>`;
   }
+  if(tab==="actions") return renderActionsTab(d,true);
   return renderPlanTab(d,"cand","Current Plan");
+}
+
+/* Actions tab: candidate permissions (View Details / Apply for Jobs) that are ON
+   by default when they have a plan, admin-overridable — plus grant/revoke plan. */
+function renderActionsTab(d,isCand){
+  let html="";
+  if(isCand){
+    const perms=d.permissions||{has_plan:false,view:{effective:false,override:null},apply:{effective:false,override:null}};
+    const badge=perms.has_plan
+      ? `<span style="background:#DCFCE7;color:#15803D;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700;">✓ Has active plan</span>`
+      : `<span style="background:#FEF3C7;color:#92400E;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700;">No active plan</span>`;
+    const row=(key,label,desc,p)=>`
+      <div style="display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid #EEF0F3;">
+        <div style="flex:1;">
+          <div style="font-weight:800;color:#1A2332;">${label}</div>
+          <div style="color:#64748B;font-size:13px;">${desc}</div>
+          <div style="font-size:12px;margin-top:4px;">
+            ${p.effective?'<span style="color:#15803D;font-weight:700;">✓ Allowed</span>':'<span style="color:#B91C1C;font-weight:700;">✗ Blocked</span>'}
+            <span style="color:#94A3B8;">· ${p.override===null?'from plan':'manual override'}</span>
+            ${p.override!==null?` · <a onclick="setPerm(${d.id},'${key}','auto')" style="color:#0D6EFD;cursor:pointer;">reset to plan</a>`:''}
+          </div>
+        </div>
+        <button onclick="setPerm(${d.id},'${key}','${p.effective?'off':'on'}')" style="padding:8px 20px;border-radius:20px;border:none;cursor:pointer;font-weight:800;font-size:13px;background:${p.effective?'#DCFCE7':'#FEE2E2'};color:${p.effective?'#15803D':'#B91C1C'};">${p.effective?'ON':'OFF'}</button>
+      </div>`;
+    html+=`<h4>Candidate Permissions</h4>
+      <p style="color:#64748B;margin:-10px 0 14px;font-size:14px;">These turn ON automatically when the candidate has an active plan. Override only if they had an issue.</p>
+      <div style="margin-bottom:16px;">${badge}</div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        ${row('view','View Details','See full job & application details.',perms.view)}
+        ${row('apply','Apply for Jobs','Submit applications to jobs.',perms.apply)}
+      </div>`;
+  }
+  html+=adminPlanActions(d);
+  return html;
+}
+async function setPerm(userId,which,value){
+  try{ await api("/admin/candidate/"+userId+"/permissions",{method:"POST",body:{which,value}});
+    openDetail("Candidate",userId);
+  }catch(e){ alert(e.message); }
 }
 
 function renderRecTab(d,tab){
@@ -1149,6 +1189,7 @@ function renderRecTab(d,tab){
         <td style="text-align:right;"><span class="jstatus ${j.status==='hold'?'hold':''}">${esc(j.status||"active")}</span></td></tr>`).join("")
         :'<tr><td colspan="5" class="empty">No jobs posted.</td></tr>'}</tbody></table></div>`;
   }
+  if(tab==="actions") return renderActionsTab(d,false);
   return renderPlanTab(d,"rec","Employer Tier");
 }
 
@@ -1169,7 +1210,7 @@ function renderPlanTab(d,cls,badge){
           ${plan.end_date?`<div><small>Plan Ends</small><span style="font-weight:700;color:#FFC107;">${esc(fmtDate(plan.end_date))}</span></div>`:""}
         </div>`:""}
       </div>`;
-  return planBlock + adminPlanActions(d);
+  return planBlock;   // grant/revoke actions live in the "Actions" tab now
 }
 /* Admin Actions: manually grant / change / revoke a plan (e.g. user paid outside
    the app). No money moves — it just activates the subscription. */

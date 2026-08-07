@@ -36,6 +36,16 @@ def _candidate_can_apply(db, user_id) -> bool:
     return _candidate_has_active_plan(db, user_id)
 
 
+def _candidate_can_view(db, user_id) -> bool:
+    """Effective 'View Details' permission: admin override wins; else follows the
+    plan. Listings are free; opening full job details needs this."""
+    cp = db.query(CandidateProfile).filter(CandidateProfile.user_id == user_id).first()
+    override = cp.perm_view if cp else None
+    if override is not None:
+        return bool(override)
+    return _candidate_has_active_plan(db, user_id)
+
+
 def _recruiter_photo(db, recruiter_id):
     rp = db.query(RecruiterProfile).filter(RecruiterProfile.user_id == recruiter_id).first()
     return rp.profile_pic if rp and rp.profile_pic else None
@@ -107,6 +117,10 @@ def job_detail(job_id: int, db: Session = Depends(get_db),
     j = db.query(Job).filter(Job.id == job_id).first()
     if not j:
         raise HTTPException(404, "Job not found")
+    # Listings are free, but opening full details needs the "View Details"
+    # permission (a plan, or an admin override).
+    if user is not None and user.role == Role.candidate and not _candidate_can_view(db, user.id):
+        raise HTTPException(402, "Get a plan to view job details and apply.")
     # count this as a view (candidate opened Job Details)
     j.views = (j.views or 0) + 1
     db.commit()
@@ -116,6 +130,18 @@ def job_detail(job_id: int, db: Session = Depends(get_db),
         if row:
             applied = bool(row.applied); interested = bool(row.interested)
     return {"status": "success", "job": _job_dict(j, applied=applied, interested=interested, db=db)}
+
+
+@router.get("/me/access")
+def my_access(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """The app reads this to know whether to open job details / allow applying, or
+    show the 'get a plan' prompt. Non-candidates are unrestricted."""
+    if user.role != Role.candidate:
+        return {"status": "success", "has_plan": True, "can_view": True, "can_apply": True}
+    return {"status": "success",
+            "has_plan": _candidate_has_active_plan(db, user.id),
+            "can_view": _candidate_can_view(db, user.id),
+            "can_apply": _candidate_can_apply(db, user.id)}
 
 
 @router.post("/{job_id}/apply")

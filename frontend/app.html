@@ -792,8 +792,8 @@
 
   <!-- upgrade popup -->
   <div class="pop-bg" id="pop-upgrade">
-    <div class="pop"><div class="crown" data-ic="crown"></div><h3>Buy a plan to apply</h3>
-      <p>Browsing jobs is free. To apply, activate a plan (from just 25 PLN) — then apply to as many jobs as you like.</p>
+    <div class="pop"><div class="crown" data-ic="crown"></div><h3>Get a plan to continue</h3>
+      <p>Browsing jobs is free. To view full job details and apply, activate a plan — from just 25 PLN.</p>
       <button class="btn" onclick="closeUpgrade();go('s-plans')">View Plans</button>
       <button class="later" onclick="closeUpgrade()">Maybe Later</button>
     </div>
@@ -1378,8 +1378,8 @@ async function goAfterCandidateAuth(){
     const p=(await api("/candidate/profile")).profile;
     if(!p.onboarding_completed){ cvBackScreen="s-signin"; go("s-cv"); return; }
     if(!p.docs_step_done){ docsBackScreen="s-home"; go("s-docs"); if(typeof renderDocBlocks==="function") renderDocBlocks(); return; }
-    go("s-home"); resumePendingJob(); if(typeof maybeRemindUpgrade==="function") maybeRemindUpgrade();
-  }catch(e){ go("s-home"); }
+    go("s-home"); resumePendingJob(); loadAccess(); if(typeof maybeRemindUpgrade==="function") maybeRemindUpgrade();
+  }catch(e){ go("s-home"); loadAccess(); }
 }
 function confirmLogout(){ document.getElementById("pop-logout").classList.add("show"); }
 function candLogout(){
@@ -1720,7 +1720,15 @@ function renderJobs(jobs){
   });
   box.innerHTML=html;
 }
-function viewJob(id){ const j=allJobs.find(x=>x.id===id); if(!j){ toast("Job not found"); return; } jdBack=document.querySelector("#s-apps.active")?"s-apps":"s-home"; jdShow(j); }
+let _access=null;
+async function loadAccess(){ try{ _access=await api("/jobs/me/access"); }catch(e){ _access={can_view:true,can_apply:true,has_plan:false}; } return _access; }
+async function viewJob(id){
+  const j=allJobs.find(x=>x.id===id); if(!j){ toast("Job not found"); return; }
+  const acc=_access||await loadAccess();
+  // Listings are free; opening full details needs a plan (or admin override).
+  if(acc && acc.can_view===false){ openUpgrade(); return; }
+  jdBack=document.querySelector("#s-apps.active")?"s-apps":"s-home"; jdShow(j);
+}
 function jdShow(j){
   const av=avatarSrc(j.recruiter_photo);
   const logo=av?`<img src="${av}" style="width:100%;height:100%;border-radius:16px;object-fit:cover;">`:svg("brief");
@@ -1894,7 +1902,7 @@ async function openJobFromApp(jobId){
   if(!jobId){ toast("Job not found"); return; }
   try{ const d=await api("/jobs/"+jobId); const j=d.job; if(!j){ toast("Job not found"); return; }
     if(j.applied) appliedIds.add(j.id); jdBack="s-track"; jdShow(j);
-  }catch(e){ toast(e.message); }
+  }catch(e){ if(/plan|402|view/i.test(e.message)) openUpgrade(); else toast(e.message); }
 }
 async function chatWithRecruiter(rid,name){
   try{ const d=await api("/chat/start",{method:"POST",body:{other_user_id:rid}});
@@ -2391,7 +2399,7 @@ async function payFromWallet(){
   try{
     await api("/plans/purchase",{method:"POST",body:{plan_id:id, coupon_code:_payCoupon}});
     showPayResult("success",{kind:"plan"});
-    loadPlans(); loadWallet&&loadWallet();
+    loadPlans(); loadWallet&&loadWallet(); loadAccess();
   }
   catch(e){ if(/balance|insufficient|fund/i.test(e.message)){ toast("Insufficient balance. Please top up."); } else { toast(e.message); } }
 }
@@ -2400,7 +2408,7 @@ async function payDirect(){
   const id=_payPlanId; closePayChoice();
   try{
     const r=await api("/plans/checkout",{method:"POST",body:{plan_id:id, coupon_code:_payCoupon}});
-    if(r.paid){ showPayResult("success",{kind:"plan"}); loadPlans(); loadWallet&&loadWallet(); return; }   // free-coupon or test-mode instant
+    if(r.paid){ showPayResult("success",{kind:"plan"}); loadPlans(); loadWallet&&loadWallet(); loadAccess(); return; }   // free-coupon or test-mode instant
     startPayuCheckout(r.redirect_url, r.ext_order_id, {kind:"plan"});
   }catch(e){ toast(e.message); }
 }

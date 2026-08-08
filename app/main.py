@@ -62,6 +62,7 @@ app.include_router(wallet.plans_router)
 app.include_router(misc.notif_router)
 app.include_router(misc.chat_router)
 app.include_router(misc.contact_router)
+app.include_router(misc.translate_router)  # on-demand translation of dynamic content
 app.include_router(misc.testotp_router)   # test-only OTP viewer (auto-disabled when SMS goes live)
 app.include_router(admin.router)
 app.include_router(coupons.admin_router)  # admin: create/list/track coupons

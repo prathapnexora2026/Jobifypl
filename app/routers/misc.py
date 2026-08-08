@@ -277,6 +277,24 @@ def send_contact(body: ContactIn, background: BackgroundTasks, db: Session = Dep
     return {"status": "success", "msg": "Message sent. We'll get back to you."}
 
 
+# ---------------- Translation (dynamic content) ----------------
+translate_router = APIRouter(prefix="/translate", tags=["translate"])
+
+
+class TranslateIn(BaseModel):
+    text: str
+    target: str = "en"
+
+
+@translate_router.post("")
+def translate_text(body: TranslateIn, user: User = Depends(get_current_user),
+                   db: Session = Depends(get_db)):
+    """On-demand translation of user-written content (job descriptions, chat) into
+    the reader's language. Cached server-side to stay inside the free quota."""
+    from app.services.translate import translate as _tr
+    return {"status": "success", **_tr(db, body.text, body.target)}
+
+
 # ---------------- TEST-ONLY OTP viewer ----------------
 # Lets a small group of testers read their own OTP on-screen while SMS is not yet
 # live (SMS_DEV_MODE=True). It does NOT touch the real auth flow — it only READS the

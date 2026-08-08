@@ -431,11 +431,11 @@
         <p>Whether you're a job seeker, recruiter, or business looking to advertise — we're excited to hear from you.</p>
         <p class="tagline">Building the future of job discovery</p>
       </div>
-      <form class="card" onsubmit="return sent(event,'Message sent! We will reply shortly.')">
-        <label class="field"><span>👤</span><input required placeholder="Your Full Name"></label>
-        <label class="field"><span>📞</span><input required placeholder="Mobile Number"></label>
-        <label class="field"><span>✉️</span><input type="email" required placeholder="Email Address"></label>
-        <label class="field"><textarea placeholder="Your Message..."></textarea></label>
+      <form class="card" onsubmit="return contactMailto(event)">
+        <label class="field"><span>👤</span><input id="ct-name" required placeholder="Your Full Name"></label>
+        <label class="field"><span>📞</span><input id="ct-phone" required placeholder="Mobile Number"></label>
+        <label class="field"><span>✉️</span><input id="ct-email" type="email" required placeholder="Email Address"></label>
+        <label class="field"><textarea id="ct-msg" placeholder="Your Message..."></textarea></label>
         <button class="submit">Send Message</button>
         <p class="privacy">We respect your privacy. Your information is safe with us.</p>
       </form>
@@ -542,6 +542,16 @@
 
 <script>
   function sent(e, msg){ e.preventDefault(); alert(msg); e.target.reset(); return false; }
+  // Contact form -> open the visitor's email app pre-filled to support (mailto).
+  function contactMailto(e){
+    e.preventDefault();
+    var g=function(id){ var el=document.getElementById(id); return el?el.value.trim():""; };
+    var name=g("ct-name"), phone=g("ct-phone"), email=g("ct-email"), msg=g("ct-msg");
+    var subject="JobifyPL enquiry from "+(name||"website");
+    var body="Name: "+name+"\nPhone: "+phone+"\nEmail: "+email+"\n\n"+msg;
+    window.location.href="mailto:jobifyplsupport@jobifypl.pl?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body);
+    return false;
+  }
   function launchingSoon(){ document.getElementById('soonPop').classList.add('show'); }
   function closeSoon(){ document.getElementById('soonPop').classList.remove('show'); }
 

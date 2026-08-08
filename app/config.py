@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     # Sandbox host for tests, live host for production. Default = LIVE (secure.payu.com).
     PAYU_BASE: str = "https://secure.payu.com"
 
+    # ---- Google Cloud Translation (dynamic content) ----
+    GOOGLE_TRANSLATE_API_KEY: str = ""   # server-side only; enables the "Translate" feature
+
     # ---- Email (Contact-form notifications) ----
     SMTP_HOST: str = ""            # e.g. smtp.hostinger.com or smtp.gmail.com
     SMTP_PORT: int = 587          # 587 (STARTTLS) or 465 (SSL)

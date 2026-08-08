@@ -339,6 +339,18 @@ class Coupon(Base):
     created_at = Column(DateTime, default=now)
 
 
+class TranslationCache(Base):
+    """Cache of translated strings so we never pay/translate the same text twice
+    (Google Translate quota saver). Keyed by a hash of target-lang + source text."""
+    __tablename__ = "translation_cache"
+    id = Column(Integer, primary_key=True, index=True)
+    hash = Column(String(64), unique=True, index=True)   # sha256(target::text)
+    target_lang = Column(String(8))
+    source_lang = Column(String(8))
+    translated = Column(Text)
+    created_at = Column(DateTime, default=now)
+
+
 class CouponRedemption(Base):
     """One row per successful coupon use — powers per-coupon analytics
     (how many candidates vs recruiters used each code, and totals)."""

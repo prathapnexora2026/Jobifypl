@@ -1729,6 +1729,21 @@ async function viewJob(id){
   if(acc && acc.can_view===false){ openUpgrade(); return; }
   jdBack=document.querySelector("#s-apps.active")?"s-apps":"s-home"; jdShow(j);
 }
+let _jdDesc="", _jdDescShown="orig";
+/* On-demand translate of the job description into the reader's language, then
+   toggle back to the original. Translations are cached server-side (quota-safe). */
+async function translateJobDesc(){
+  const el=document.getElementById("jd-desc-text"), btn=document.getElementById("jd-translate-btn");
+  if(!el||!btn) return;
+  if(_jdDescShown==="translated"){ el.textContent=_jdDesc; btn.textContent="🌐 Translate"; _jdDescShown="orig"; return; }
+  const lang=localStorage.getItem("lang")||"en";
+  const orig=btn.textContent; btn.textContent="Translating…";
+  try{
+    const r=await api("/translate",{method:"POST",body:{text:_jdDesc, target:lang}});
+    if(r.translated){ el.textContent=r.text; btn.textContent="↩ Show original"; _jdDescShown="translated"; }
+    else { btn.textContent=orig; toast("Already in your language, or translation isn't set up yet"); }
+  }catch(e){ btn.textContent=orig; toast(e.message); }
+}
 function jdShow(j){
   const av=avatarSrc(j.recruiter_photo);
   const logo=av?`<img src="${av}" style="width:100%;height:100%;border-radius:16px;object-fit:cover;">`:svg("brief");
@@ -1752,10 +1767,12 @@ function jdShow(j){
          <b>Note:</b> This recruiter has indicated a fee may apply. Please confirm all details before paying anything.</div></div>`
     : `<div class="jd-sec"><div style="background:#E9F9F0;border:1px solid #B9EBCD;border-radius:12px;padding:14px 16px;color:#0E7A46;font-size:14px;">
          ✓ <b>This is a free job.</b> You don't need to pay any fee to the recruiter to apply.</div></div>`;
+  _jdDesc=j.description||""; _jdDescShown="orig";
   document.getElementById("jd-content").innerHTML=`
     <div class="jd-sec"><h3>Job Information</h3><div class="jd-grid">${rows.map(r=>`<div><div class="k">${esc(r[0])}</div><div class="v">${esc(r[1])}</div></div>`).join("")}</div></div>
     ${feeBanner}
-    ${j.description?`<div class="jd-sec"><h3>Description</h3><div class="jd-desc">${esc(j.description)}</div></div>`:""}`;
+    ${j.description?`<div class="jd-sec"><h3>Description</h3><div class="jd-desc" id="jd-desc-text">${esc(j.description)}</div>
+      <a id="jd-translate-btn" onclick="translateJobDesc()" style="color:var(--yellow-d);font-size:13px;font-weight:800;cursor:pointer;display:inline-block;margin-top:10px;">🌐 Translate</a></div>`:""}`;
   const applied=j.applied||appliedIds.has(j.id);
   document.getElementById("jd-foot").innerHTML=applied
     ? `<button class="btn outline" style="flex:1;" disabled>Applied</button>`
@@ -2428,9 +2445,13 @@ async function submitContact(){
   const phone=document.getElementById("cu-phone").value.trim();
   const message=document.getElementById("cu-msg").value.trim();
   if(!name||!email||!phone||!message){ toast("Please fill all fields"); return; }
-  try{ await api("/contact",{method:"POST",body:{name,email,phone,message}});
-    toast("Message sent successfully"); document.getElementById("cu-msg").value="";
-  }catch(e){ toast(e.message); }
+  // Keep a record in the admin panel (best-effort), then open the user's email
+  // app pre-filled to support — simple + reliable, no mail server needed.
+  api("/contact",{method:"POST",body:{name,email,phone,message}}).catch(()=>{});
+  const subject=`JobifyPL enquiry from ${name}`;
+  const body=`Name: ${name}\nEmail: ${email}\nPhone: ${phone}\n\n${message}`;
+  window.location.href=`mailto:jobifyplsupport@jobifypl.pl?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  toast("Opening your email app…"); document.getElementById("cu-msg").value="";
 }
 
 /* ============ NOTIFICATIONS ============ */

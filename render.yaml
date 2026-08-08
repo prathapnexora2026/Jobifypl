@@ -84,6 +84,9 @@ services:
         sync: false
       - key: PAYU_CLIENT_SECRET
         sync: false
+      # Google Cloud Translation (set the key in the dashboard to enable "Translate")
+      - key: GOOGLE_TRANSLATE_API_KEY
+        sync: false
       # Email for Contact-Us notifications (set these in the dashboard to enable)
       - key: SMTP_HOST
         sync: false               # e.g. smtp.hostinger.com

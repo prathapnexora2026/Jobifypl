@@ -762,7 +762,7 @@ function applyLang(){
 }
 /* Highlight the currently selected language row on the Profile > Language card. */
 function markLangOptions(){ document.querySelectorAll(".lang-opt").forEach(b=>b.classList.toggle("on", b.dataset.l===LANG)); }
-function setLang(l){ LANG=l; localStorage.setItem("rec_lang",l); localStorage.setItem("lang",l); /* keep app-wide choice in sync */ const m=document.getElementById("lang-menu"); if(m) m.classList.remove("show"); applyLang(); if(typeof _recToast==="function") _recToast("Language updated"); }
+function setLang(l){ LANG=l; localStorage.setItem("rec_lang",l); localStorage.setItem("lang",l); /* keep app-wide choice in sync */ const m=document.getElementById("lang-menu"); if(m) m.classList.remove("show"); applyLang(); if(window.autoTrRelang) autoTrRelang(); /* translate the whole app into the new language (or restore for English) */ if(typeof _recToast==="function") _recToast("Language updated"); }
 
 // ================= LOGIN =================
 let recPhone="";
@@ -1342,10 +1342,9 @@ function recPaintChat(){
   b.innerHTML=_recChatMsgs.length?_recChatMsgs.map(m=>{
     const sel=_recSelMsgs.has(m.id);
     const cb=_recMsgSelectMode?`<div class="rec-selbox ${sel?'on':''}">${sel?'✓':''}</div>`:'';
-    // Auto-translate only the candidate's messages (my own are already in my language).
-    const body=m.deleted?`<i style="opacity:.6;">${esc(m.body)}</i>`
-      :(m.mine?esc(m.body):`<span data-tr>${esc(m.body)}</span>`);
-    return `<div class="bubble-wrap ${m.mine?'me':'them'}" data-mid="${m.id}" onclick="recMsgRowClick(${m.id})" style="display:flex;align-items:center;gap:8px;${m.mine?'flex-direction:row-reverse;':''}">
+    // Auto-translate only the candidate's messages; data-notr keeps my own as I wrote them.
+    const body=m.deleted?`<i style="opacity:.6;">${esc(m.body)}</i>`:esc(m.body);
+    return `<div class="bubble-wrap ${m.mine?'me':'them'}"${m.mine?' data-notr':''} data-mid="${m.id}" onclick="recMsgRowClick(${m.id})" style="display:flex;align-items:center;gap:8px;${m.mine?'flex-direction:row-reverse;':''}">
       ${cb}<div class="bubble ${m.mine?'me':'them'} ${sel?'sel':''}" style="margin-bottom:0;">
       ${!m.mine?`<div class="who">${esc(_recOtherName)}</div>`:""}${body}<span class="bt">${esc(fmtT(m.time))}${m.mine&&!m.deleted?tick(m.read):""}</span></div></div>`;
   }).join(""):`<div class="empty" style="margin:auto;">No messages yet — say hello 👋</div>`;

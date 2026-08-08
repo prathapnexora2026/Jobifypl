@@ -1181,6 +1181,7 @@ function applyLanguage(lang){
     const key=(el.getAttribute("placeholder")||"").trim();
     if(dict[key]) el.setAttribute("placeholder",dict[key]);
   });
+  if(window.autoTrPage) autoTrPage();   // auto-translate everything the dictionary didn't cover
 }
 function setLanguage(lang){ applyLanguage(lang); }
 function openLangPicker(){
@@ -1192,6 +1193,7 @@ function openLangPicker(){
 }
 function chooseLang(c){
   applyLanguage(c);
+  if(window.autoTrRelang) autoTrRelang();   // re-translate the whole app into the new language (or restore for English)
   document.getElementById("pop-lang").classList.remove("show");
   toast("Language updated");
 }
@@ -1769,7 +1771,8 @@ function jdShow(j){
   // toggle only if a translation actually happened.
   autoTr(document.getElementById("jd-content")).then(function(){
     var el=document.getElementById("jd-desc-text"), btn=document.getElementById("jd-translate-btn");
-    if(el&&btn&&el.getAttribute("data-tr-has")){ btn.style.display="inline-block"; btn.textContent=window._trShowOriginal?"🌐 Show translation":"🌐 Show original"; }
+    var tn=el&&el.firstChild;   // the description's text node carries __trText once translated
+    if(el&&btn&&tn&&tn.__trText!=null){ btn.style.display="inline-block"; btn.textContent=window._trShowOriginal?"🌐 Show translation":"🌐 Show original"; }
   });
   const applied=j.applied||appliedIds.has(j.id);
   document.getElementById("jd-foot").innerHTML=applied
@@ -2043,10 +2046,9 @@ function paintChat(otherPh){
       `<img class="msg-av" src="${esc(otherPh||'/assets/avt/avt-4.jpg')}" onerror="this.src='/assets/avt/avt-4.jpg'">`;
     const sel=_selMsgs.has(m.id);
     const cb=_msgSelectMode?`<div class="selbox ${sel?'on':''}" style="margin:0 8px 0 0;align-self:center;">${sel?'✓':''}</div>`:'';
-    // Auto-translate only the OTHER person's messages (my own are already in my language).
-    const body = m.deleted ? `<i style="opacity:.6;">${esc(m.body)}</i>`
-      : (m.mine ? esc(m.body) : `<span data-tr>${esc(m.body)}</span>`);
-    return `<div class="mrow ${m.mine?'sent':'recv'} ${sel?'sel':''}" data-mid="${m.id}" onclick="msgRowClick(${m.id})">
+    // Auto-translate only the OTHER person's messages; data-notr keeps my own as I wrote them.
+    const body = m.deleted ? `<i style="opacity:.6;">${esc(m.body)}</i>` : esc(m.body);
+    return `<div class="mrow ${m.mine?'sent':'recv'} ${sel?'sel':''}"${m.mine?' data-notr':''} data-mid="${m.id}" onclick="msgRowClick(${m.id})">
       ${cb}${avatar}<div class="bubble">${body}<div class="tt">${fmtTime(m.time)}${m.mine&&!m.deleted?`<span class="tick ${m.read?'read':''}">${svg("check-done")}</span>`:''}</div></div></div>`;
   }).join("");
   const sc=document.getElementById("chat-scroll"); sc.innerHTML=html;

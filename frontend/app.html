@@ -951,7 +951,9 @@
 <script src="crop.js"></script>
 <script src="autotr.js"></script>
 <script>
-const API="";
+/* Relative on the live website (same-origin); absolute when running as the
+   bundled store app (Capacitor/localhost/file), so the API is always reachable. */
+const API=(location.protocol==="capacitor:"||location.protocol==="file:"||location.hostname==="localhost"||location.hostname==="")?"https://jobifypl.pl":"";
 function esc(s){ if(s==null)return""; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function token(){ return localStorage.getItem("token"); }
 async function api(path,opts={}){

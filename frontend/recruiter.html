@@ -683,7 +683,9 @@
 <script src="autotr.js"></script>
 <script>
 // ================= config =================
-const API = "";
+/* Relative on the live website (same-origin); absolute when running as the
+   bundled store app (Capacitor/localhost/file), so the API is always reachable. */
+const API=(location.protocol==="capacitor:"||location.protocol==="file:"||location.hostname==="localhost"||location.hostname==="")?"https://jobifypl.pl":"";
 function esc(s){ if(s==null) return ""; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 /* Resolve an uploaded file path to a URL (backend returns "/uploads/xxx"); "" if none. */
 function fileUrl(p){ if(!p) return ""; p=String(p); if(/^https?:\/\//.test(p)) return p; return p.startsWith("/")?API+p:API+"/uploads/"+p; }

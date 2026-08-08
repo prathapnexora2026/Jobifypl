@@ -164,21 +164,41 @@
     return window._trShowOriginal;   // true = now showing originals
   };
 
-  /* ---------- auto-cover re-renders (debounced), + first pass on boot ---------- */
-  var pending = null;
-  function schedule() {
-    if (pending || lang() === "en") return;
-    pending = setTimeout(function () { pending = null; window.autoTrPage(); }, 250);
+  /* ---------- auto-cover re-renders: translate ONLY newly-added subtrees ----------
+     (Re-walking the whole page on every DOM change pegged the main thread and made
+     scrolling stutter. We now process just the added nodes — cheap and smooth.) */
+  var _queue = [], _pending = null;
+  function scheduleRoots(roots) {
+    if (lang() === "en") return;
+    for (var i = 0; i < roots.length; i++) _queue.push(roots[i]);
+    if (_pending) return;
+    _pending = setTimeout(function () {
+      _pending = null;
+      var batch = _queue; _queue = [];
+      for (var k = 0; k < batch.length; k++) {
+        var n = batch[k];
+        if (n && n.isConnected) window.autoTr(n);   // translate only this new subtree
+      }
+    }, 300);
   }
   function init() {
     try {
       new MutationObserver(function (muts) {
+        if (lang() === "en") return;                // English: whole-page pass is off
+        var roots = [];
         for (var i = 0; i < muts.length; i++) {
-          if (muts[i].type === "childList" && muts[i].addedNodes.length) { schedule(); return; }
+          var m = muts[i];
+          if (m.type !== "childList") continue;
+          for (var j = 0; j < m.addedNodes.length; j++) {
+            var n = m.addedNodes[j];
+            if (n.nodeType === 1) roots.push(n);                              // element
+            else if (n.nodeType === 3 && n.parentNode) roots.push(n.parentNode); // text -> its element
+          }
         }
+        if (roots.length) scheduleRoots(roots);
       }).observe(document.body, { childList: true, subtree: true });
     } catch (e) { }
-    window.autoTrPage();
+    window.autoTrPage();   // one full pass on boot (non-English only)
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();

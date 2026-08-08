@@ -51,6 +51,12 @@ def get_profile(user: User = Depends(require_candidate), db: Session = Depends(g
     if not p:
         p = CandidateProfile(user_id=user.id)
         db.add(p); db.commit(); db.refresh(p)
+    # A candidate who already uploaded ANY document has clearly passed the
+    # documents step — so treat it as done even if the flag was never set (e.g.
+    # they onboarded before the flag existed). This stops established users from
+    # being wrongly sent back to the documents page on login.
+    has_docs = db.query(CandidateDocument.id).filter(
+        CandidateDocument.user_id == user.id).first() is not None
     return {
         "status": "success",
         "profile": {
@@ -61,7 +67,7 @@ def get_profile(user: User = Depends(require_candidate), db: Session = Depends(g
             "email": p.email or user.email, "profile_photo": p.profile_photo,
             "status_label": p.status_label,
             "onboarding_completed": p.onboarding_completed,
-            "docs_step_done": bool(getattr(p, "docs_step_done", False)),
+            "docs_step_done": bool(getattr(p, "docs_step_done", False)) or has_docs,
             "phone": user.phone,
         },
     }

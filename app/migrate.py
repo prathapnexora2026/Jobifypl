@@ -49,5 +49,15 @@ def run_migrations():
             # candidate: admin permission overrides (view details / apply for jobs)
             _add_column(conn, "candidate_profiles", "perm_view", "BOOLEAN")
             _add_column(conn, "candidate_profiles", "perm_apply", "BOOLEAN")
+            # Backfill: any candidate who already uploaded documents has clearly
+            # passed the documents onboarding step. Fixes established users being
+            # wrongly routed back to the docs page after docs_step_done was added.
+            try:
+                conn.execute(text(
+                    "UPDATE candidate_profiles SET docs_step_done = TRUE "
+                    "WHERE (docs_step_done = FALSE OR docs_step_done IS NULL) "
+                    "AND user_id IN (SELECT DISTINCT user_id FROM candidate_documents)"))
+            except Exception as _e:
+                print(f"[migrate] docs backfill skipped: {_e}")
     except Exception as e:
         print(f"[migrate] skipped: {e}")

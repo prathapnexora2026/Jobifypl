@@ -33,23 +33,20 @@ cp ../keystore.properties.example keystore.properties
 ```sh
 cd jobify-app
 
-# 1. Bundle the current frontend into www/ (store-safe, offline UI)
-sh build-www.sh
+# 1. One command: bundle frontend + switch to bundled mode + sync Android
+#    (your live/dev config is restored automatically afterwards)
+sh build-store.sh
 
-# 2. Switch Capacitor to bundled mode: in capacitor.config.json, REMOVE the
-#    entire "server" block (that's what makes it load the live site). Keep the rest.
-
-# 3. Copy the web build into the Android project
-npx cap sync android
-
-# 4. Build the signed release bundle
+# 2. Build the signed release bundle
 cd android
 ./gradlew bundleRelease          # Windows: .\gradlew.bat bundleRelease
 ```
 Output: `android/app/build/outputs/bundle/release/app-release.aab` → upload this to Play Console.
 
-> To go **back to live/dev mode** for quick testing, restore the `"server"` block in
-> `capacitor.config.json` (url `https://jobifypl.pl/app.html`) and rebuild.
+> `build-store.sh` never leaves your repo in bundled mode — it restores your live
+> `capacitor.config.json` at the end, so day-to-day dev/live testing is unaffected.
+> Payments (PayU) work in the bundled app: checkout opens in an in-app browser tab
+> and the app polls the server for confirmation — no code changes needed.
 
 ---
 

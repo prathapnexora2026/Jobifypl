@@ -657,6 +657,7 @@
       <div class="avc" onclick="viewChatPhoto()" style="cursor:pointer;"><img id="chat-av" src="/assets/avt/avt-4.jpg"><div class="online"></div></div>
       <div style="flex:1;"><div class="nm" id="chat-name">Chat</div><div class="st">Online</div></div>
       <div class="back" id="msg-select-btn" onclick="toggleMsgSelectMode()" title="Select messages">☑</div>
+      <div class="back" onclick="openChatMenu()" title="More">⋮</div>
     </div>
     <div class="chat-scroll" id="chat-scroll"></div>
     <div class="chat-input">
@@ -687,6 +688,7 @@
       <div class="pf-item" onclick="openLangPicker()"><div class="l"><div class="iconc" data-ic="globe"></div><div class="t">Language</div></div><div class="chev" data-ic="chevron"></div></div>
       <div class="pf-item" onclick="go('s-contact')"><div class="l"><div class="iconc" data-ic="call"></div><div class="t">Contact Us</div></div><div class="chev" data-ic="chevron"></div></div>
       <div class="pf-item logout" onclick="confirmLogout()"><div class="l"><div class="iconc" data-ic="logout"></div><div class="t">Log out</div></div></div>
+      <div class="pf-item logout" onclick="confirmDeleteAccount()"><div class="l"><div class="iconc">🗑️</div><div class="t">Delete account</div></div></div>
     </div>
   </div>
 
@@ -816,6 +818,43 @@
       <div class="modal-actions">
         <button class="cancel" onclick="document.getElementById('pop-logout').classList.remove('show')">Cancel</button>
         <button class="danger" onclick="candLogout()">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- chat safety menu: block / report -->
+  <div class="pop-bg" id="pop-chatmenu">
+    <div class="pop"><h3 id="chatmenu-title">Options</h3>
+      <div class="modal-actions" style="flex-direction:column;gap:10px;">
+        <button class="danger" onclick="blockChatUser(this)">🚫 Block this user</button>
+        <button class="danger" style="background:#F59E0B;" onclick="document.getElementById('pop-chatmenu').classList.remove('show');openReport('user')">⚑ Report this user</button>
+        <button class="cancel" onclick="document.getElementById('pop-chatmenu').classList.remove('show')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- report reason popup (used for user / job) -->
+  <div class="pop-bg" id="pop-report">
+    <div class="pop"><div class="crown" style="background:#FEF3C7;color:#B45309;">⚑</div><h3>Report</h3>
+      <p>Why are you reporting this? Our team reviews every report.</p>
+      <div class="modal-actions" style="flex-direction:column;gap:8px;">
+        <button class="cancel" onclick="sendReport('spam',this)">Spam or misleading</button>
+        <button class="cancel" onclick="sendReport('harassment',this)">Harassment or abuse</button>
+        <button class="cancel" onclick="sendReport('scam',this)">Scam or fraud</button>
+        <button class="cancel" onclick="sendReport('inappropriate',this)">Inappropriate content</button>
+        <button class="cancel" onclick="sendReport('other',this)">Something else</button>
+        <button class="cancel" style="opacity:.7;" onclick="document.getElementById('pop-report').classList.remove('show')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- delete account confirm popup -->
+  <div class="pop-bg" id="pop-delacc">
+    <div class="pop"><div class="crown" style="background:#FEE2E2;color:var(--red);">🗑️</div><h3>Delete account</h3>
+      <p>This permanently deletes your account and personal data — profile, documents, applications and wallet. This can't be undone.</p>
+      <div class="modal-actions">
+        <button class="cancel" onclick="document.getElementById('pop-delacc').classList.remove('show')">Cancel</button>
+        <button class="danger" onclick="doDeleteAccount(this)">Delete forever</button>
       </div>
     </div>
   </div>
@@ -1389,6 +1428,16 @@ async function goAfterCandidateAuth(){
   }catch(e){ go("s-home"); loadAccess(); }
 }
 function confirmLogout(){ document.getElementById("pop-logout").classList.add("show"); }
+function confirmDeleteAccount(){ document.getElementById("pop-delacc").classList.add("show"); }
+async function doDeleteAccount(btn){
+  const orig=btn.textContent; btn.disabled=true; btn.textContent="Deleting…";
+  try{
+    await api("/account/delete",{method:"POST"});
+    document.getElementById("pop-delacc").classList.remove("show");
+    toast("Your account has been deleted");
+    setTimeout(candLogout, 900);
+  }catch(e){ btn.disabled=false; btn.textContent=orig; toast(e.message||"Could not delete account"); }
+}
 function candLogout(){
   // Clear any in-flight payment state so logout doesn't re-trigger the
   // "confirming payment" popup on reload.
@@ -1770,7 +1819,8 @@ function jdShow(j){
     <div class="jd-sec"><h3>Job Information</h3><div class="jd-grid">${rows.map(r=>`<div><div class="k">${esc(r[0])}</div><div class="v">${esc(r[1])}</div></div>`).join("")}</div></div>
     ${feeBanner}
     ${j.description?`<div class="jd-sec"><h3>Description</h3><div class="jd-desc" data-tr id="jd-desc-text">${esc(j.description)}</div>
-      <a id="jd-translate-btn" onclick="jdTrToggle()" style="color:var(--yellow-d);font-size:13px;font-weight:800;cursor:pointer;display:none;margin-top:10px;">🌐 Show original</a></div>`:""}`;
+      <a id="jd-translate-btn" onclick="jdTrToggle()" style="color:var(--yellow-d);font-size:13px;font-weight:800;cursor:pointer;display:none;margin-top:10px;">🌐 Show original</a></div>`:""}
+    <div class="jd-sec" style="text-align:center;"><a onclick="openReport('job',${j.id})" style="color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;">⚑ Report this job</a></div>`;
   // Auto-translate the description into the reader's language (cached); reveal the
   // toggle only if a translation actually happened.
   autoTr(document.getElementById("jd-content")).then(function(){
@@ -2028,13 +2078,43 @@ async function renderChat(){
     const realPh=avatarSrc(d.other_photo);   // real photo if uploaded, else ""
     const otherPh=realPh||"/assets/avt/avt-4.jpg";
     _chatOtherPhoto=realPh; _chatOtherName=d.other_name||"Chat";
+    _chatOtherId=d.other_id||null; _chatIsAdmin=!!d.is_admin;
     cav.src = otherPh;
     cav.onerror=function(){ this.src="/assets/avt/avt-4.jpg"; };
     _chatMsgs=d.messages||[]; _selMsgs.clear();
     paintChat(otherPh);
   }catch(e){ document.getElementById("chat-scroll").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
-let _chatOtherPhoto="", _chatOtherName="";
+let _chatOtherPhoto="", _chatOtherName="", _chatOtherId=null, _chatIsAdmin=false;
+/* ---- chat safety: block + report (store requirement) ---- */
+function openChatMenu(){
+  if(_chatIsAdmin){ toast("This is JobifyPL support"); return; }   // no block/report on support chat
+  if(!_chatOtherId){ toast("Open the chat first"); return; }
+  document.getElementById("chatmenu-title").textContent=_chatOtherName||"Options";
+  document.getElementById("pop-chatmenu").classList.add("show");
+}
+async function blockChatUser(btn){
+  const orig=btn.textContent; btn.disabled=true; btn.textContent="Blocking…";
+  try{
+    await api("/block",{method:"POST",body:{user_id:_chatOtherId}});
+    document.getElementById("pop-chatmenu").classList.remove("show");
+    toast("User blocked — they can't message you");
+    setTimeout(()=>chatBack(),700);
+  }catch(e){ toast(e.message); }
+  finally{ btn.disabled=false; btn.textContent=orig; }
+}
+let _reportTarget={type:"user",id:null};
+function openReport(type,id){ _reportTarget={type, id:(id||_chatOtherId)}; document.getElementById("pop-report").classList.add("show"); }
+async function sendReport(reason,btn){
+  if(!_reportTarget.id){ toast("Nothing to report"); return; }
+  const orig=btn.textContent; btn.disabled=true; btn.textContent="Sending…";
+  try{
+    await api("/report",{method:"POST",body:{target_type:_reportTarget.type, target_id:_reportTarget.id, reason}});
+    document.getElementById("pop-report").classList.remove("show");
+    toast("Reported. Thank you — our team will review it.");
+  }catch(e){ toast(e.message); }
+  finally{ btn.disabled=false; btn.textContent=orig; }
+}
 function viewChatPhoto(){
   // Show the real photo if any, otherwise the default avatar (so it always opens).
   document.getElementById("pv-name").textContent=_chatOtherName||"";

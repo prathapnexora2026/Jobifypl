@@ -133,6 +133,8 @@ def messages(conversation_id: int, user: User = Depends(get_current_user), db: S
         "status": "success",
         "other_name": display_name(other),
         "other_photo": display_photo(other),
+        "other_id": other.id if other else None,
+        "is_admin": bool(getattr(c, "is_admin", False)),
         "messages": out,
     }
 
@@ -243,6 +245,12 @@ def send_message(body: SendMsgIn, user: User = Depends(get_current_user), db: Se
         raise HTTPException(404, "Conversation not found")
     if not (body.body or "").strip():
         raise HTTPException(400, "Empty message")
+    # Block enforcement: if either party has blocked the other, no messaging.
+    if not c.is_admin:
+        from app.routers.account import is_blocked_between
+        other_id = c.recruiter_id if user.id == c.candidate_id else c.candidate_id
+        if other_id and is_blocked_between(db, user.id, other_id):
+            raise HTTPException(403, "You can't message this user.")
     post_message(db, c, user, body.body.strip())
     return {"status": "success"}
 

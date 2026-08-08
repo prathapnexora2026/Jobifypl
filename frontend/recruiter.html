@@ -537,6 +537,7 @@
             <div class="cst"><span style="color:var(--green);">●</span> Active</div>
           </div>
           <div id="rec-msg-select-btn" onclick="recToggleMsgSelectMode()" title="Select messages" style="cursor:pointer;font-size:20px;padding:6px;">☑</div>
+          <div onclick="openRecChatMenu()" title="More" style="cursor:pointer;font-size:22px;padding:6px;">⋮</div>
         </div>
         <div class="chat-scroll" id="chat-body"></div>
         <div class="compose">
@@ -670,6 +671,7 @@
     <a onclick="railTo('wallet')" data-i18n="wallet">Wallet</a>
     <a onclick="railTo('profile')">Edit Profile</a>
     <a class="danger" onclick="recLogout()" data-i18n="logout">Logout</a>
+    <a class="danger" onclick="toggleMenu(false);recConfirmDeleteAccount()">🗑️ Delete account</a>
   </div>
 
   <!-- bottom-sheet picker -->
@@ -853,6 +855,16 @@ function recLogout(){
   try{ if(window._recPayuPoll) clearInterval(window._recPayuPoll); }catch(e){}
   localStorage.removeItem("rec_payu_pending"); sessionStorage.clear();
   localStorage.removeItem("rec_token"); location.reload();
+}
+function recConfirmDeleteAccount(){ document.getElementById("pop-recdelacc").classList.add("show"); }
+async function recDoDeleteAccount(btn){
+  const orig=btn.textContent; btn.disabled=true; btn.textContent="Deleting…";
+  try{
+    await api("/account/delete",{method:"POST"});
+    document.getElementById("pop-recdelacc").classList.remove("show");
+    _recToast("Your account has been deleted");
+    setTimeout(recLogout, 900);
+  }catch(e){ btn.disabled=false; btn.textContent=orig; _recToast(e.message||"Could not delete account"); }
 }
 
 // ================= DASHBOARD =================
@@ -1296,6 +1308,7 @@ async function openRecChat(cid){
     // show the other person's real photo in the header if they have one
     const ph=fileUrl(d.other_photo); const av2=document.getElementById("chat-av2");
     _recChatPhoto=ph||""; _recOtherName=d.other_name||nm;
+    _recOtherId=d.other_id||null; _recChatIsAdmin=!!d.is_admin;
     if(ph){ av2.style.backgroundImage=`url(${ph})`; av2.style.backgroundSize="cover"; av2.style.backgroundPosition="center"; av2.textContent=""; av2.style.cursor="pointer"; av2.onclick=recViewChatPhoto; }
     _recChatMsgs=d.messages||[]; _recSelMsgs.clear();
     recPaintChat();
@@ -1303,7 +1316,33 @@ async function openRecChat(cid){
     api("/chat/conversations").then(r=>{recConvs=r.conversations||[];}).catch(()=>{});
   }catch(e){ document.getElementById("chat-body").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
 }
-let _recChatMsgs=[], _recSelMsgs=new Set(), _recOtherName="", _recLp=null, _recChatPhoto="";
+let _recChatMsgs=[], _recSelMsgs=new Set(), _recOtherName="", _recLp=null, _recChatPhoto="", _recOtherId=null, _recChatIsAdmin=false;
+/* ---- chat safety: block + report (store requirement) ---- */
+function openRecChatMenu(){
+  if(_recChatIsAdmin){ _recToast("This is JobifyPL support"); return; }
+  if(!_recOtherId){ _recToast("Open the chat first"); return; }
+  document.getElementById("recmenu-title").textContent=_recOtherName||"Options";
+  document.getElementById("pop-recchatmenu").classList.add("show");
+}
+async function recBlockUser(btn){
+  const orig=btn.textContent; btn.disabled=true; btn.textContent="Blocking…";
+  try{
+    await api("/block",{method:"POST",body:{user_id:_recOtherId}});
+    document.getElementById("pop-recchatmenu").classList.remove("show");
+    _recToast("User blocked — they can't message you"); setTimeout(closeRecChat,700);
+  }catch(e){ _recToast(e.message); } finally{ btn.disabled=false; btn.textContent=orig; }
+}
+let _recReportTarget={type:"user",id:null};
+function recOpenReport(type,id){ _recReportTarget={type,id:(id||_recOtherId)}; document.getElementById("pop-recchatmenu").classList.remove("show"); document.getElementById("pop-recreport").classList.add("show"); }
+async function recSendReport(reason,btn){
+  if(!_recReportTarget.id){ _recToast("Nothing to report"); return; }
+  const orig=btn.textContent; btn.disabled=true; btn.textContent="Sending…";
+  try{
+    await api("/report",{method:"POST",body:{target_type:_recReportTarget.type, target_id:_recReportTarget.id, reason}});
+    document.getElementById("pop-recreport").classList.remove("show");
+    _recToast("Reported. Our team will review it.");
+  }catch(e){ _recToast(e.message); } finally{ btn.disabled=false; btn.textContent=orig; }
+}
 function recViewChatPhoto(){
   if(!_recChatPhoto) return;
   let v=document.getElementById("rec-photo-viewer");
@@ -2343,6 +2382,43 @@ document.addEventListener("DOMContentLoaded", recResumePendingPayu);
     </div>
     <button class="btn blue" style="margin-top:14px;" onclick="confirmPermit()">I Confirm</button>
     <button class="later" onclick="cancelPermit()">Cancel</button>
+  </div>
+</div>
+
+<!-- recruiter: chat safety menu (block / report) -->
+<div class="pop-bg" id="pop-recchatmenu">
+  <div class="pop"><h3 id="recmenu-title">Options</h3>
+    <div class="modal-actions" style="flex-direction:column;gap:10px;">
+      <button class="danger" onclick="recBlockUser(this)">🚫 Block this user</button>
+      <button class="danger" style="background:#F59E0B;" onclick="recOpenReport('user')">⚑ Report this user</button>
+      <button class="cancel" onclick="document.getElementById('pop-recchatmenu').classList.remove('show')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- recruiter: report reason -->
+<div class="pop-bg" id="pop-recreport">
+  <div class="pop"><h3>Report</h3>
+    <p style="color:var(--muted);font-size:14px;">Why are you reporting this? Our team reviews every report.</p>
+    <div class="modal-actions" style="flex-direction:column;gap:8px;">
+      <button class="cancel" onclick="recSendReport('spam',this)">Spam or misleading</button>
+      <button class="cancel" onclick="recSendReport('harassment',this)">Harassment or abuse</button>
+      <button class="cancel" onclick="recSendReport('scam',this)">Scam or fraud</button>
+      <button class="cancel" onclick="recSendReport('inappropriate',this)">Inappropriate content</button>
+      <button class="cancel" onclick="recSendReport('other',this)">Something else</button>
+      <button class="cancel" style="opacity:.7;" onclick="document.getElementById('pop-recreport').classList.remove('show')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- recruiter: delete account confirm -->
+<div class="pop-bg" id="pop-recdelacc">
+  <div class="pop"><h3>Delete account</h3>
+    <p style="color:var(--muted);font-size:14px;">This permanently deletes your account and data — profile, job posts, applicants and wallet. This can't be undone.</p>
+    <div class="modal-actions">
+      <button class="cancel" onclick="document.getElementById('pop-recdelacc').classList.remove('show')">Cancel</button>
+      <button class="danger" onclick="recDoDeleteAccount(this)">Delete forever</button>
+    </div>
   </div>
 </div>
 

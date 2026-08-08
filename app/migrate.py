@@ -49,6 +49,8 @@ def run_migrations():
             # candidate: admin permission overrides (view details / apply for jobs)
             _add_column(conn, "candidate_profiles", "perm_view", "BOOLEAN")
             _add_column(conn, "candidate_profiles", "perm_apply", "BOOLEAN")
+            # users: self-service account deletion timestamp (PII scrubbed on delete)
+            _add_column(conn, "users", "deleted_at", "TIMESTAMP")
             # Backfill: any candidate who already uploaded documents has clearly
             # passed the documents onboarding step. Fixes established users being
             # wrongly routed back to the docs page after docs_step_done was added.

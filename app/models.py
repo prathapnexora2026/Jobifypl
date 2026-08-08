@@ -37,6 +37,7 @@ class User(Base):
     created_at = Column(DateTime, default=now)
     last_login_at = Column(DateTime, nullable=True)
     photo = Column(String(255), nullable=True)   # admin profile photo (path)
+    deleted_at = Column(DateTime, nullable=True)  # set when the user deletes their own account (PII scrubbed)
 
     candidate_profile = relationship("CandidateProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     recruiter_profile = relationship("RecruiterProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
@@ -361,4 +362,28 @@ class CouponRedemption(Base):
     role = Column(String(12))                             # candidate | recruiter (for stats)
     context = Column(String(12))                          # "plan" | "wallet"
     discount_amount = Column(Float, default=0)            # PLN discounted or credited
+    created_at = Column(DateTime, default=now)
+
+
+class Report(Base):
+    """A user's report of objectionable content/behaviour (App Store 1.2 / Play UGC).
+    Reviewed by admins."""
+    __tablename__ = "reports"
+    id = Column(Integer, primary_key=True, index=True)
+    reporter_id = Column(Integer, ForeignKey("users.id"), index=True)
+    target_type = Column(String(12), index=True)          # "user" | "job" | "message"
+    target_id = Column(Integer, index=True)
+    reason = Column(String(60))                            # spam | harassment | scam | inappropriate | other
+    details = Column(Text, nullable=True)
+    status = Column(String(12), default="open", index=True)  # open | reviewed | actioned
+    created_at = Column(DateTime, default=now)
+
+
+class UserBlock(Base):
+    """`blocker_id` has blocked `blocked_id` — they can no longer message each other
+    and blocked content is hidden. Required for UGC/chat apps on both stores."""
+    __tablename__ = "user_blocks"
+    id = Column(Integer, primary_key=True, index=True)
+    blocker_id = Column(Integer, ForeignKey("users.id"), index=True)
+    blocked_id = Column(Integer, ForeignKey("users.id"), index=True)
     created_at = Column(DateTime, default=now)

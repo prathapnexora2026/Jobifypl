@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.database import Base, engine, get_db
 from app import models  # noqa: F401 - ensure models are registered
-from app.routers import auth, candidate, jobs, recruiter, wallet, misc, admin, payu_router, coupons
+from app.routers import auth, candidate, jobs, recruiter, wallet, misc, admin, payu_router, coupons, account
 
 # Create tables (dev convenience; production uses Alembic migrations later).
 Base.metadata.create_all(bind=engine)
@@ -67,6 +67,7 @@ app.include_router(misc.testotp_router)   # test-only OTP viewer (auto-disabled 
 app.include_router(admin.router)
 app.include_router(coupons.admin_router)  # admin: create/list/track coupons
 app.include_router(coupons.user_router)   # user: validate a coupon at checkout
+app.include_router(account.router)        # account deletion + report/block (store compliance)
 app.include_router(payu_router.router)    # PayU notify webhook + return page
 
 # Serve uploaded files. On Render these live on the persistent disk (DATA_DIR)

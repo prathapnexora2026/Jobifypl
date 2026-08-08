@@ -289,10 +289,23 @@ class TranslateIn(BaseModel):
 @translate_router.post("")
 def translate_text(body: TranslateIn, user: User = Depends(get_current_user),
                    db: Session = Depends(get_db)):
-    """On-demand translation of user-written content (job descriptions, chat) into
-    the reader's language. Cached server-side to stay inside the free quota."""
+    """Translate one string into the reader's language (cached server-side)."""
     from app.services.translate import translate as _tr
     return {"status": "success", **_tr(db, body.text, body.target)}
+
+
+class TranslateBatchIn(BaseModel):
+    texts: list[str]
+    target: str = "en"
+
+
+@translate_router.post("/batch")
+def translate_batch(body: TranslateBatchIn, user: User = Depends(get_current_user),
+                    db: Session = Depends(get_db)):
+    """Translate many strings at once (chat, lists) — one API call for the uncached
+    ones, the rest from cache. Used for auto-translating dynamic content."""
+    from app.services.translate import translate_many
+    return {"status": "success", "results": translate_many(db, (body.texts or [])[:60], body.target)}
 
 
 # ---------------- TEST-ONLY OTP viewer ----------------

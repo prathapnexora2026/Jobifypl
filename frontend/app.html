@@ -947,6 +947,7 @@
 </div>
 
 <script src="crop.js"></script>
+<script src="autotr.js"></script>
 <script>
 const API="";
 function esc(s){ if(s==null)return""; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -1729,20 +1730,12 @@ async function viewJob(id){
   if(acc && acc.can_view===false){ openUpgrade(); return; }
   jdBack=document.querySelector("#s-apps.active")?"s-apps":"s-home"; jdShow(j);
 }
-let _jdDesc="", _jdDescShown="orig";
-/* On-demand translate of the job description into the reader's language, then
-   toggle back to the original. Translations are cached server-side (quota-safe). */
-async function translateJobDesc(){
-  const el=document.getElementById("jd-desc-text"), btn=document.getElementById("jd-translate-btn");
-  if(!el||!btn) return;
-  if(_jdDescShown==="translated"){ el.textContent=_jdDesc; btn.textContent="🌐 Translate"; _jdDescShown="orig"; return; }
-  const lang=localStorage.getItem("lang")||"en";
-  const orig=btn.textContent; btn.textContent="Translating…";
-  try{
-    const r=await api("/translate",{method:"POST",body:{text:_jdDesc, target:lang}});
-    if(r.translated){ el.textContent=r.text; btn.textContent="↩ Show original"; _jdDescShown="translated"; }
-    else { btn.textContent=orig; toast("Already in your language, or translation isn't set up yet"); }
-  }catch(e){ btn.textContent=orig; toast(e.message); }
+/* The description auto-translates into the reader's language on view (autoTr).
+   This just flips the whole job-detail view between the translation and the original. */
+function jdTrToggle(){
+  const orig=toggleTr();
+  const btn=document.getElementById("jd-translate-btn");
+  if(btn) btn.textContent = orig ? "🌐 Show translation" : "🌐 Show original";
 }
 function jdShow(j){
   const av=avatarSrc(j.recruiter_photo);
@@ -1767,12 +1760,17 @@ function jdShow(j){
          <b>Note:</b> This recruiter has indicated a fee may apply. Please confirm all details before paying anything.</div></div>`
     : `<div class="jd-sec"><div style="background:#E9F9F0;border:1px solid #B9EBCD;border-radius:12px;padding:14px 16px;color:#0E7A46;font-size:14px;">
          ✓ <b>This is a free job.</b> You don't need to pay any fee to the recruiter to apply.</div></div>`;
-  _jdDesc=j.description||""; _jdDescShown="orig";
   document.getElementById("jd-content").innerHTML=`
     <div class="jd-sec"><h3>Job Information</h3><div class="jd-grid">${rows.map(r=>`<div><div class="k">${esc(r[0])}</div><div class="v">${esc(r[1])}</div></div>`).join("")}</div></div>
     ${feeBanner}
-    ${j.description?`<div class="jd-sec"><h3>Description</h3><div class="jd-desc" id="jd-desc-text">${esc(j.description)}</div>
-      <a id="jd-translate-btn" onclick="translateJobDesc()" style="color:var(--yellow-d);font-size:13px;font-weight:800;cursor:pointer;display:inline-block;margin-top:10px;">🌐 Translate</a></div>`:""}`;
+    ${j.description?`<div class="jd-sec"><h3>Description</h3><div class="jd-desc" data-tr id="jd-desc-text">${esc(j.description)}</div>
+      <a id="jd-translate-btn" onclick="jdTrToggle()" style="color:var(--yellow-d);font-size:13px;font-weight:800;cursor:pointer;display:none;margin-top:10px;">🌐 Show original</a></div>`:""}`;
+  // Auto-translate the description into the reader's language (cached); reveal the
+  // toggle only if a translation actually happened.
+  autoTr(document.getElementById("jd-content")).then(function(){
+    var el=document.getElementById("jd-desc-text"), btn=document.getElementById("jd-translate-btn");
+    if(el&&btn&&el.getAttribute("data-tr-has")){ btn.style.display="inline-block"; btn.textContent=window._trShowOriginal?"🌐 Show translation":"🌐 Show original"; }
+  });
   const applied=j.applied||appliedIds.has(j.id);
   document.getElementById("jd-foot").innerHTML=applied
     ? `<button class="btn outline" style="flex:1;" disabled>Applied</button>`
@@ -2045,13 +2043,17 @@ function paintChat(otherPh){
       `<img class="msg-av" src="${esc(otherPh||'/assets/avt/avt-4.jpg')}" onerror="this.src='/assets/avt/avt-4.jpg'">`;
     const sel=_selMsgs.has(m.id);
     const cb=_msgSelectMode?`<div class="selbox ${sel?'on':''}" style="margin:0 8px 0 0;align-self:center;">${sel?'✓':''}</div>`:'';
-    const body = m.deleted ? `<i style="opacity:.6;">${esc(m.body)}</i>` : esc(m.body);
+    // Auto-translate only the OTHER person's messages (my own are already in my language).
+    const body = m.deleted ? `<i style="opacity:.6;">${esc(m.body)}</i>`
+      : (m.mine ? esc(m.body) : `<span data-tr>${esc(m.body)}</span>`);
     return `<div class="mrow ${m.mine?'sent':'recv'} ${sel?'sel':''}" data-mid="${m.id}" onclick="msgRowClick(${m.id})">
       ${cb}${avatar}<div class="bubble">${body}<div class="tt">${fmtTime(m.time)}${m.mine&&!m.deleted?`<span class="tick ${m.read?'read':''}">${svg("check-done")}</span>`:''}</div></div></div>`;
   }).join("");
   const sc=document.getElementById("chat-scroll"); sc.innerHTML=html;
   if(!_selMsgs.size) sc.scrollTop=sc.scrollHeight;
   updateChatSelBar();
+  // Auto-translate incoming messages into the reader's language, then re-anchor to bottom.
+  autoTr(sc).then(function(){ if(!_selMsgs.size) sc.scrollTop=sc.scrollHeight; });
 }
 function toggleMsgSelectMode(){
   _msgSelectMode=!_msgSelectMode; _selMsgs.clear();

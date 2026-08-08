@@ -680,6 +680,7 @@
 </div>
 
 <script src="crop.js"></script>
+<script src="autotr.js"></script>
 <script>
 // ================= config =================
 const API = "";
@@ -1164,10 +1165,11 @@ function renderApplicantsList(){
 function viewCV(idx){
   const a=curApplicants[idx]; if(!a) return;
   const age=ageFromDob(a.dob);
+  // 3rd item = 1 → this value is free-text and should auto-translate for the reader.
   const rows=[
     ["Gender",a.gender],["Age",age?age+" yrs":""],["Date of Birth",a.dob],
-    ["Nationality",a.nationality],["Qualification",a.qualification],
-    ["Student",a.is_student?"Yes":"No"],["Languages",a.languages],
+    ["Nationality",a.nationality,1],["Qualification",a.qualification,1],
+    ["Student",a.is_student?"Yes":"No"],["Languages",a.languages,1],
     ["Email",a.email],["Phone",a.phone],
   ].filter(r=>r[1]);
   const docs=a.documents||[];
@@ -1188,7 +1190,7 @@ function viewCV(idx){
     ${a.resume?`<a class="cv-resume" onclick="recOpenDoc('${esc(a.resume.file)}','Resume / CV')" style="cursor:pointer;">${ic('doc')} <div style="flex:1;"><div style="font-weight:800;">View Resume / CV</div><div style="font-size:12px;color:#C7D2E8;">${esc(a.resume.name||'Open the candidate resume')}</div></div><span class="svg-ic"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></a>`
       :`<div class="cv-resume none">${ic('doc')} <div style="flex:1;"><div style="font-weight:800;">No resume uploaded</div><div style="font-size:12px;">The candidate has not attached a resume yet.</div></div></div>`}
     <div class="cv-sec"><h4>Candidate Details</h4>
-      <div class="cv-grid">${rows.map(r=>`<div><div class="k">${esc(r[0])}</div><div class="v">${esc(r[1])}</div></div>`).join("")}</div></div>
+      <div class="cv-grid">${rows.map(r=>`<div><div class="k">${esc(r[0])}</div><div class="v"${r[2]?' data-tr':''}>${esc(r[1])}</div></div>`).join("")}</div></div>
     <div class="cv-sec"><h4>Documents (${docs.length})</h4>${docHtml}</div>
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button class="btn blue" style="flex:1;" onclick="recMessageCandidate(${a.candidate_id})">${ic('chat')} Message</button>
@@ -1196,6 +1198,7 @@ function viewCV(idx){
         ? `<button class="btn" style="flex:1;background:#16A34A;color:#fff;border:none;" onclick="setAppStatus(${a.application_id},'applied')">✓ Shortlisted</button>`
         : `<button class="btn ghost" style="flex:1;" onclick="setAppStatus(${a.application_id},'shortlisted')">Shortlist</button>`}
     </div>`;
+  autoTr(box);   // translate the candidate's free-text (qualification, languages…) for the reader
 }
 /* Open a legal page (Terms / Privacy) reliably. A plain target="_blank" link
    often does nothing inside the Android WebView, so we use the in-app browser
@@ -1339,13 +1342,16 @@ function recPaintChat(){
   b.innerHTML=_recChatMsgs.length?_recChatMsgs.map(m=>{
     const sel=_recSelMsgs.has(m.id);
     const cb=_recMsgSelectMode?`<div class="rec-selbox ${sel?'on':''}">${sel?'✓':''}</div>`:'';
-    const body=m.deleted?`<i style="opacity:.6;">${esc(m.body)}</i>`:esc(m.body);
+    // Auto-translate only the candidate's messages (my own are already in my language).
+    const body=m.deleted?`<i style="opacity:.6;">${esc(m.body)}</i>`
+      :(m.mine?esc(m.body):`<span data-tr>${esc(m.body)}</span>`);
     return `<div class="bubble-wrap ${m.mine?'me':'them'}" data-mid="${m.id}" onclick="recMsgRowClick(${m.id})" style="display:flex;align-items:center;gap:8px;${m.mine?'flex-direction:row-reverse;':''}">
       ${cb}<div class="bubble ${m.mine?'me':'them'} ${sel?'sel':''}" style="margin-bottom:0;">
       ${!m.mine?`<div class="who">${esc(_recOtherName)}</div>`:""}${body}<span class="bt">${esc(fmtT(m.time))}${m.mine&&!m.deleted?tick(m.read):""}</span></div></div>`;
   }).join(""):`<div class="empty" style="margin:auto;">No messages yet — say hello 👋</div>`;
   if(!_recSelMsgs.size) b.scrollTop=1e9;
   recUpdateSelBar();
+  autoTr(b).then(function(){ if(!_recSelMsgs.size) b.scrollTop=1e9; });
 }
 function recToggleMsgSelectMode(){
   _recMsgSelectMode=!_recMsgSelectMode; _recSelMsgs.clear();

@@ -84,6 +84,19 @@ services:
         sync: false
       - key: PAYU_CLIENT_SECRET
         sync: false
+      # Email for Contact-Us notifications (set these in the dashboard to enable)
+      - key: SMTP_HOST
+        sync: false               # e.g. smtp.hostinger.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false               # e.g. jobifyplsupport@jobifypl.pl
+      - key: SMTP_PASS
+        sync: false               # mailbox password / app password
+      - key: SMTP_FROM
+        sync: false               # optional; defaults to SMTP_USER
+      - key: CONTACT_EMAIL_TO
+        value: "jobifyplsupport@jobifypl.pl"
 
 databases:
   - name: jobifypl-db

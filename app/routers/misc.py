@@ -1,5 +1,5 @@
 """Notifications, Chat, and Contact endpoints."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -259,9 +259,21 @@ class ContactIn(BaseModel):
 
 
 @contact_router.post("")
-def send_contact(body: ContactIn, db: Session = Depends(get_db)):
+def send_contact(body: ContactIn, background: BackgroundTasks, db: Session = Depends(get_db)):
     db.add(ContactMessage(name=body.name, email=body.email, phone=body.phone, message=body.message))
     db.commit()
+    # Also email the team (in the background, so the response is instant).
+    # No-op until SMTP_* + CONTACT_EMAIL_TO are set in the environment.
+    from app.config import settings
+    from app.services.email import send_email
+    to = settings.CONTACT_EMAIL_TO
+    if to:
+        subject = f"New Contact-Us message from {body.name or 'a visitor'}"
+        text = (f"Name: {body.name or '-'}\n"
+                f"Email: {body.email or '-'}\n"
+                f"Phone: {body.phone or '-'}\n\n"
+                f"Message:\n{body.message or ''}\n")
+        background.add_task(send_email, to, subject, text, body.email or "")
     return {"status": "success", "msg": "Message sent. We'll get back to you."}
 
 

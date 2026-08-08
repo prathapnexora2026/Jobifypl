@@ -60,6 +60,14 @@ class Settings(BaseSettings):
     # Sandbox host for tests, live host for production. Default = LIVE (secure.payu.com).
     PAYU_BASE: str = "https://secure.payu.com"
 
+    # ---- Email (Contact-form notifications) ----
+    SMTP_HOST: str = ""            # e.g. smtp.hostinger.com or smtp.gmail.com
+    SMTP_PORT: int = 587          # 587 (STARTTLS) or 465 (SSL)
+    SMTP_USER: str = ""           # mailbox login (e.g. jobifyplsupport@jobifypl.pl)
+    SMTP_PASS: str = ""           # mailbox password / app password
+    SMTP_FROM: str = ""           # from address (defaults to SMTP_USER if blank)
+    CONTACT_EMAIL_TO: str = ""    # where Contact-Us messages are emailed (e.g. jobifyplsupport@jobifypl.pl)
+
     @property
     def admin_phone_list(self) -> list[str]:
         return [p.strip() for p in self.ADMIN_PHONES.split(",") if p.strip()]

@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+// Release signing is read from a gitignored keystore.properties (see STORE-BUILD.md),
+// so the keystore passwords are never committed. Debug builds work without it.
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) { keystoreProps.load(new FileInputStream(keystorePropsFile)) }
+
 android {
     namespace = "pl.jobifypl.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,10 +22,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Sign with the release key when keystore.properties is present.
+            if (keystorePropsFile.exists()) { signingConfig signingConfigs.release }
         }
     }
 }

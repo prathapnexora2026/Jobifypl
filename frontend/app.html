@@ -46,6 +46,10 @@
   .ob-dots i.on{width:26px;border-radius:6px;background:var(--yellow);}
   img{max-width:100%;display:block;}
   .screen{display:none;min-height:100vh;padding-bottom:20px;}
+  .netoff{text-align:center;padding:48px 26px;color:#64748B;max-width:340px;margin:40px auto;}
+  .netoff .ic{font-size:52px;margin-bottom:10px;}
+  .netoff h3{font-size:18px;color:var(--ink,#111);font-weight:800;margin-bottom:6px;}
+  .netoff p{font-size:14px;line-height:1.5;}
   .screen.active{display:block;}
   .screen.hasnav{padding-bottom:84px;}
   svg{display:block;}
@@ -1001,8 +1005,18 @@ async function api(path,opts={}){
   const h=Object.assign({},opts.headers||{});
   if(token())h["Authorization"]="Bearer "+token();
   if(opts.body&&!(opts.body instanceof FormData)){h["Content-Type"]="application/json";opts.body=JSON.stringify(opts.body);}
-  const r=await fetch(API+path,{...opts,headers:h}); const d=await r.json().catch(()=>({}));
+  let r;
+  try{ r=await fetch(API+path,{...opts,headers:h}); }
+  catch(err){ const e=new Error("No internet connection. Please check your connection and try again."); e.noNet=true; throw e; }
+  const d=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(d.detail||d.msg||"Request failed"); return d;
+}
+/* Friendly offline card for list/detail pages (used instead of raw "Failed to fetch"). */
+function isNetErr(e){ return !!(e&&e.noNet) || !navigator.onLine; }
+function netCard(retryFn){
+  return `<div class="netoff"><div class="ic">📡</div><h3>No internet connection</h3>
+    <p>Please check your connection and try again.</p>
+    ${retryFn?`<button class="btn" style="max-width:180px;margin:12px auto 0;" onclick="${retryFn}">Retry</button>`:""}</div>`;
 }
 let toastT;
 function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove("show"),2200); }
@@ -1558,7 +1572,7 @@ async function renderMyDocs(){
         </div>
       </div>`;
     }).join("");
-  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ box.innerHTML=isNetErr(e)?netCard():`<div class="empty">${esc(e.message)}</div>`; }
 }
 
 /* Absolute URL to an uploaded file. In the Capacitor app the page origin is
@@ -1751,7 +1765,7 @@ async function loadHome(){
   try{ const w=await api("/wallet"); document.getElementById("home-wal").innerHTML=`${svg("wallet-sm")} ${Math.round(w.balance||0)} ${w.currency||'PLN'}`; }catch(e){}
   try{ const n=await api("/notifications"); const unread=(n.notifications||[]).some(x=>!x.is_read); document.getElementById("notif-badge").style.display=unread?"block":"none"; }catch(e){}
   try{ const d=await api("/jobs"); allJobs=d.jobs||[]; appliedIds=new Set(allJobs.filter(j=>j.applied).map(j=>j.id)); renderJobs(applyFilters()); }
-  catch(e){ document.getElementById("home-jobs").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  catch(e){ document.getElementById("home-jobs").innerHTML=isNetErr(e)?netCard("loadHome()"):`<div class="empty">${esc(e.message)}</div>`; }
 }
 function applyFilters(){ return allJobs.filter(j=>Object.keys(activeFilters).every(k=>!activeFilters[k]||j[k]===activeFilters[k])); }
 function renderJobs(jobs){
@@ -1897,7 +1911,7 @@ let myApps=[];
 async function loadApps(){
   const box=document.getElementById("apps-list"); box.innerHTML=`<div class="loading">Loading…</div>`;
   try{ const d=await api("/jobs/me/applications"); myApps=d.applications||[]; renderApps(myApps); }
-  catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  catch(e){ box.innerHTML=isNetErr(e)?netCard():`<div class="empty">${esc(e.message)}</div>`; }
 }
 function renderApps(apps){
   const box=document.getElementById("apps-list");
@@ -2019,7 +2033,7 @@ async function loadConversations(){
     _convs=convs; _selConvs.clear();
     renderConvList();
     updateConvSelBar();
-  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ box.innerHTML=isNetErr(e)?netCard():`<div class="empty">${esc(e.message)}</div>`; }
 }
 // ---- Conversations: checkbox select mode + delete whole chat (WhatsApp-style) ----
 let _convs=[], _selConvs=new Set();
@@ -2085,7 +2099,7 @@ async function renderChat(){
     cav.onerror=function(){ this.src="/assets/avt/avt-4.jpg"; };
     _chatMsgs=d.messages||[]; _selMsgs.clear();
     paintChat(otherPh);
-  }catch(e){ document.getElementById("chat-scroll").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ document.getElementById("chat-scroll").innerHTML=isNetErr(e)?netCard("renderChat()"):`<div class="empty">${esc(e.message)}</div>`; }
 }
 let _chatOtherPhoto="", _chatOtherName="", _chatOtherId=null, _chatIsAdmin=false;
 /* ---- chat safety: block + report (store requirement) ---- */
@@ -2241,7 +2255,7 @@ async function loadWallet(){
         </div>
       </div>`;
     }).join("");
-  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ box.innerHTML=isNetErr(e)?netCard():`<div class="empty">${esc(e.message)}</div>`; }
 }
 function openTopup(){ document.getElementById("topup-amt").value=""; document.getElementById("pop-topup").classList.add("show"); }
 async function doTopup(){
@@ -2468,7 +2482,7 @@ async function loadPlans(){
              <div class="disc" id="disc-${p.id}" style="display:none;margin-top:6px;"></div></div>
            <button class="plan-buy" onclick="buyPlan(${p.id},this)">Buy Now</button>`}
     </div>`;}).join("");
-  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ box.innerHTML=isNetErr(e)?netCard():`<div class="empty">${esc(e.message)}</div>`; }
 }
 let _planCoupons={};   // planId -> {code, new_charge}
 async function applyCoupon(id,price,cur){
@@ -2550,7 +2564,7 @@ async function loadNotifications(){
   const box=document.getElementById("notif-list"); box.innerHTML=`<div class="loading">Loading…</div>`;
   try{ const d=await api("/notifications"); _notifs=d.notifications||[]; _selNotifs.clear();
     renderNotifList();
-  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ box.innerHTML=isNetErr(e)?netCard():`<div class="empty">${esc(e.message)}</div>`; }
 }
 function renderNotifList(){
   const box=document.getElementById("notif-list");

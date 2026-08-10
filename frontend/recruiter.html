@@ -13,6 +13,10 @@
     --sheet:#3a3a3a;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  .netoff{text-align:center;padding:48px 26px;color:#64748B;max-width:340px;margin:40px auto;}
+  .netoff .ic{font-size:52px;margin-bottom:10px;}
+  .netoff h3{font-size:18px;color:#111;font-weight:800;margin-bottom:6px;}
+  .netoff p{font-size:14px;line-height:1.5;}
   /* Native-app feel: long-press must NOT select/copy text. Re-enabled on inputs below. */
   html,body,.dash-page,button,a,div,span,h1,h2,h3,h4,p,label,img{-webkit-user-select:none;-ms-user-select:none;user-select:none;-webkit-touch-callout:none;}
   input,textarea,[contenteditable="true"]{-webkit-user-select:text;-ms-user-select:text;user-select:text;-webkit-touch-callout:default;}
@@ -740,10 +744,19 @@ async function api(path, opts={}){
   const h = Object.assign({}, opts.headers||{});
   if(token()) h["Authorization"]="Bearer "+token();
   if(opts.body && !(opts.body instanceof FormData)){ h["Content-Type"]="application/json"; opts.body=JSON.stringify(opts.body); }
-  const res = await fetch(API+path,{...opts,headers:h});
+  let res;
+  try{ res = await fetch(API+path,{...opts,headers:h}); }
+  catch(err){ const e=new Error("No internet connection. Please check your connection and try again."); e.noNet=true; throw e; }
   const data = await res.json().catch(()=>({}));
   if(!res.ok) throw new Error(data.detail||"Request failed");
   return data;
+}
+/* Friendly offline card (instead of raw "Failed to fetch"). */
+function isNetErr(e){ return !!(e&&e.noNet) || !navigator.onLine; }
+function netCard(retryFn){
+  return `<div class="netoff"><div class="ic">📡</div><h3>No internet connection</h3>
+    <p>Please check your connection and try again.</p>
+    ${retryFn?`<button class="btn blue" style="max-width:180px;margin:12px auto 0;" onclick="${retryFn}">Retry</button>`:""}</div>`;
 }
 function showScreen(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active")); document.getElementById(id).classList.add("active"); window.scrollTo(0,0); }
 
@@ -1089,7 +1102,7 @@ async function loadRecNotifications(){
     // mark the raw feed read on open, then clear the header dot
     for(const n of (d.notifications||[])){ if(!n.is_read){ api("/notifications/"+n.id+"/read",{method:"POST"}).catch(()=>{}); } }
     const dot=document.getElementById("head-bell-dot"); if(dot) dot.style.display="none";
-  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ box.innerHTML=isNetErr(e)?netCard():`<div class="empty">${esc(e.message)}</div>`; }
 }
 function recNotifMenu(id){ if(confirm("Delete this notification?")) recDeleteNotif(id); }
 async function recDeleteNotif(id){
@@ -1120,7 +1133,7 @@ async function loadJobs(target){
           <div class="acts"><button class="icobtn e" onclick="editJob(${j.id})">${ic('pencil')}</button>
           <button class="icobtn d" onclick="delJob(${j.id})">${ic('trash')}</button></div></div>
       </div>`;}).join("");
-  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ box.innerHTML=isNetErr(e)?netCard():`<div class="empty">${esc(e.message)}</div>`; }
 }
 async function delJob(id){ if(!confirm("Delete this job?"))return; try{ await api("/recruiter/jobs/"+id,{method:"DELETE"}); go(curPage);}catch(e){alert(e.message);} }
 
@@ -1134,7 +1147,7 @@ async function loadApps(){
         <div style="color:var(--muted);font-size:14px;margin:6px 0 12px;">Applied ${j.applied_count} · Interested ${j.interested_count}</div>
         <button class="btn pill" onclick="viewApplicants(${j.id},'${esc(j.title)}')">${ic('eye')} View</button>
       </div>`).join("");
-  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ box.innerHTML=isNetErr(e)?netCard():`<div class="empty">${esc(e.message)}</div>`; }
 }
 let curApplicants=[], curAppTitle="";
 function applicantAvatar(a,size){
@@ -1157,7 +1170,7 @@ async function viewApplicants(jid,title){
   try{ const d=await api("/recruiter/jobs/"+jid+"/applicants");
     curApplicants=d.applicants||[]; curAppTitle=d.job_title||title||"Applicants";
     renderApplicantsList();
-  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ box.innerHTML=isNetErr(e)?netCard():`<div class="empty">${esc(e.message)}</div>`; }
 }
 function renderApplicantsList(){
   const box=document.getElementById("apps-list");
@@ -1294,7 +1307,7 @@ async function loadConvs(){
         </div>
         ${c.unread?`<span class="cunread">${c.unread}</span>`:""}
       </div>`).join("");
-  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ box.innerHTML=isNetErr(e)?netCard():`<div class="empty">${esc(e.message)}</div>`; }
 }
 async function openRecChat(cid){
   recCurConv=cid;
@@ -1317,7 +1330,7 @@ async function openRecChat(cid){
     recPaintChat();
     // refresh list unread counts in the background (without leaving the chat)
     api("/chat/conversations").then(r=>{recConvs=r.conversations||[];}).catch(()=>{});
-  }catch(e){ document.getElementById("chat-body").innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ document.getElementById("chat-body").innerHTML=isNetErr(e)?netCard("openRecChat(recCurConv)"):`<div class="empty">${esc(e.message)}</div>`; }
 }
 let _recChatMsgs=[], _recSelMsgs=new Set(), _recOtherName="", _recLp=null, _recChatPhoto="", _recOtherId=null, _recChatIsAdmin=false;
 /* ---- chat safety: block + report (store requirement) ---- */
@@ -1467,7 +1480,7 @@ async function loadPackages(){
         : `<button class="choose" onclick="buyPackage(${p.id},${p.price})">Switch to ${esc(p.name)}</button>`}</div>`;
     }).join("");
     box.innerHTML=html;
-  }catch(e){ box.innerHTML=`<div class="empty">${esc(e.message)}</div>`; }
+  }catch(e){ box.innerHTML=isNetErr(e)?netCard():`<div class="empty">${esc(e.message)}</div>`; }
 }
 // Buy a package: ask how to pay (wallet or direct via PayU), then activate.
 let _recBuyPlanId=null, _recBuyPlanPrice=0, _recCoupon=null;

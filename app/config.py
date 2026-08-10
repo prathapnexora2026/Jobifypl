@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     # numbers is granted the admin role. Temporary — will change later.
     ADMIN_PHONES: str = "+919177415501"
 
+    # Store-review test logins (comma-separated). These phones SKIP SMS and accept
+    # REVIEWER_OTP as the code — so Google/Apple reviewers can log in without a real
+    # SMS. Keep them non-real numbers. Safe to leave on (they only work with the fixed code).
+    REVIEWER_PHONES: str = "+48555010101,+48555020202"
+    REVIEWER_OTP: str = "424242"
+
     # DEV ONLY: when True, an admin phone takes whatever role is picked on the
     # login screen (candidate/recruiter/admin) instead of always being forced to
     # admin — so a single test number can walk every flow. MUST be False in prod.
@@ -74,6 +80,10 @@ class Settings(BaseSettings):
     @property
     def admin_phone_list(self) -> list[str]:
         return [p.strip() for p in self.ADMIN_PHONES.split(",") if p.strip()]
+
+    @property
+    def reviewer_phone_list(self) -> list[str]:
+        return [p.strip() for p in self.REVIEWER_PHONES.split(",") if p.strip()]
 
     class Config:
         env_file = ".env"

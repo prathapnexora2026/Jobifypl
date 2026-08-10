@@ -39,7 +39,10 @@ def send_otp(body: SendOtpIn, db: Session = Depends(get_db)):
     if not phone.startswith("+") or len(phone) < 8:
         raise HTTPException(400, "Enter a valid phone number with country code, e.g. +48...")
 
-    code = generate_otp()
+    # Store-review test logins: skip SMS, store the fixed reviewer code so the
+    # normal verify flow accepts it. Lets app-store reviewers log in without a real SMS.
+    is_reviewer = phone in settings.reviewer_phone_list
+    code = settings.REVIEWER_OTP if is_reviewer else generate_otp()
     otp = OtpCode(
         phone=phone,
         code=code,
@@ -49,9 +52,10 @@ def send_otp(body: SendOtpIn, db: Session = Depends(get_db)):
     db.add(otp)
     db.commit()
 
-    ok = send_sms(phone, f"Your JobifyPL verification code is {code}")
-    if not ok:
-        raise HTTPException(502, "Could not send SMS. Please try again.")
+    if not is_reviewer:
+        ok = send_sms(phone, f"Your JobifyPL verification code is {code}")
+        if not ok:
+            raise HTTPException(502, "Could not send SMS. Please try again.")
 
     return {"status": "success", "msg": "OTP sent"}
 

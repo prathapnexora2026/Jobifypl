@@ -4,6 +4,7 @@ Every endpoint requires the admin role (require_admin). Mirrors the reference
 admin panel: dashboard stats, users, jobs, applications, plans, payments, logs.
 """
 import datetime as dt
+import os
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 
@@ -17,6 +18,7 @@ from app.models import (
     User, Role, CandidateProfile, RecruiterProfile, CandidateDocument,
     Job, JobApplication, SubscriptionPlan, UserSubscription,
     WalletTransaction, ContactMessage, Wallet, Notification, CustomOption,
+    Payment, Conversation, Message, Report, UserBlock, CouponRedemption,
 )
 from app.security import require_admin
 
@@ -396,6 +398,54 @@ def delete_user(user_id: int, db: Session = Depends(get_db), admin: User = Depen
         raise HTTPException(404, "User not found")
     if u.role == Role.admin:
         raise HTTPException(400, "Cannot delete an admin")
+    uid = u.id
+
+    # Remove all rows that reference this user first, or Postgres blocks the delete
+    # with a foreign-key violation ("Request failed").
+    # documents (delete the files too)
+    for d in db.query(CandidateDocument).filter(CandidateDocument.user_id == uid).all():
+        try:
+            if d.file_path:
+                fp = UPLOADS_DIR / os.path.basename(d.file_path)
+                if fp.exists():
+                    fp.unlink()
+        except Exception:
+            pass
+        db.delete(d)
+    # candidate's applications
+    db.query(JobApplication).filter(JobApplication.candidate_id == uid).delete(synchronize_session=False)
+    # recruiter's jobs + the applications to them
+    job_ids = [j.id for j in db.query(Job.id).filter(Job.recruiter_id == uid).all()]
+    if job_ids:
+        db.query(JobApplication).filter(JobApplication.job_id.in_(job_ids)).delete(synchronize_session=False)
+        db.query(Job).filter(Job.recruiter_id == uid).delete(synchronize_session=False)
+    # conversations this user is part of + their messages
+    conv_ids = [c.id for c in db.query(Conversation.id).filter(
+        (Conversation.candidate_id == uid) | (Conversation.recruiter_id == uid)).all()]
+    if conv_ids:
+        db.query(Message).filter(Message.conversation_id.in_(conv_ids)).delete(synchronize_session=False)
+        db.query(Conversation).filter(Conversation.id.in_(conv_ids)).delete(synchronize_session=False)
+    db.query(Message).filter(Message.sender_id == uid).delete(synchronize_session=False)
+    # wallet, transactions, subscriptions, notifications, payments
+    db.query(WalletTransaction).filter(WalletTransaction.user_id == uid).delete(synchronize_session=False)
+    db.query(Wallet).filter(Wallet.user_id == uid).delete(synchronize_session=False)
+    db.query(UserSubscription).filter(UserSubscription.user_id == uid).delete(synchronize_session=False)
+    db.query(Notification).filter(Notification.user_id == uid).delete(synchronize_session=False)
+    db.query(Payment).filter(Payment.user_id == uid).delete(synchronize_session=False)
+    # reports, blocks, coupon redemptions
+    db.query(Report).filter(Report.reporter_id == uid).delete(synchronize_session=False)
+    db.query(UserBlock).filter(
+        (UserBlock.blocker_id == uid) | (UserBlock.blocked_id == uid)).delete(synchronize_session=False)
+    db.query(CouponRedemption).filter(CouponRedemption.user_id == uid).delete(synchronize_session=False)
+    # contact messages — keep the message, just unlink the user
+    db.query(ContactMessage).filter(ContactMessage.user_id == uid).update(
+        {ContactMessage.user_id: None}, synchronize_session=False)
+    # profiles (cascade would also handle these when the user is deleted)
+    if u.candidate_profile:
+        db.delete(u.candidate_profile)
+    if u.recruiter_profile:
+        db.delete(u.recruiter_profile)
+
     db.delete(u)
     db.commit()
     return {"status": "success", "msg": "User deleted"}

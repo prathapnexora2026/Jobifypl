@@ -4,12 +4,16 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 from app.config import settings
 
-# Render (and Heroku) hand out DATABASE_URLs that start with "postgres://",
-# but SQLAlchemy's driver name is "postgresql://". Normalise it so the same
-# env var works everywhere without hand-editing.
+# Render (and Heroku) hand out DATABASE_URLs that start with "postgres://" or
+# "postgresql://". We pin the psycopg2 driver EXPLICITLY, because SQLAlchemy 2.1
+# now defaults the bare "postgresql://" URL to the psycopg (v3) driver, which we
+# do not install — that caused "ModuleNotFoundError: No module named 'psycopg'".
+# psycopg2-binary is what we install, so force "postgresql+psycopg2://".
 DATABASE_URL = settings.DATABASE_URL
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+for _prefix in ("postgres://", "postgresql://", "postgresql+psycopg://"):
+    if DATABASE_URL.startswith(_prefix):
+        DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL.split("://", 1)[1]
+        break
 
 # SQLite needs a special connect arg; Postgres/MySQL do not.
 connect_args = {}

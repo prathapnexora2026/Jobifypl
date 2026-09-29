@@ -387,3 +387,20 @@ class UserBlock(Base):
     blocker_id = Column(Integer, ForeignKey("users.id"), index=True)
     blocked_id = Column(Integer, ForeignKey("users.id"), index=True)
     created_at = Column(DateTime, default=now)
+
+
+class Country(Base):
+    """Countries shown in the login / phone-number country picker.
+
+    Managed by the admin (enable / disable / add) so the app's selectable
+    country list is controlled from the backend — no app rebuild needed to
+    turn a country on or off once its SMS route is ready."""
+    __tablename__ = "countries"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(80))
+    dial_code = Column(String(8), index=True)   # e.g. "+91"
+    flag = Column(String(16), default="")        # emoji, e.g. "🇮🇳"
+    iso2 = Column(String(2), default="")         # ISO 3166-1 alpha-2, e.g. "IN"
+    enabled = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=100)
+    created_at = Column(DateTime, default=now)

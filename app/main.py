@@ -30,6 +30,10 @@ run_migrations()
 from app.seed_plans import seed_default_plans
 seed_default_plans()
 
+# Seed the countries shown in the login country picker (only if the table is empty).
+from app.seed_countries import seed_default_countries
+seed_default_countries()
+
 app = FastAPI(title="JobifyPL API")
 
 # CORS — allow the website + Capacitor app origins (learned this the hard way!).
@@ -64,6 +68,7 @@ app.include_router(misc.chat_router)
 app.include_router(misc.contact_router)
 app.include_router(misc.translate_router)  # on-demand translation of dynamic content
 app.include_router(misc.testotp_router)   # test-only OTP viewer (auto-disabled when SMS goes live)
+app.include_router(misc.countries_router) # public country list for the login picker
 app.include_router(admin.router)
 app.include_router(coupons.admin_router)  # admin: create/list/track coupons
 app.include_router(coupons.user_router)   # user: validate a coupon at checkout

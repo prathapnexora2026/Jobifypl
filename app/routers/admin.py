@@ -18,7 +18,7 @@ from app.models import (
     User, Role, CandidateProfile, RecruiterProfile, CandidateDocument,
     Job, JobApplication, SubscriptionPlan, UserSubscription,
     WalletTransaction, ContactMessage, Wallet, Notification, CustomOption,
-    Payment, Conversation, Message, Report, UserBlock, CouponRedemption,
+    Payment, Conversation, Message, Report, UserBlock, CouponRedemption, Country,
 )
 from app.security import require_admin
 
@@ -857,4 +857,76 @@ def admin_chat_send(body: AdminSendIn, db: Session = Depends(get_db), admin: Use
     if not (body.body or "").strip():
         raise HTTPException(400, "Empty message")
     post_message(db, c, admin, body.body.strip())
+    return {"status": "success"}
+
+
+# ==================== COUNTRIES (login country-picker management) ====================
+from typing import Optional
+
+
+class CountryIn(BaseModel):
+    name: str
+    dial_code: str
+    flag: str = ""
+    iso2: str = ""
+    enabled: bool = True
+
+
+class CountryPatch(BaseModel):
+    name: Optional[str] = None
+    dial_code: Optional[str] = None
+    flag: Optional[str] = None
+    iso2: Optional[str] = None
+    enabled: Optional[bool] = None
+
+
+def _norm_dial(d: str) -> str:
+    d = (d or "").strip()
+    return d if d.startswith("+") else "+" + d.lstrip("+")
+
+
+@router.get("/countries")
+def admin_list_countries(db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    rows = db.query(Country).order_by(Country.sort_order, Country.name).all()
+    return [{"id": c.id, "name": c.name, "dial_code": c.dial_code, "flag": c.flag,
+             "iso2": c.iso2, "enabled": c.enabled} for c in rows]
+
+
+@router.post("/countries")
+def admin_add_country(body: CountryIn, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    name = body.name.strip()
+    dial = _norm_dial(body.dial_code)
+    if not name or len(dial) < 2:
+        raise HTTPException(400, "Name and a valid dial code (e.g. +91) are required")
+    if db.query(Country).filter(Country.name == name, Country.dial_code == dial).first():
+        raise HTTPException(400, "That country already exists")
+    maxo = db.query(func.max(Country.sort_order)).scalar() or 0
+    c = Country(name=name, dial_code=dial, flag=(body.flag or "").strip(),
+                iso2=(body.iso2 or "").strip().upper()[:2], enabled=body.enabled,
+                sort_order=maxo + 1)
+    db.add(c); db.commit(); db.refresh(c)
+    return {"status": "success", "id": c.id}
+
+
+@router.patch("/countries/{cid}")
+def admin_update_country(cid: int, body: CountryPatch, db: Session = Depends(get_db),
+                         admin: User = Depends(require_admin)):
+    c = db.query(Country).filter(Country.id == cid).first()
+    if not c:
+        raise HTTPException(404, "Country not found")
+    if body.name is not None: c.name = body.name.strip()
+    if body.dial_code is not None: c.dial_code = _norm_dial(body.dial_code)
+    if body.flag is not None: c.flag = body.flag.strip()
+    if body.iso2 is not None: c.iso2 = body.iso2.strip().upper()[:2]
+    if body.enabled is not None: c.enabled = body.enabled
+    db.commit()
+    return {"status": "success"}
+
+
+@router.delete("/countries/{cid}")
+def admin_delete_country(cid: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    c = db.query(Country).filter(Country.id == cid).first()
+    if not c:
+        raise HTTPException(404, "Country not found")
+    db.delete(c); db.commit()
     return {"status": "success"}

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import (
-    User, Notification, Conversation, Message, ContactMessage
+    User, Notification, Conversation, Message, ContactMessage, Country
 )
 from app.security import get_current_user
 
@@ -350,3 +350,18 @@ def peek_otp(body: PeekOtpIn, db: Session = Depends(get_db)):
     if otp.expires_at < dt.datetime.utcnow():
         raise HTTPException(400, "That OTP expired — request a new one in the app.")
     return {"status": "success", "phone": phone, "code": otp.code}
+
+
+# ---------------- Countries (public, for the login country picker) ----------------
+countries_router = APIRouter(prefix="/countries", tags=["countries"])
+
+
+@countries_router.get("")
+def list_enabled_countries(db: Session = Depends(get_db)):
+    """Enabled countries for the app's phone/country picker."""
+    rows = (db.query(Country)
+              .filter(Country.enabled == True)  # noqa: E712
+              .order_by(Country.sort_order, Country.name)
+              .all())
+    return [{"name": c.name, "dial": c.dial_code, "flag": c.flag, "iso2": c.iso2}
+            for c in rows]

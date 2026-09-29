@@ -349,6 +349,7 @@
     <div class="navitem"    data-page="coupons" onclick="go('coupons')"><span class="ic">🎟️</span> Coupons</div>
     <div class="navitem"    data-page="payments" onclick="go('payments')"><span class="ic">💵</span> Payments</div>
     <div class="navitem"    data-page="options" onclick="go('options')"><span class="ic">🏙️</span> Cities & Languages</div>
+    <div class="navitem"    data-page="countries" onclick="go('countries')"><span class="ic">🌍</span> Countries</div>
     <div class="navitem"    data-page="logs"   onclick="go('logs')"><span class="ic">📞</span> Contacted info</div>
   </div>
 
@@ -551,6 +552,22 @@
       </div>
     </div>
 
+    <!-- COUNTRIES -->
+    <div class="page" id="page-countries">
+      <h2 class="page-title">Countries</h2>
+      <p style="color:#64748B;margin:-8px 0 18px;">Control which countries appear in the app's login screen. Disable a country to hide it (for example while its SMS registration is pending), and enable it once it's ready. Changes apply immediately — no app update needed.</p>
+      <div class="card" style="max-width:840px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end;">
+          <div style="flex:2;min-width:150px;"><label style="font-size:12px;color:#64748B;">Country name</label><input id="ct-name" placeholder="e.g. Vietnam" style="width:100%;"></div>
+          <div style="flex:1;min-width:90px;"><label style="font-size:12px;color:#64748B;">Dial code</label><input id="ct-dial" placeholder="e.g. +84" style="width:100%;"></div>
+          <div style="flex:1;min-width:70px;"><label style="font-size:12px;color:#64748B;">Flag</label><input id="ct-flag" placeholder="🇻🇳" style="width:100%;"></div>
+          <div style="flex:1;min-width:70px;"><label style="font-size:12px;color:#64748B;">ISO2</label><input id="ct-iso" placeholder="VN" maxlength="2" style="width:100%;text-transform:uppercase;"></div>
+          <button class="btn amber" style="max-width:120px;" onclick="addCountryAdmin()">+ Add</button>
+        </div>
+        <div id="ct-list"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
+
     <!-- PROFILE -->
     <div class="page" id="page-profile">
       <button class="back" onclick="go('home')">← Back to Dashboard</button>
@@ -747,6 +764,53 @@ async function api(path, opts={}){
 }
 function fmtDate(iso){ if(!iso) return "—"; const d=new Date(iso); return d.toLocaleDateString()+" "+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
 
+// ---------- COUNTRIES ----------
+async function loadCountriesAdmin(){
+  const el=document.getElementById("ct-list");
+  el.innerHTML='<div class="empty">Loading…</div>';
+  try{
+    const rows=await api("/admin/countries");
+    if(!rows.length){ el.innerHTML='<div class="empty">No countries yet.</div>'; return; }
+    const enabled=rows.filter(c=>c.enabled).length;
+    el.innerHTML=`<div style="font-size:13px;color:#64748B;margin-bottom:10px;">${enabled} enabled · ${rows.length} total</div>`+
+      rows.map(c=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 6px;border-bottom:1px solid #F1F2F5;">
+        <span style="font-size:22px;">${c.flag||"🏳️"}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;">${esc(c.name)}</div>
+          <div style="font-size:12px;color:#94A3B8;">${esc(c.dial_code)}${c.iso2?" · "+esc(c.iso2):""}</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:700;color:${c.enabled?'#16A34A':'#94A3B8'};">
+          <input type="checkbox" ${c.enabled?"checked":""} onchange="toggleCountry(${c.id}, this.checked)">
+          ${c.enabled?"Enabled":"Disabled"}
+        </label>
+        <button onclick="deleteCountryAdmin(${c.id}, ${JSON.stringify(c.name)})" style="background:none;border:none;color:#EF4444;cursor:pointer;font-size:18px;" title="Delete">🗑️</button>
+      </div>`).join("");
+  }catch(e){ el.innerHTML='<div class="empty">'+esc(e.message)+'</div>'; }
+}
+async function toggleCountry(id, enabled){
+  try{ await api("/admin/countries/"+id,{method:"PATCH",body:{enabled:enabled}}); }
+  catch(e){ alert(e.message); }
+  loadCountriesAdmin();
+}
+async function addCountryAdmin(){
+  const name=document.getElementById("ct-name").value.trim();
+  const dial=document.getElementById("ct-dial").value.trim();
+  const flag=document.getElementById("ct-flag").value.trim();
+  const iso=document.getElementById("ct-iso").value.trim();
+  if(!name||!dial){ alert("Enter at least a country name and a dial code (e.g. +84)."); return; }
+  try{
+    await api("/admin/countries",{method:"POST",body:{name:name,dial_code:dial,flag:flag,iso2:iso,enabled:true}});
+    ["ct-name","ct-dial","ct-flag","ct-iso"].forEach(id=>document.getElementById(id).value="");
+    loadCountriesAdmin();
+  }catch(e){ alert(e.message); }
+}
+async function deleteCountryAdmin(id,name){
+  if(!confirm("Delete "+name+"? This removes it from the login list.")) return;
+  try{ await api("/admin/countries/"+id,{method:"DELETE"}); loadCountriesAdmin(); }
+  catch(e){ alert(e.message); }
+}
+
 // ---------- COUPONS ----------
 async function loadCoupons(){
   const b=document.getElementById("coupons-body");
@@ -882,6 +946,7 @@ function go(page){
   if(page==="coupons") loadCoupons();
   if(page==="payments") loadPayments();
   if(page==="options") loadOptions();
+  if(page==="countries") loadCountriesAdmin();
   if(page==="logs") loadLogs();
   if(page==="profile") loadProfile();
   document.querySelector(".sidebar").classList.remove("open");

@@ -59,7 +59,7 @@
   .brand img{height:44px;width:44px;object-fit:contain;}
   .brand .pl{background:var(--yellow);color:#000;border:2px solid var(--navy);padding:0 5px;border-radius:2px;line-height:1.1;font-weight:800;font-size:22px;}
 
-  .topbar{display:flex;align-items:center;gap:12px;padding:16px;position:sticky;top:0;background:#fff;z-index:20;border-bottom:1px solid #F1F5F9;}
+  .topbar{display:flex;align-items:center;gap:12px;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));position:sticky;top:0;background:#fff;z-index:20;border-bottom:1px solid #F1F5F9;}
   .topbar.center{justify-content:flex-start;position:relative;}
   .topbar .back{width:40px;height:40px;border-radius:50%;background:#F1F5F9;border:none;cursor:pointer;display:grid;place-items:center;flex-shrink:0;color:#0F172A;}
   .topbar h1{font-size:19px;font-weight:800;color:var(--ink);}
@@ -144,7 +144,7 @@
   .cal-foot{padding:14px 20px 20px;flex-shrink:0;}
 
   /* bottom nav */
-  .bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:460px;background:#fff;border-top:1px solid #00000020;display:flex;z-index:30;padding:8px 12px;justify-content:space-around;}
+  .bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:460px;background:#fff;border-top:1px solid #00000020;display:flex;z-index:30;padding:8px 12px;padding-bottom:calc(8px + env(safe-area-inset-bottom));justify-content:space-around;}
   .bottomnav button{flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;color:#64748B;font-size:11px;font-weight:700;border-radius:14px;}
   .bottomnav button.on{color:#111;background:var(--yellow);}
   .bottomnav button .lbl{display:none;} .bottomnav button.on .lbl{display:block;margin-top:2px;}
@@ -173,7 +173,7 @@
   #s-signin{background:linear-gradient(180deg,#FDF3C4 0%,#FBE38A 62%,#FCEFB6 100%);min-height:100vh;}
   /* display:flex only on .active (else it beats .screen{display:none} and stacks) */
   #s-signin.active{display:flex;flex-direction:column;}
-  .signin-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 26px 20px;text-align:center;}
+  .signin-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(40px + env(safe-area-inset-top)) 26px 20px;text-align:center;}
   .signin-hero img{width:180px;margin-bottom:26px;}
   .signin-hero h1{font-size:30px;font-weight:900;line-height:1.12;color:#111;}
   .signin-card{background:#fff;border-radius:22px;margin:0 16px 20px;padding:26px 22px 24px;box-shadow:0 -6px 26px rgba(0,0,0,.07);}
@@ -215,7 +215,7 @@
   .gdpr .agree{display:flex;align-items:center;gap:10px;margin-top:14px;cursor:pointer;color:var(--ink);font-weight:600;font-size:14px;}
 
   /* home */
-  .home-top{display:flex;align-items:center;gap:10px;padding:14px 16px;}
+  .home-top{display:flex;align-items:center;gap:10px;padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));}
   .home-top .av{width:48px;height:48px;border-radius:50%;background:#e2e8f0;object-fit:cover;display:grid;place-items:center;color:#94A1B2;overflow:hidden;flex-shrink:0;}
   .home-top .av img{width:100%;height:100%;object-fit:cover;}
   .home-top .hi{font-weight:700;color:var(--muted);font-size:14px;min-width:0;} .home-top .hi b{display:block;color:var(--ink);font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -363,7 +363,7 @@
   /* flex layout only when active — an #id rule must NOT set display, or it beats
      .screen{display:none} and the chat stacks under other screens */
   #s-chat.active{display:flex;flex-direction:column;}
-  .chat-head{display:flex;align-items:center;padding:12px 16px;background:#fff;border-bottom:1px solid #F1F5F9;position:sticky;top:0;z-index:10;}
+  .chat-head{display:flex;align-items:center;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));background:#fff;border-bottom:1px solid #F1F5F9;position:sticky;top:0;z-index:10;}
   .chat-head .back{width:34px;height:34px;display:grid;place-items:center;cursor:pointer;color:#0F172A;flex-shrink:0;}
   .chat-head .avc{position:relative;margin:0 12px;} .chat-head .avc img{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#EDF0F5;}
   .chat-head .online{position:absolute;bottom:0;right:0;width:12px;height:12px;background:var(--green);border-radius:50%;border:2px solid #fff;}
@@ -379,7 +379,7 @@
   .mrow.recv .bubble{background:#fff;color:var(--ink);border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
   .mrow{-webkit-user-select:none;user-select:none;} .mrow.sel{background:rgba(37,99,235,.12);border-radius:12px;}
   #s-chat #chat-scroll{padding-bottom:76px;}
-  .chat-input{display:flex;align-items:center;gap:10px;background:#fff;padding:12px 16px;border-top:1px solid #F1F5F9;}
+  .chat-input{display:flex;align-items:center;gap:10px;background:#fff;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom));border-top:1px solid #F1F5F9;}
   .chat-input input{flex:1;background:#F1F5F9;border:none;border-radius:24px;padding:12px 16px;font-size:15px;outline:none;color:var(--ink);}
   .chat-input .send{width:44px;height:44px;border-radius:50%;background:var(--yellow);border:none;display:grid;place-items:center;cursor:pointer;color:#fff;flex-shrink:0;}
 
@@ -1343,12 +1343,26 @@ document.addEventListener("DOMContentLoaded",function(){
   if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App){
     window.Capacitor.Plugins.App.addListener("backButton", handleBack);
   }
+  loadCountries();
 });
 
+// Fetch the admin-controlled country list. Falls back to the hardcoded list on error.
+async function loadCountries(){
+  try{
+    const res=await fetch(API+"/countries",{cache:"no-store"});
+    if(!res.ok) return;
+    const list=await res.json();
+    if(Array.isArray(list)&&list.length){
+      COUNTRIES=list.map(c=>({n:c.name,d:c.dial,f:c.flag||"🏳️",a:true}));
+    }
+  }catch(e){/* keep fallback list */}
+}
+
 /* ============ COUNTRY CODE PICKER ============ */
-// a:true = SMS works now (Europe). a:false = temporarily unavailable (needs
-// per-country registration; client will enable these later ~3 months).
-const COUNTRIES=[
+// This hardcoded list is only a FALLBACK. The live list is fetched from the
+// backend (GET /countries) so the admin controls which countries are enabled
+// without an app rebuild. a:true = selectable.
+let COUNTRIES=[
   {n:"Poland",d:"+48",f:"🇵🇱",a:true},{n:"Germany",d:"+49",f:"🇩🇪",a:true},{n:"United Kingdom",d:"+44",f:"🇬🇧",a:true},
   {n:"Netherlands",d:"+31",f:"🇳🇱",a:true},{n:"Spain",d:"+34",f:"🇪🇸",a:true},{n:"Italy",d:"+39",f:"🇮🇹",a:true},
   {n:"Portugal",d:"+351",f:"🇵🇹",a:true},{n:"France",d:"+33",f:"🇫🇷",a:true},{n:"Belgium",d:"+32",f:"🇧🇪",a:true},
@@ -1362,7 +1376,7 @@ const COUNTRIES=[
   {n:"Switzerland",d:"+41",f:"🇨🇭",a:true},
   // Temporarily unavailable (SMS registration pending) —
   {n:"Turkey",d:"+90",f:"🇹🇷",a:false},{n:"Russia",d:"+7",f:"🇷🇺",a:false},
-  {n:"India",d:"+91",f:"🇮🇳",a:false},{n:"Nepal",d:"+977",f:"🇳🇵",a:false},{n:"Sri Lanka",d:"+94",f:"🇱🇰",a:false},
+  {n:"India",d:"+91",f:"🇮🇳",a:true},{n:"Nepal",d:"+977",f:"🇳🇵",a:false},{n:"Sri Lanka",d:"+94",f:"🇱🇰",a:false},
   {n:"Philippines",d:"+63",f:"🇵🇭",a:false},{n:"Indonesia",d:"+62",f:"🇮🇩",a:false},{n:"Bangladesh",d:"+880",f:"🇧🇩",a:false},
   {n:"United States",d:"+1",f:"🇺🇸",a:false},{n:"United Arab Emirates",d:"+971",f:"🇦🇪",a:false},
 ];
@@ -2063,7 +2077,7 @@ function updateConvSelBar(){
   let bar=document.getElementById("conv-selbar");
   if(!_convSelectMode){ if(bar) bar.remove(); return; }
   if(!bar){ bar=document.createElement("div"); bar.id="conv-selbar"; document.getElementById("s-messages").appendChild(bar);
-    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;display:flex;gap:10px;align-items:center;z-index:60;box-shadow:0 -4px 16px rgba(0,0,0,.08);"; }
+    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;z-index:60;box-shadow:0 -4px 16px rgba(0,0,0,.08);"; }
   bar.innerHTML=`<div style="flex:1;font-weight:700;">${_selConvs.size} selected</div>
     <button onclick="deleteSelConvs()" ${_selConvs.size?'':'disabled'} style="background:${_selConvs.size?'#FDEBEC':'#F1F5F9'};color:${_selConvs.size?'#D6455D':'#94A3B8'};border:none;border-radius:9px;padding:9px 16px;font-weight:700;">Delete chat</button>
     <button onclick="toggleConvSelectMode()" style="background:none;border:none;color:#64748B;">Cancel</button>`;
@@ -2202,7 +2216,7 @@ function updateChatSelBar(){
   // do all selected belong to me? (delete-for-everyone only allowed on own msgs)
   const allMine=_selMsgs.size>0 && [..._selMsgs].every(id=>{ const m=_chatMsgs.find(x=>x.id===id); return m&&m.mine&&!m.deleted; });
   if(!bar){ bar=document.createElement("div"); bar.id="chat-selbar"; document.getElementById("s-chat").appendChild(bar);
-    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;display:flex;gap:8px;align-items:center;z-index:60;box-shadow:0 -4px 16px rgba(0,0,0,.08);flex-wrap:wrap;"; }
+    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;z-index:60;box-shadow:0 -4px 16px rgba(0,0,0,.08);flex-wrap:wrap;"; }
   const dis=_selMsgs.size?'':'disabled', op=_selMsgs.size?'':'opacity:.5;';
   bar.innerHTML=`<div style="flex:1;font-weight:700;min-width:80px;">${_selMsgs.size} selected</div>
     <button ${dis} onclick="deleteChatSel('me')" style="background:#F1F5F9;border:none;border-radius:9px;padding:9px 14px;font-weight:700;${op}">Delete for me</button>
@@ -2641,7 +2655,7 @@ function updateNotifSelBar(){
   let bar=document.getElementById("notif-selbar");
   if(!_notifSelectMode){ if(bar) bar.remove(); return; }
   if(!bar){ bar=document.createElement("div"); bar.id="notif-selbar"; document.getElementById("s-notif").appendChild(bar);
-    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;display:flex;gap:10px;align-items:center;z-index:60;box-shadow:0 -4px 16px rgba(0,0,0,.08);"; }
+    bar.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E2E8F0;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;z-index:60;box-shadow:0 -4px 16px rgba(0,0,0,.08);"; }
   const dis=_selNotifs.size?'':'disabled', op=_selNotifs.size?'':'opacity:.5;';
   bar.innerHTML=`<div style="flex:1;font-weight:700;">${_selNotifs.size} selected</div>
     <button ${dis} onclick="deleteSelNotifs()" style="background:#FDEBEC;color:#D6455D;border:none;border-radius:9px;padding:9px 16px;font-weight:700;${op}">Delete</button>

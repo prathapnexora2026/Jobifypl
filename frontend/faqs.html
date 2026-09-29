@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>JobifyPL — FAQs</title>
+<style>
+  :root{ --yellow:#F5A800; --ink:#0F172A; --muted:#64748B; --line:#EEE3C6; --card:#fff; --bg:#FFFBF2; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);
+    padding:calc(22px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));}
+  .head{max-width:640px;margin:0 auto 18px;}
+  .head h1{font-size:26px;font-weight:900;margin:0 0 6px;}
+  .head p{margin:0;color:var(--muted);font-size:14px;}
+  .wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
+  details{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  summary{list-style:none;cursor:pointer;padding:16px 18px;font-weight:700;font-size:15.5px;line-height:1.4;
+    display:flex;align-items:center;gap:12px;color:var(--ink);}
+  summary::-webkit-details-marker{display:none;}
+  summary .q{flex:1;}
+  summary .ic{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#FFF3D6;color:var(--yellow);
+    display:grid;place-items:center;font-size:20px;font-weight:800;transition:transform .2s ease;line-height:1;}
+  details[open] summary .ic{transform:rotate(45deg);background:var(--yellow);color:#fff;}
+  details[open] summary{color:#B8860B;}
+  .ans{padding:0 18px 18px;color:#334155;font-size:14.5px;line-height:1.65;}
+  .foot{max-width:640px;margin:24px auto 0;text-align:center;color:var(--muted);font-size:13px;}
+  .foot a{color:#1B4B8F;font-weight:700;text-decoration:none;}
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>Frequently Asked Questions</h1>
+    <p>Quick answers about using JobifyPL. Tap a question to see the answer.</p>
+  </div>
+
+  <div class="wrap" id="faq">
+    <details><summary><span class="q">Who can use JobifyPL?</span><span class="ic">+</span></summary>
+      <div class="ans">JobifyPL can be used by people looking for employment in Poland, including skilled, semi-skilled and unskilled workers, students, temporary workers and people looking for full-time, part-time or seasonal opportunities.</div></details>
+
+    <details><summary><span class="q">Can I search for a specific type of job?</span><span class="ic">+</span></summary>
+      <div class="ans">Yes. You can search for opportunities according to available job categories, keywords, skills, experience and other filters provided by the application.</div></details>
+
+    <details><summary><span class="q">Can students use JobifyPL?</span><span class="ic">+</span></summary>
+      <div class="ans">Yes. Students can use JobifyPL to look for suitable employment opportunities, including part-time or seasonal work where available.</div></details>
+
+    <details><summary><span class="q">Can foreigners use JobifyPL?</span><span class="ic">+</span></summary>
+      <div class="ans">Yes. JobifyPL is designed to connect people looking for employment in Poland with employers and recruitment agencies. Foreign candidates should always check whether they meet the legal requirements for the specific job.</div></details>
+
+    <details><summary><span class="q">Will the employer contact me directly?</span><span class="ic">+</span></summary>
+      <div class="ans">Depending on the job and the employer's recruitment process, an employer or recruiter may contact you through the available communication methods.</div></details>
+
+    <details><summary><span class="q">How long does it take to get a response?</span><span class="ic">+</span></summary>
+      <div class="ans">Response times depend on the employer or recruitment agency. JobifyPL does not guarantee a specific response time unless explicitly stated for a particular service.</div></details>
+
+    <details><summary><span class="q">Can JobifyPL guarantee me a job?</span><span class="ic">+</span></summary>
+      <div class="ans">No. JobifyPL provides a platform to connect candidates with employers and recruitment agencies. Hiring decisions are made by the relevant employer or recruitment agency.</div></details>
+
+    <details><summary><span class="q">Who can register as an employer?</span><span class="ic">+</span></summary>
+      <div class="ans">Companies and organisations that are legally entitled to recruit employees can use JobifyPL, subject to the platform's registration and verification requirements.</div></details>
+
+    <details><summary><span class="q">Can I hire someone directly through JobifyPL?</span><span class="ic">+</span></summary>
+      <div class="ans">JobifyPL facilitates connections between candidates and employers. The final hiring process and employment agreement are between the candidate and the employer.</div></details>
+
+    <details><summary><span class="q">I found a technical problem. What should I do?</span><span class="ic">+</span></summary>
+      <div class="ans">Contact JobifyPL support and provide a description of the problem, screenshots if possible, and the device / app version information requested by support.</div></details>
+  </div>
+
+  <p class="foot">Still need help? Email <a href="mailto:jobifyplsupport@jobifypl.pl">jobifyplsupport@jobifypl.pl</a></p>
+</body>
+</html>

@@ -4,6 +4,17 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>JobifyPL — Admin</title>
+<!-- Installable (PWA): manifest + icons so the admin panel can be installed as an app -->
+<link rel="manifest" href="/admin-manifest.json" />
+<meta name="theme-color" content="#0B1F3A" />
+<link rel="apple-touch-icon" href="/assets/admin-icon-192.png" />
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/admin-sw.js", { scope: "/admin.html" }).catch(function () {});
+    });
+  }
+</script>
 <style>
   :root{
     --yellow:#FFC107; --navy1:#0f172a; --navy2:#020617; --ink:#1E293B;

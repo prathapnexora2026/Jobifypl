@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import (
-    User, Notification, Conversation, Message, ContactMessage, Country
+    User, Notification, Conversation, Message, ContactMessage, Country, SiteSetting
 )
 from app.security import get_current_user
 
@@ -365,3 +365,13 @@ def list_enabled_countries(db: Session = Depends(get_db)):
               .all())
     return [{"name": c.name, "dial": c.dial_code, "flag": c.flag, "iso2": c.iso2}
             for c in rows]
+
+
+# ---------------- Site settings (public: footer + social + app-store links) ----------------
+site_settings_router = APIRouter(prefix="/site-settings", tags=["site-settings"])
+
+
+@site_settings_router.get("")
+def get_site_settings(db: Session = Depends(get_db)):
+    """All editable site settings as a {key: value} map (for the website footer/links)."""
+    return {s.key: s.value for s in db.query(SiteSetting).all()}

@@ -19,6 +19,7 @@ from app.models import (
     Job, JobApplication, SubscriptionPlan, UserSubscription,
     WalletTransaction, ContactMessage, Wallet, Notification, CustomOption,
     Payment, Conversation, Message, Report, UserBlock, CouponRedemption, Country,
+    SiteSetting,
 )
 from app.security import require_admin
 
@@ -930,3 +931,35 @@ def admin_delete_country(cid: int, db: Session = Depends(get_db), admin: User = 
         raise HTTPException(404, "Country not found")
     db.delete(c); db.commit()
     return {"status": "success"}
+
+
+# ==================== SITE SETTINGS (footer contact + social + app-store links) ====================
+# Keys the admin is allowed to edit (prevents arbitrary keys being created).
+ALLOWED_SETTING_KEYS = {
+    "contact_website", "contact_email", "contact_phone", "contact_address",
+    "social_instagram", "social_facebook", "social_youtube", "social_tiktok",
+    "app_store_url", "play_store_url",
+}
+
+
+@router.get("/site-settings")
+def admin_get_site_settings(db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    return {s.key: s.value for s in db.query(SiteSetting).all()}
+
+
+@router.put("/site-settings")
+def admin_update_site_settings(body: dict, db: Session = Depends(get_db),
+                               admin: User = Depends(require_admin)):
+    if not isinstance(body, dict):
+        raise HTTPException(400, "Expected a JSON object of key/value pairs")
+    for key, value in body.items():
+        if key not in ALLOWED_SETTING_KEYS:
+            continue  # ignore unknown keys
+        val = ("" if value is None else str(value)).strip()[:500]
+        row = db.query(SiteSetting).filter(SiteSetting.key == key).first()
+        if row:
+            row.value = val
+        else:
+            db.add(SiteSetting(key=key, value=val))
+    db.commit()
+    return {"status": "success", "settings": {s.key: s.value for s in db.query(SiteSetting).all()}}

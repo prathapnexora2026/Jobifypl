@@ -404,3 +404,14 @@ class Country(Base):
     enabled = Column(Boolean, default=True)
     sort_order = Column(Integer, default=100)
     created_at = Column(DateTime, default=now)
+
+
+class SiteSetting(Base):
+    """Editable site settings (footer contact details, social links, app-store
+    links) — managed from the admin panel so the client can update them without
+    a code change. Simple key/value store."""
+    __tablename__ = "site_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(50), unique=True, index=True)
+    value = Column(String(500), default="")
+    updated_at = Column(DateTime, default=now, onupdate=now)

@@ -361,6 +361,7 @@
     <div class="navitem"    data-page="payments" onclick="go('payments')"><span class="ic">💵</span> Payments</div>
     <div class="navitem"    data-page="options" onclick="go('options')"><span class="ic">🏙️</span> Cities & Languages</div>
     <div class="navitem"    data-page="countries" onclick="go('countries')"><span class="ic">🌍</span> Countries</div>
+    <div class="navitem"    data-page="site" onclick="go('site')"><span class="ic">⚙️</span> Site Settings</div>
     <div class="navitem"    data-page="logs"   onclick="go('logs')"><span class="ic">📞</span> Contacted info</div>
   </div>
 
@@ -560,6 +561,29 @@
           <button class="btn amber" style="max-width:120px;" onclick="addOption()">+ Add</button>
         </div>
         <div id="opt-list"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- SITE SETTINGS -->
+    <div class="page" id="page-site">
+      <h2 class="page-title">Site Settings</h2>
+      <p style="color:#64748B;margin:-8px 0 18px;">Edit the website footer contact details, social media links and app-store links. Changes apply to the website immediately — no developer needed.</p>
+      <div class="card" style="max-width:720px;">
+        <h4 style="margin:0 0 12px;">Footer contact</h4>
+        <label style="font-size:12px;color:#64748B;">Website</label><input id="set-contact_website" placeholder="www.jobifypl.pl" style="width:100%;margin:4px 0 12px;">
+        <label style="font-size:12px;color:#64748B;">Email</label><input id="set-contact_email" placeholder="support@jobifypl.pl" style="width:100%;margin:4px 0 12px;">
+        <label style="font-size:12px;color:#64748B;">Phone</label><input id="set-contact_phone" placeholder="+48 ..." style="width:100%;margin:4px 0 12px;">
+        <label style="font-size:12px;color:#64748B;">Address</label><input id="set-contact_address" placeholder="Poznań, Poland" style="width:100%;margin:4px 0 18px;">
+        <h4 style="margin:0 0 12px;">Social links</h4>
+        <label style="font-size:12px;color:#64748B;">Instagram URL</label><input id="set-social_instagram" style="width:100%;margin:4px 0 12px;">
+        <label style="font-size:12px;color:#64748B;">Facebook URL</label><input id="set-social_facebook" style="width:100%;margin:4px 0 12px;">
+        <label style="font-size:12px;color:#64748B;">YouTube URL</label><input id="set-social_youtube" style="width:100%;margin:4px 0 12px;">
+        <label style="font-size:12px;color:#64748B;">TikTok URL</label><input id="set-social_tiktok" style="width:100%;margin:4px 0 18px;">
+        <h4 style="margin:0 0 12px;">App store links</h4>
+        <label style="font-size:12px;color:#64748B;">App Store URL</label><input id="set-app_store_url" style="width:100%;margin:4px 0 12px;">
+        <label style="font-size:12px;color:#64748B;">Google Play URL</label><input id="set-play_store_url" style="width:100%;margin:4px 0 18px;">
+        <button class="btn amber" style="max-width:160px;" onclick="saveSiteSettings()">Save changes</button>
+        <span id="set-msg" style="margin-left:12px;font-size:13px;font-weight:700;"></span>
       </div>
     </div>
 
@@ -822,6 +846,24 @@ async function deleteCountryAdmin(id,name){
   catch(e){ alert(e.message); }
 }
 
+// ---------- SITE SETTINGS ----------
+const SETTING_KEYS=["contact_website","contact_email","contact_phone","contact_address",
+  "social_instagram","social_facebook","social_youtube","social_tiktok","app_store_url","play_store_url"];
+async function loadSiteSettings(){
+  const msg=document.getElementById("set-msg"); if(msg) msg.textContent="";
+  try{
+    const s=await api("/admin/site-settings");
+    SETTING_KEYS.forEach(k=>{ const el=document.getElementById("set-"+k); if(el) el.value=s[k]||""; });
+  }catch(e){ if(msg){ msg.textContent=e.message; msg.style.color="#EF4444"; } }
+}
+async function saveSiteSettings(){
+  const body={}; SETTING_KEYS.forEach(k=>{ const el=document.getElementById("set-"+k); if(el) body[k]=el.value.trim(); });
+  const msg=document.getElementById("set-msg");
+  if(msg){ msg.textContent="Saving…"; msg.style.color="#64748B"; }
+  try{ await api("/admin/site-settings",{method:"PUT",body}); if(msg){ msg.textContent="Saved ✓ (live on the website)"; msg.style.color="#16A34A"; } }
+  catch(e){ if(msg){ msg.textContent=e.message; msg.style.color="#EF4444"; } }
+}
+
 // ---------- COUPONS ----------
 async function loadCoupons(){
   const b=document.getElementById("coupons-body");
@@ -958,6 +1000,7 @@ function go(page){
   if(page==="payments") loadPayments();
   if(page==="options") loadOptions();
   if(page==="countries") loadCountriesAdmin();
+  if(page==="site") loadSiteSettings();
   if(page==="logs") loadLogs();
   if(page==="profile") loadProfile();
   document.querySelector(".sidebar").classList.remove("open");
